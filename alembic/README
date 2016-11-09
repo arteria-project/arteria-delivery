@@ -1,1 +1,0 @@
-This directory contains alembic migration scripts used to make sure that the database is up to date with the application code.
