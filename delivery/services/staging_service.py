@@ -86,7 +86,7 @@ class StagingService(object):
         staging_order = staging_repo.get_staging_order_by_id(staging_order_id, session)
         try:
             staging_source_with_trailing_slash = staging_order.source + "/"
-            cmd = ['rsync', '--stats', '-r', '--copy-links',
+            cmd = ['rsync', '--stats', '-r', '--copy-links', '--times',
                    staging_source_with_trailing_slash, staging_order.staging_target]
             log.debug("Running rsync with command: {}".format(" ".join(cmd)))
 

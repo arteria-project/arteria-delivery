@@ -2,6 +2,7 @@
 
 import json
 from functools import partial
+import sys
 import tempfile
 
 from tornado.testing import *
@@ -13,6 +14,18 @@ from delivery.app import routes as app_routes, compose_application
 from delivery.models.db_models import StagingStatus, DeliveryStatus
 
 from tests.test_utils import assert_eventually_equals
+
+
+class TestPythonVersion(unittest.TestCase):
+    """
+    Ensure the python binary is of a compatible version
+    """
+    REQUIRED_MAJOR_VERSION = 3
+    REQUIRED_MINOR_VERSION = 6
+
+    def test_python_binary_version(self):
+        self.assertEqual(TestPythonVersion.REQUIRED_MAJOR_VERSION, sys.version_info.major)
+        self.assertLessEqual(TestPythonVersion.REQUIRED_MINOR_VERSION, sys.version_info.minor)
 
 
 class TestIntegration(AsyncHTTPTestCase):

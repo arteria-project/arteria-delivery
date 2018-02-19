@@ -1,6 +1,5 @@
 
 import os
-
 import logging
 
 log = logging.getLogger(__name__)
@@ -86,6 +85,21 @@ class FileSystemService(object):
         :return: None
         """
         return os.symlink(source, link_name)
+
+    @staticmethod
+    def symlink_preserve(source, link_name):
+        """
+        Create a symlink and preserve the modification and access times from the source file
+        :param source: of link
+        :param link_name: the name of the link to create
+        :return: None
+        """
+        FileSystemService.symlink(source, link_name)
+        source_stats = os.stat(source)
+        os.utime(
+            link_name,
+            ns=(source_stats.st_atime_ns, source_stats.st_mtime_ns),
+            follow_symlinks=False)
 
     @staticmethod
     def mkdir(path):

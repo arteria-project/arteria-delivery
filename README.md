@@ -1,7 +1,7 @@
 Arteria delivery
 =================
 
-A self contained (Tornado) REST service that performs deliveries.
+A self contained (Tornado) REST service that performs deliveries. Written for Python 3.6 or higher.
 
 Trying it out
 -------------

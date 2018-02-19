@@ -10,6 +10,7 @@ from delivery.models.project import RunfolderProject, GeneralProject
 from delivery.models.db_models import StagingOrder, StagingStatus, DeliverySource
 from delivery.models.delivery_modes import DeliveryMode
 from delivery.services.delivery_service import DeliveryService
+from delivery.services.file_system_service import FileSystemService
 
 from delivery.services.mover_service import MoverDeliveryService
 from delivery.services.staging_service import StagingService
@@ -37,12 +38,14 @@ class TestDeliveryService(unittest.TestCase):
                                   delivery_sources_repo=mock.create_autospec(DatabaseBasedDeliverySourcesRepository),
                                   general_project_repo=mock.create_autospec(GeneralProjectRepository),
                                   runfolder_service=mock.create_autospec(RunfolderService),
+                                  file_system_service=FileSystemService,
                                   project_links_dir=mock.MagicMock()):
         mover_delivery_service = mover_delivery_service
         self.staging_service = staging_service
         delivery_sources_repo = delivery_sources_repo
         general_project_repo = general_project_repo
         runfolder_service = runfolder_service
+        self.file_system_service = file_system_service
         self.project_links_dir = project_links_dir
 
         self.delivery_service = DeliveryService(mover_service=mover_delivery_service,
@@ -50,16 +53,23 @@ class TestDeliveryService(unittest.TestCase):
                                                 delivery_sources_repo=delivery_sources_repo,
                                                 general_project_repo=general_project_repo,
                                                 runfolder_service=runfolder_service,
+                                                file_system_service=file_system_service,
                                                 project_links_directory=self.project_links_dir)
 
     def setUp(self):
         self._compose_delivery_service()
 
     def test__create_links_area_for_project_runfolders(self):
-        with tempfile.TemporaryDirectory() as tmpdirname:
+        with tempfile.TemporaryDirectory() as tmpdirname, \
+                mock.patch(
+                    "delivery.services.file_system_service.FileSystemService",
+                    new=FileSystemService()) as file_system_service:
+
+            # replace the symlink_preserve with symlink, which doesn't require the source file to exist
+            file_system_service.symlink_preserve = FileSystemService.symlink
+            self._compose_delivery_service(file_system_service=file_system_service)
 
             self.delivery_service.project_links_directory = tmpdirname
-
             batch_nbr = 1337
             project_link_area = self.delivery_service._create_links_area_for_project_runfolders("ABC_123",
                                                                                                 self.runfolder_projects,
@@ -68,6 +78,7 @@ class TestDeliveryService(unittest.TestCase):
             project_linking_area_base = os.path.join(self.delivery_service.project_links_directory,
                                                      "ABC_123",
                                                      str(batch_nbr))
+
             self.assertEqual(project_link_area,
                              project_linking_area_base)
 
@@ -225,6 +236,8 @@ class TestDeliveryService(unittest.TestCase):
                     yield proj
             runfolder_service_mock.find_runfolders_for_project = my_project_iterator
 
+            file_system_service_mock = mock.create_autospec(FileSystemService)
+
             delivery_sources_repo_mock = mock.create_autospec(DatabaseBasedDeliverySourcesRepository)
             delivery_sources_repo_mock.source_exists.return_value = False
             delivery_sources_repo_mock.find_highest_batch_nbr.return_value = 1
@@ -239,6 +252,7 @@ class TestDeliveryService(unittest.TestCase):
             self._compose_delivery_service(runfolder_service=runfolder_service_mock,
                                            delivery_sources_repo=delivery_sources_repo_mock,
                                            staging_service=staging_service_mock,
+                                           file_system_service=file_system_service_mock,
                                            project_links_dir=tmpdirname)
 
             projects_and_ids, projects = \
