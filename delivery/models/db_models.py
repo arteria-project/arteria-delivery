@@ -1,8 +1,9 @@
 
 import os
 import enum as base_enum
+import datetime
 
-from sqlalchemy import Column, Integer, BigInteger, String, Enum
+from sqlalchemy import Column, Integer, BigInteger, String, Enum, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 
 """
@@ -135,3 +136,28 @@ class DeliveryOrder(SQLAlchemyBase):
                                                                                    self.delivery_source,
                                                                                    self.delivery_project,
                                                                                    self.delivery_status)
+
+class NGIStatusAsEnum(base_enum.Enum):
+    """
+    Enumerate possible delivery statuses given the ngi-status from SUPR
+    """
+    pending = 'pending'
+    successful = 'successful'
+    failed = 'failed'
+
+class NGIStatus(SQLAlchemyBase):
+    """
+    Models the ngi-status from SUPR
+    """
+    __tablename__ = 'ngi_status'
+
+    order_id = Column(Integer, primary_key=True)  #Order id from table delivery_orders.
+    delivery_project = Column(String) #Delivery project from table delivery orders, format deliveryXXXX.
+    status = Column(Enum(NGIStatusAsEnum),server_default='pending')#Update dependent on ngi-status in SUPR
+    timestamp = Column(DateTime(), default=datetime.datetime.now())
+
+    def __repr__(self):
+        return "NGI delivery status:{id: %s, delivery_project: %s, status: %s, timestamp: %s }" % (str(self.order_id),
+                                                                                                   self.delivery_project,
+                                                                                                   self.status,
+                                                                                                   self.timestamp)
