@@ -156,6 +156,12 @@ class NGIStatus(SQLAlchemyBase):
     status = Column(Enum(NGIStatusAsEnum),server_default='pending')#Update dependent on ngi-status in SUPR
     timestamp = Column(DateTime(), default=datetime.datetime.now())
 
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.order_id == other.order_id and self.delivery_project == other.delivery_project\
+            and self.status == other.status and self.timestamp == other.timestamp
+
+
     def __repr__(self):
         return "NGI delivery status:{id: %s, delivery_project: %s, status: %s, timestamp: %s }" % (str(self.order_id),
                                                                                                    self.delivery_project,
