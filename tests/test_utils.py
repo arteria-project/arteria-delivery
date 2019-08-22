@@ -160,6 +160,14 @@ def unorganised_runfolder(name="180124_A00181_0019_BH72M5DMXX", root_path="/foo"
             project_name=p,
             sample_indexes=sample_indexes,
             lane_numbers=lane_numbers) for p in fake_projects]
+    # add another project with missing files
+    project = runfolder_project(
+        runfolder,
+        project_name="GHI_789",
+        sample_indexes=sample_indexes,
+        lane_numbers=lane_numbers)
+    project.project_files = []
+    runfolder.projects.append(project)
     checksums = {}
     for project in runfolder.projects:
         for sample in project.samples:

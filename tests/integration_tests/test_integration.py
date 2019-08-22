@@ -166,8 +166,8 @@ class TestIntegration(AsyncHTTPTestCase):
                         os.path.basename(samplesheet_file)),
                     MetadataService.hash_file(samplesheet_file))
 
-                project_file_base = os.path.dirname(project.project_files[0].file_path)
                 for project_file in project.project_files:
+                    project_file_base = os.path.dirname(project.project_files[0].file_path)
                     relative_path = os.path.relpath(project_file.file_path, project_file_base)
                     organised_project_file_path = os.path.join(organised_path, relative_path)
                     self.assertTrue(

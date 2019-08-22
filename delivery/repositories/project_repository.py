@@ -129,7 +129,11 @@ class UnorganisedRunfolderProjectRepository(object):
                 runfolder_path=runfolder.path,
                 runfolder_name=runfolder.name
             )
-            project.project_files = self.get_report_files(project, checksums=runfolder.checksums)
+            try:
+                project.project_files = self.get_report_files(project, checksums=runfolder.checksums)
+            except ProjectReportNotFoundException as e:
+                log.warning(e)
+
             project.samples = self.sample_repository.get_samples(project, runfolder)
             return project
 
