@@ -173,13 +173,18 @@ class UnorganisedRunfolderProjectRepository(object):
 
         checksums = checksums or {}
         if self.filesystem_service.exists(self.multiqc_report_path(project)):
+            log.info("MultiQC reports found in Unaligned/{}, overriding organisation of seqreports".format(project.name))
             return list(map(_file_object_from_path, self.multiqc_report_files(project)))
         for sisyphus_report_path in self.sisyphus_report_path(project):
             if self.filesystem_service.exists(sisyphus_report_path):
+                log.info("Organising sisyphus reports for {}".format(project.name))
                 return list(map(
                     _file_object_from_path,
                     self.sisyphus_report_files(
                         self.filesystem_service.dirname(sisyphus_report_path))))
+        if self.filesystem_service.exists(self.seqreports_path(project)):
+            log.info("Organising seqreports for {}".format(project.name))
+            return list(map(_file_object_from_path, self.seqreports_files(project)))
         raise ProjectReportNotFoundException("No project report found for {}".format(project.name))
 
     @staticmethod
@@ -213,6 +218,20 @@ class UnorganisedRunfolderProjectRepository(object):
         report_dir = self.filesystem_service.dirname(report_files[0])
         report_files.append(
             os.path.join(report_dir, "{}_multiqc_report_data.zip".format(project.name)))
+        return report_files
+
+    @staticmethod
+    def seqreports_path(project):
+        return os.path.join(
+            project.runfolder_path, "seqreports", "projects", project.name,
+            "{}_{}_multiqc_report.html".format(project.runfolder_name, project.name))
+
+    def seqreports_files(self, project):
+        report_files = [self.seqreports_path(project)]
+        report_dir = self.filesystem_service.dirname(report_files[0])
+        report_files.append(
+            os.path.join(report_dir,
+                         "{}_{}_multiqc_report_data.zip".format(project.runfolder_name, project.name)))
         return report_files
 
     def is_sample_in_project(self, project, sample_project, sample_id, sample_lane):

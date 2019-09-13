@@ -70,3 +70,10 @@ class TestUnorganisedRunfolderProjectRepository(unittest.TestCase):
             projects = self.project_repository.get_projects(self.runfolder)
             for project in projects:
                 self.assertIsInstance(project, RunfolderProject)
+
+    def test_override_log_message(self):
+
+        self.filesystem_service.dirname.return_value = "foo/bar"
+        with self.assertLogs(level='INFO') as log:
+            self.project_repository.get_report_files(self.runfolder.projects[0])
+            self.assertIn('overriding organisation of seqreports', log.output[0])
