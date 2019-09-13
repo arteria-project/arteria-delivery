@@ -175,14 +175,16 @@ class UnorganisedRunfolderProjectRepository(object):
         if self.filesystem_service.exists(self.multiqc_report_path(project)):
             log.info("MultiQC reports found in Unaligned/{}, overriding organisation of seqreports".format(project.name))
             return list(map(_file_object_from_path, self.multiqc_report_files(project)))
-        if self.filesystem_service.exists(self.seqreports_path(project)):
-            return list(map(_file_object_from_path, self.seqreports_files(project)))
         for sisyphus_report_path in self.sisyphus_report_path(project):
             if self.filesystem_service.exists(sisyphus_report_path):
+                log.info("Organising sisyphus reports for {}".format(project.name))
                 return list(map(
                     _file_object_from_path,
                     self.sisyphus_report_files(
                         self.filesystem_service.dirname(sisyphus_report_path))))
+        if self.filesystem_service.exists(self.seqreports_path(project)):
+            log.info("Organising seqreports for {}".format(project.name))
+            return list(map(_file_object_from_path, self.seqreports_files(project)))
         raise ProjectReportNotFoundException("No project report found for {}".format(project.name))
 
     @staticmethod
