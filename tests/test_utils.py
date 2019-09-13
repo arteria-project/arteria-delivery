@@ -31,7 +31,7 @@ class DummyConfig:
 
 fake_directories = ["160930_ST-E00216_0111_BH37CWALXX",
                     "160930_ST-E00216_0112_BH37CWALXX"]
-fake_projects = ["ABC_123", "DEF_456"]
+fake_projects = ["ABC_123", "DEF_456", "GHI_789"]
 
 
 def mock_file_system_service(directories, projects, fastq_files=None):
@@ -67,9 +67,11 @@ def lane_generator():
     yield from _item_generator()
 
 
-def bool_generator():
-    for item in _item_generator():
-        yield int(item) % 2 == 0
+def report_type_generator():
+    report_types = ["multiqc", "seqreports", "sisyphus"]
+    while True:
+        for rt in report_types:
+            yield rt
 
 
 def project_sample(project, sample_name, sample_index, lane_no, sample_id=None):
@@ -111,14 +113,14 @@ def runfolder_project(
         sample_indexes=sample_index_generator(),
         lane_numbers=lane_generator(),
         project_root="Unaligned",
-        multiqc_reports=bool_generator()):
+        report_type=report_type_generator()):
     project = RunfolderProject(
         name=project_name,
         path=os.path.join(runfolder.path, project_root, project_name),
         runfolder_path=runfolder.path,
         runfolder_name=runfolder.name
     )
-    project.project_files = project_report_files(project, multiqc_report=next(multiqc_reports))
+    project.project_files = project_report_files(project, next(report_type))
     sample_names = sample_name_generator()
 
     # a straight-forward sample with files on one lane
@@ -163,7 +165,7 @@ def unorganised_runfolder(name="180124_A00181_0019_BH72M5DMXX", root_path="/foo"
     # add another project with missing files
     project = runfolder_project(
         runfolder,
-        project_name="GHI_789",
+        project_name="JKL_123",
         sample_indexes=sample_indexes,
         lane_numbers=lane_numbers)
     project.project_files = []
@@ -250,12 +252,16 @@ AdapterRead2,,,,,,,,
     return samplesheet_file, samplesheet_data
 
 
-def project_report_files(project, multiqc_report=True):
-    if multiqc_report:
+def project_report_files(project, report_type):
+    if "multiqc" in report_type:
         report_dir = project.path
         report_files = [os.path.join(report_dir, "{}_multiqc_report.html".format(project.name)),
                         os.path.join(report_dir, "{}_multiqc_report_data.zip".format(project.name))]
-    else:
+    elif "seqreports" in report_type:
+        report_dir = os.path.join(project.runfolder_path, "seqreports", "projects", project.name)
+        report_files = [os.path.join(report_dir, "{}_{}_multiqc_report.html".format(project.runfolder_name, project.name)),
+                        os.path.join(report_dir, "{}_{}_multiqc_report_data.zip".format(project.runfolder_name, project.name))]
+    elif "sisyphus" in report_type:
         report_dir = os.path.join(project.runfolder_path, "Summary", project.name)
         report_files = list(map(lambda f: os.path.join(report_dir, "report.{}".format(f)), ["html", "xml", "xsl"]))
         report_files.append(os.path.join(report_dir, "Plots", "file_in_plots.png"))
@@ -276,6 +282,10 @@ _runfolder1.projects = [RunfolderProject(name="ABC_123",
                         RunfolderProject(name="DEF_456",
                                          path="/foo/160930_ST-E00216_0111_BH37CWALXX/Projects/DEF_456",
                                          runfolder_path=_runfolder1.path,
+                                         runfolder_name="160930_ST-E00216_0111_BH37CWALXX"),
+                        RunfolderProject(name="GHI_789",
+                                         path="/foo/160930_ST-E00216_0111_BH37CWALXX/Projects/GHI_789",
+                                         runfolder_path=_runfolder1.path,
                                          runfolder_name="160930_ST-E00216_0111_BH37CWALXX")]
 
 _runfolder2 = Runfolder(name="160930_ST-E00216_0112_BH37CWALXX",
@@ -288,6 +298,10 @@ _runfolder2.projects = [RunfolderProject(name="ABC_123",
                         RunfolderProject(name="DEF_456",
                                          path="/foo/160930_ST-E00216_0112_BH37CWALXX/Projects/DEF_456",
                                          runfolder_path=_runfolder2.path,
+                                         runfolder_name="160930_ST-E00216_0112_BH37CWALXX"),
+                        RunfolderProject(name="GHI_789",
+                                         path="/foo/160930_ST-E00216_0112_BH37CWALXX/Projects/GHI_789",
+                                         runfolder_path=_runfolder1.path,
                                          runfolder_name="160930_ST-E00216_0112_BH37CWALXX")]
 
 FAKE_RUNFOLDERS = [_runfolder1, _runfolder2]

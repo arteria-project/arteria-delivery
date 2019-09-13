@@ -50,7 +50,7 @@ class TestRunfolderRepository(unittest.TestCase):
 
     def test_get_projects(self):
         actual_projects = list(self.repo.get_projects())
-        self.assertTrue(len(actual_projects) == 4)
+        self.assertTrue(len(actual_projects) == 6)
 
     def test_get_project(self):
         project_name = "ABC_123"
