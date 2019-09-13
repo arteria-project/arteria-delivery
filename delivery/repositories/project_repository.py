@@ -172,10 +172,11 @@ class UnorganisedRunfolderProjectRepository(object):
             return RunfolderFile(file_path, file_checksum=checksum)
 
         checksums = checksums or {}
-        if self.filesystem_service.exists(self.seqreports_path(project)):
-            return list(map(_file_object_from_path, self.seqreports_path_files(project)))
         if self.filesystem_service.exists(self.multiqc_report_path(project)):
+            log.info("MultiQC reports found in Unaligned/{}, overriding organisation of seqreports".format(project.name))
             return list(map(_file_object_from_path, self.multiqc_report_files(project)))
+        if self.filesystem_service.exists(self.seqreports_path(project)):
+            return list(map(_file_object_from_path, self.seqreports_files(project)))
         for sisyphus_report_path in self.sisyphus_report_path(project):
             if self.filesystem_service.exists(sisyphus_report_path):
                 return list(map(
