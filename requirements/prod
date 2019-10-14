@@ -3,5 +3,5 @@ tornado==4.2.1
 sqlalchemy==1.1.3
 alembic==0.8.8
 enum34==1.1.6
-git+https://github.com/arteria-project/arteria-core.git@v1.0.1#egg=arteria-core
+arteria==1.1.3
 
