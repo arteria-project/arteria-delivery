@@ -200,12 +200,12 @@ class TestIntegration(AsyncHTTPTestCase):
                 self.assertEqual(project, "ABC_123")
 
                 status_response = yield self.http_client.fetch(link)
-                self.assertEquals(json.loads(status_response.body)["status"], StagingStatus.staging_successful.name)
+                self.assertEqual(json.loads(status_response.body)["status"], StagingStatus.staging_successful.name)
 
 
                 # The size of the fake project is 1024 bytes
                 status_response = yield self.http_client.fetch(link)
-                self.assertEquals(json.loads(status_response.body)["size"], 1024)
+                self.assertEqual(json.loads(status_response.body)["size"], 1024)
 
             staging_order_project_and_id = response_json.get("staging_order_ids")
 
@@ -218,7 +218,7 @@ class TestIntegration(AsyncHTTPTestCase):
                 delivery_link = delivery_resp_as_json['delivery_order_link']
 
                 status_response = yield self.http_client.fetch(delivery_link)
-                self.assertEquals(json.loads(status_response.body)["status"], DeliveryStatus.delivery_skipped.name)
+                self.assertEqual(json.loads(status_response.body)["status"], DeliveryStatus.delivery_skipped.name)
 
     def test_cannot_stage_the_same_runfolder_twice(self):
         # Note that this is a test which skips mover (since to_outbox is not expected to be installed on the system
