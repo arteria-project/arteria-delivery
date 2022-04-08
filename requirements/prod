@@ -1,5 +1,7 @@
+wheel==0.37.1
+jsonpickle==2.1
 tornado==6.1
-sqlalchemy==1.4
-alembic==1.7
-enum34==1.1
+sqlalchemy==1.4.35
+alembic==1.7.7
+enum34==1.1.10
 arteria==1.1.3
