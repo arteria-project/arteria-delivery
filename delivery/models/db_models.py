@@ -112,6 +112,7 @@ class DeliveryOrder(SQLAlchemyBase):
     id = Column(Integer, primary_key=True, autoincrement=True)
     delivery_source = Column(String, nullable=False)
     delivery_project = Column(String, nullable=False)
+    dds_project_id = Column(String)
 
     # Optional path to md5sum file
     md5sum_file = Column(String)
@@ -131,7 +132,4 @@ class DeliveryOrder(SQLAlchemyBase):
     staging_order_id = Column(Integer)
 
     def __repr__(self):
-        return "Delivery order: {id: %s, source: %s, project: %s, status: %s }" % (str(self.id),
-                                                                                   self.delivery_source,
-                                                                                   self.delivery_project,
-                                                                                   self.delivery_status)
+        return f"Delivery order: {{id: {self.id}, source: {self.delivery_source}, project: {self.delivery_project}, status: {self.delivery_status}, dds_project_id: {self.dds_project_id} }}"
