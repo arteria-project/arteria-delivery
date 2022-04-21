@@ -54,13 +54,27 @@ class DeliveryStatusHandler(ArteriaDeliveryBaseHandler):
 
     def initialize(self, **kwargs):
         self.mover_delivery_service = kwargs["mover_delivery_service"]
+        self.dds_delivery_service = kwargs["dds_service"]
         super(DeliveryStatusHandler, self).initialize(kwargs)
 
     @coroutine
     def get(self, delivery_order_id):
-        delivery_order = yield self.mover_delivery_service.update_delivery_status(delivery_order_id)
+        # Determine if project was delivered through dds or mover
+        dds_project_id = self.mover_delivery_service\
+            .get_delivery_order_by_id(delivery_order_id).dds_project_id
 
-        self.write_json({'id': delivery_order.id,
-                         'status': delivery_order.delivery_status.name,
-                         'mover_delivery_id': delivery_order.mover_delivery_id})
+        delivery_service = self.dds_delivery_service if dds_project_id else self.mover_delivery_service
+
+        delivery_order = yield delivery_service.update_delivery_status(delivery_order_id)
+
+        body = {
+                'id': delivery_order.id,
+                'status': delivery_order.delivery_status.name,
+                }
+        if dds_project_id:
+            body['dds_project_id'] = delivery_order.dds_project_id
+        else:
+            body['mover_delivery_id'] = delivery_order.mover_delivery_id
+
+        self.write_json(body)
         self.set_status(OK)
