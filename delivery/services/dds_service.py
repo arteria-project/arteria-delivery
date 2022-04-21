@@ -10,12 +10,11 @@ from delivery.exceptions import ProjectNotFoundException, TooManyProjectsFound, 
 log = logging.getLogger(__name__)
 
 
-class MoverDeliveryService(object):
+class DDSService(object):
 
     def __init__(self, external_program_service, staging_service, delivery_repo, session_factory, dds_conf):
         self.external_program_service = external_program_service
         self.mover_external_program_service = self.external_program_service
-        self.moverinfo_external_program_service = self.external_program_service
         self.staging_service = staging_service
         self.delivery_repo = delivery_repo
         self.session_factory = session_factory
@@ -106,15 +105,15 @@ class MoverDeliveryService(object):
                                          "Staging order was: {}".format(stage_order))
 
         if not skip_mover:
-            dds_project_id = yield MoverDeliveryService._get_dds_project_id(delivery_project, self.mover_external_program_service)
+            dds_project_id = yield DDSService._get_dds_project_id(delivery_project, self.mover_external_program_service)
         else:
             dds_project_id = None
 
         delivery_order = self.delivery_repo.create_delivery_order(delivery_source=stage_order.get_staging_path(),
                                                                   delivery_project=delivery_project,
-                                                                  dds_project_id=dds_project_id,
                                                                   delivery_status=DeliveryStatus.pending,
                                                                   staging_order_id=staging_id,
+                                                                  dds_project_id=dds_project_id,
                                                                   md5sum_file=md5sum_file)
 
         args_for_run_mover = {'delivery_order_id': delivery_order.id,
@@ -129,9 +128,17 @@ class MoverDeliveryService(object):
             delivery_order.delivery_status = DeliveryStatus.delivery_skipped
             session.commit()
         else:
-            yield MoverDeliveryService._run_mover(**args_for_run_mover)
+            yield DDSService._run_mover(**args_for_run_mover)
 
         return delivery_order.id
 
     def get_delivery_order_by_id(self, delivery_order_id):
         return self.delivery_repo.get_delivery_order_by_id(delivery_order_id)
+
+    @gen.coroutine
+    def update_delivery_status(self, delivery_order_id):
+        """
+        Check delivery status and update the delivery database accordingly
+        """
+        # NB: this is done automatically with the new DDS implementation now.
+        return self.get_delivery_order_by_id(delivery_order_id)

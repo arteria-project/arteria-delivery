@@ -132,6 +132,9 @@ class MoverDeliveryService(object):
 
     @gen.coroutine
     def update_delivery_status(self, delivery_order_id):
+        """
+        Check delivery status and update the delivery database accordingly
+        """
         delivery_order = self.get_delivery_order_by_id(delivery_order_id)
 
         if delivery_order.mover_delivery_id and delivery_order.delivery_status == DeliveryStatus.delivery_in_progress:

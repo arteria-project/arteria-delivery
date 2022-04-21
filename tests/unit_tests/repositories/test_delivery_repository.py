@@ -56,12 +56,14 @@ class TestDeliveryRepository(unittest.TestCase):
         actual = self.delivery_repo.create_delivery_order(delivery_source='/foo/source2',
                                                           delivery_project='bar2',
                                                           delivery_status=DeliveryStatus.pending,
+                                                          dds_project_id="snpseq00003",
                                                           staging_order_id=2)
 
         self.assertEqual(actual.id, 2)
         self.assertEqual(actual.delivery_source, '/foo/source2')
         self.assertEqual(actual.delivery_project, 'bar2')
         self.assertEqual(actual.delivery_status, DeliveryStatus.pending)
+        self.assertEqual(actual.dds_project_id, "snpseq00003")
         self.assertEqual(actual.staging_order_id, 2)
 
         # Check that the object has been committed, i.e. there are no 'dirty' objects in session
