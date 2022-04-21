@@ -187,6 +187,7 @@ def compose_application(config):
                 external_program_service=external_program_service,
                 staging_service=staging_service,
                 mover_delivery_service=mover_delivery_service,
+                dds_service=dds_service,
                 delivery_service=delivery_service,
                 general_project_repo=general_project_repo,
                 best_practice_analysis_service=best_practice_analysis_service,

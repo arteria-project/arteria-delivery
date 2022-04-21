@@ -16,7 +16,8 @@ class DeliverByStageIdHandler(ArteriaDeliveryBaseHandler):
     """
 
     def initialize(self, **kwargs):
-        self.mover_delivery_service = kwargs["mover_delivery_service"]
+        dds = self.body_as_object().get('dds', False)
+        self.delivery_service = kwargs["dds_service"] if dds else kwargs["mover_delivery_service"]
         super(DeliverByStageIdHandler, self).initialize(kwargs)
 
     @coroutine
@@ -35,7 +36,7 @@ class DeliverByStageIdHandler(ArteriaDeliveryBaseHandler):
             log.debug("Will not skip running mover!")
             skip_mover = False
 
-        delivery_id = yield self.mover_delivery_service.deliver_by_staging_id(staging_id=staging_id,
+        delivery_id = yield self.delivery_service.deliver_by_staging_id(staging_id=staging_id,
                                                                               delivery_project=delivery_project_id,
                                                                               md5sum_file=md5sum_file,
                                                                               skip_mover=skip_mover)
