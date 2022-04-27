@@ -3,6 +3,7 @@
 import json
 from functools import partial
 import sys
+import time
 import tempfile
 
 from tornado.testing import *
@@ -346,6 +347,8 @@ class TestIntegration(AsyncHTTPTestCase):
             response_json = json.loads(response.body)
 
             staging_status_links = response_json.get("staging_order_links")
+
+            time.sleep(1)
 
             for project, link in staging_status_links.items():
                 self.assertEqual(project, 'XYZ_123')
