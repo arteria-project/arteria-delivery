@@ -1,6 +1,6 @@
 
 import random
-from mock import MagicMock, create_autospec
+from mock import MagicMock, create_autospec, patch
 
 from tornado.testing import AsyncTestCase, gen_test
 from tornado.gen import coroutine
@@ -80,15 +80,20 @@ class TestDDSService(AsyncTestCase):
 
     @gen_test
     def test_deliver_by_staging_id(self):
-        staging_order = StagingOrder(source='/foo/bar', staging_target='/staging/dir/bar')
+        source = '/foo/bar'
+        staging_target = '/staging/dir/bar'
+        staging_order = StagingOrder(source=source, staging_target=staging_target)
         staging_order.status = StagingStatus.staging_successful
         self.mock_staging_service.get_stage_order_by_id.return_value = staging_order
 
         self.mock_staging_service.get_delivery_order_by_id.return_value = self.delivery_order
 
-        res = yield self.mover_delivery_service.deliver_by_staging_id(staging_id=1,
-                                                                      delivery_project='Bullywug anatomy',
-                                                                      md5sum_file='md5sum_file')
+        with patch('shutil.rmtree') as mock_rmtree:
+            res = yield self.mover_delivery_service.deliver_by_staging_id(
+                    staging_id=1,
+                    delivery_project='Bullywug anatomy',
+                    md5sum_file='md5sum_file')
+            mock_rmtree.assert_called_with(staging_target)
 
         def _get_delivery_order():
             return self.delivery_order.delivery_status

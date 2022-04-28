@@ -54,6 +54,7 @@ class TestIntegrationMover(BaseIntegration):
             staging_order_project_and_id = response_json.get("staging_order_ids")
 
             for project, staging_id in staging_order_project_and_id.items():
+                self.assertTrue(os.path.exists(f"/tmp/{staging_id}"))
                 delivery_url = '/'.join([self.API_BASE, 'deliver', 'stage_id', str(staging_id)])
                 delivery_body = {
                         'delivery_project_id': 'fakedeliveryid2016',
@@ -66,6 +67,8 @@ class TestIntegrationMover(BaseIntegration):
 
                 status_response = yield self.http_client.fetch(delivery_link)
                 self.assertEqual(json.loads(status_response.body)["status"], DeliveryStatus.delivery_skipped.name)
+
+                self.assertTrue(not os.path.exists(f"/tmp/{staging_id}/{project}"))
 
     def test_cannot_stage_the_same_runfolder_twice(self):
         # Note that this is a test which skips mover (since to_outbox is not expected to be installed on the system

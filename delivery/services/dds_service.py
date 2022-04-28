@@ -1,4 +1,5 @@
 import os.path
+import shutil
 import logging
 import re
 import json
@@ -129,6 +130,9 @@ class DDSService(object):
             session.commit()
         else:
             yield DDSService._run_mover(**args_for_run_mover)
+
+        logging.info(f"Removing staged runfolder at {stage_order.staging_target}")
+        shutil.rmtree(stage_order.staging_target)
 
         return delivery_order.id
 
