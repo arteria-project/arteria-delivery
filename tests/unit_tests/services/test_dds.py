@@ -65,15 +65,17 @@ class TestDDSService(AsyncTestCase):
 
         self.mock_session_factory = MagicMock()
         self.mock_dds_config = {'token_path': '/foo/bar/auth', 'log_path': '/foo/bar/log'}
-        self.mover_delivery_service = DDSService(external_program_service=None,
-                                                           staging_service=self.mock_staging_service,
-                                                           delivery_repo=self.mock_delivery_repo,
-                                                           session_factory=self.mock_session_factory,
-                                                           dds_conf=self.mock_dds_config)
+        self.dds_service = DDSService(
+                external_program_service=None,
+                staging_service=self.mock_staging_service,
+                delivery_repo=self.mock_delivery_repo,
+                session_factory=self.mock_session_factory,
+                dds_conf=self.mock_dds_config
+                )
 
         # Inject separate external runner instances for the tests, since they need to return
         # different information
-        self.mover_delivery_service.mover_external_program_service = self.mock_mover_runner
+        self.dds_service.mover_external_program_service = self.mock_mover_runner
 
         super(TestDDSService, self).setUp()
 
@@ -88,7 +90,7 @@ class TestDDSService(AsyncTestCase):
         self.mock_staging_service.get_delivery_order_by_id.return_value = self.delivery_order
 
         with patch('shutil.rmtree') as mock_rmtree:
-            res = yield self.mover_delivery_service.deliver_by_staging_id(
+            res = yield self.dds_service.deliver_by_staging_id(
                     staging_id=1,
                     delivery_project='snpseq00001',
                     token_path='token_path',
@@ -106,7 +108,7 @@ class TestDDSService(AsyncTestCase):
 
         with self.assertRaises(InvalidStatusException):
 
-            yield self.mover_delivery_service.deliver_by_staging_id(
+            yield self.dds_service.deliver_by_staging_id(
                     staging_id=1,
                     delivery_project='snpseq00001',
                     md5sum_file='md5sum_file',
@@ -122,7 +124,7 @@ class TestDDSService(AsyncTestCase):
 
         with self.assertRaises(InvalidStatusException):
 
-            yield self.mover_delivery_service.deliver_by_staging_id(
+            yield self.dds_service.deliver_by_staging_id(
                     staging_id=1,
                     delivery_project='snpseq00001',
                     md5sum_file='md5sum_file',
@@ -137,7 +139,7 @@ class TestDDSService(AsyncTestCase):
                                        staging_order_id=11,
                                        md5sum_file='file')
         self.mock_delivery_repo.get_delivery_order_by_id.return_value = delivery_order
-        actual = self.mover_delivery_service.get_delivery_order_by_id(1)
+        actual = self.dds_service.get_delivery_order_by_id(1)
         self.assertEqual(actual.id, 1)
 
     def test_possible_to_delivery_by_staging_id_and_skip_mover(self):
@@ -148,7 +150,7 @@ class TestDDSService(AsyncTestCase):
 
         self.mock_staging_service.get_delivery_order_by_id.return_value = self.delivery_order
 
-        self.mover_delivery_service.deliver_by_staging_id(
+        self.dds_service.deliver_by_staging_id(
                 staging_id=1,
                 delivery_project='snpseq00001',
                 md5sum_file='md5sum_file',
