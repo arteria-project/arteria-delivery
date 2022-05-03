@@ -23,7 +23,7 @@ class DDSService(object):
 
     @staticmethod
     @gen.coroutine
-    def _run_mover(delivery_order_id, delivery_order_repo, external_program_service, session_factory, dds_conf):
+    def _run_dds_put(delivery_order_id, delivery_order_repo, external_program_service, session_factory, dds_conf):
         session = session_factory()
 
         # This is a somewhat hacky work-around to the problem that objects created in one
@@ -117,7 +117,7 @@ class DDSService(object):
                                                                   dds_project_id=dds_project_id,
                                                                   md5sum_file=md5sum_file)
 
-        args_for_run_mover = {'delivery_order_id': delivery_order.id,
+        args_for_run_dds_put = {'delivery_order_id': delivery_order.id,
                               'delivery_order_repo': self.delivery_repo,
                               'external_program_service': self.mover_external_program_service,
                               'session_factory': self.session_factory,
@@ -129,7 +129,7 @@ class DDSService(object):
             delivery_order.delivery_status = DeliveryStatus.delivery_skipped
             session.commit()
         else:
-            yield DDSService._run_mover(**args_for_run_mover)
+            yield DDSService._run_dds_put(**args_for_run_dds_put)
 
         logging.info(f"Removing staged runfolder at {stage_order.staging_target}")
         shutil.rmtree(stage_order.staging_target)
