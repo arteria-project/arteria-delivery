@@ -132,4 +132,11 @@ class DeliveryOrder(SQLAlchemyBase):
     staging_order_id = Column(Integer)
 
     def __repr__(self):
-        return f"Delivery order: {{id: {self.id}, source: {self.delivery_source}, project: {self.delivery_project}, status: {self.delivery_status}, dds_project_id: {self.dds_project_id} }}"
+        return (
+                f"Delivery order: {{"
+                f"id: {self.id}, "
+                f"source: {self.delivery_source}, "
+                f"project: {self.delivery_project}, "
+                f"status: {self.delivery_status}, "
+                f"dds_project_id: {self.dds_project_id} }}"
+                )
