@@ -23,7 +23,7 @@ class DDSService(object):
 
     @staticmethod
     @gen.coroutine
-    def _run_dds_put(delivery_order_id, delivery_order_repo, external_program_service, session_factory, dds_conf):
+    def _run_dds_put(delivery_order_id, delivery_order_repo, external_program_service, session_factory, token_path, dds_conf):
         session = session_factory()
 
         # This is a somewhat hacky work-around to the problem that objects created in one
@@ -33,7 +33,7 @@ class DDSService(object):
         try:
             cmd = [
                     'dds',
-                    '-tp', dds_conf["token_path"],
+                    '-tp', token_path,
                     '-l', dds_conf["log_path"],
                     'data', 'put',
                     '--source', delivery_order.delivery_source,
@@ -68,7 +68,7 @@ class DDSService(object):
             session.commit()
 
     @gen.coroutine
-    def deliver_by_staging_id(self, staging_id, delivery_project, md5sum_file, skip_mover=False):
+    def deliver_by_staging_id(self, staging_id, delivery_project, md5sum_file, token_path, skip_mover=False):
 
         stage_order = self.staging_service.get_stage_order_by_id(staging_id)
         if not stage_order or not stage_order.status == StagingStatus.staging_successful:
@@ -85,7 +85,8 @@ class DDSService(object):
                               'delivery_order_repo': self.delivery_repo,
                               'external_program_service': self.mover_external_program_service,
                               'session_factory': self.session_factory,
-                              'dds_conf': self.dds_conf
+                              'token_path': token_path,
+                              'dds_conf': self.dds_conf,
                               }
 
         if skip_mover:

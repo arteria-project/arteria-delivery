@@ -91,13 +91,14 @@ class TestDDSService(AsyncTestCase):
             res = yield self.mover_delivery_service.deliver_by_staging_id(
                     staging_id=1,
                     delivery_project='snpseq00001',
+                    token_path='token_path',
                     md5sum_file='md5sum_file')
             mock_rmtree.assert_called_with(staging_target)
 
         def _get_delivery_order():
             return self.delivery_order.delivery_status
         assert_eventually_equals(self, 1, _get_delivery_order, DeliveryStatus.delivery_successful)
-        self.mock_mover_runner.run.assert_called_with(['dds', '-tp', '/foo/bar/auth', '-l', '/foo/bar/log', 'data', 'put', '--source', '/foo', '-p', 'snpseq00001', '--silent'])
+        self.mock_mover_runner.run.assert_called_with(['dds', '-tp', 'token_path', '-l', '/foo/bar/log', 'data', 'put', '--source', '/foo', '-p', 'snpseq00001', '--silent'])
 
     @gen_test
     def test_deliver_by_staging_id_raises_on_non_existent_stage_id(self):
@@ -105,9 +106,12 @@ class TestDDSService(AsyncTestCase):
 
         with self.assertRaises(InvalidStatusException):
 
-            yield self.mover_delivery_service.deliver_by_staging_id(staging_id=1,
-                                                                    delivery_project='snpseq00001',
-                                                                    md5sum_file='md5sum_file')
+            yield self.mover_delivery_service.deliver_by_staging_id(
+                    staging_id=1,
+                    delivery_project='snpseq00001',
+                    md5sum_file='md5sum_file',
+                    token_path='token_path',
+                    )
 
     @gen_test
     def test_deliver_by_staging_id_raises_on_non_successful_stage_id(self):
@@ -118,9 +122,12 @@ class TestDDSService(AsyncTestCase):
 
         with self.assertRaises(InvalidStatusException):
 
-            yield self.mover_delivery_service.deliver_by_staging_id(staging_id=1,
-                                                                    delivery_project='snpseq00001',
-                                                                    md5sum_file='md5sum_file')
+            yield self.mover_delivery_service.deliver_by_staging_id(
+                    staging_id=1,
+                    delivery_project='snpseq00001',
+                    md5sum_file='md5sum_file',
+                    token_path='token_path',
+                    )
 
     def test_delivery_order_by_id(self):
         delivery_order = DeliveryOrder(id=1,
@@ -141,10 +148,13 @@ class TestDDSService(AsyncTestCase):
 
         self.mock_staging_service.get_delivery_order_by_id.return_value = self.delivery_order
 
-        self.mover_delivery_service.deliver_by_staging_id(staging_id=1,
-                                                          delivery_project='snpseq00001',
-                                                          md5sum_file='md5sum_file',
-                                                          skip_mover=True)
+        self.mover_delivery_service.deliver_by_staging_id(
+                staging_id=1,
+                delivery_project='snpseq00001',
+                md5sum_file='md5sum_file',
+                token_path='token_path',
+                skip_mover=True,
+                )
 
         def _get_delivery_order():
             return self.delivery_order.delivery_status
