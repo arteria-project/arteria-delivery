@@ -57,8 +57,7 @@ class TestDDSService(AsyncTestCase):
         self.delivery_order = DeliveryOrder(
                 id=1,
                 delivery_source="/foo",
-                delivery_project="Bullywug anatomy",
-                dds_project_id="snpseq00001",
+                delivery_project="snpseq00001",
                 )
 
         self.mock_delivery_repo.create_delivery_order.return_value = self.delivery_order
@@ -91,7 +90,7 @@ class TestDDSService(AsyncTestCase):
         with patch('shutil.rmtree') as mock_rmtree:
             res = yield self.mover_delivery_service.deliver_by_staging_id(
                     staging_id=1,
-                    delivery_project='Bullywug anatomy',
+                    delivery_project='snpseq00001',
                     md5sum_file='md5sum_file')
             mock_rmtree.assert_called_with(staging_target)
 
@@ -107,7 +106,7 @@ class TestDDSService(AsyncTestCase):
         with self.assertRaises(InvalidStatusException):
 
             yield self.mover_delivery_service.deliver_by_staging_id(staging_id=1,
-                                                                    delivery_project='foo',
+                                                                    delivery_project='snpseq00001',
                                                                     md5sum_file='md5sum_file')
 
     @gen_test
@@ -120,15 +119,14 @@ class TestDDSService(AsyncTestCase):
         with self.assertRaises(InvalidStatusException):
 
             yield self.mover_delivery_service.deliver_by_staging_id(staging_id=1,
-                                                                    delivery_project='foo',
+                                                                    delivery_project='snpseq00001',
                                                                     md5sum_file='md5sum_file')
 
     def test_delivery_order_by_id(self):
         delivery_order = DeliveryOrder(id=1,
                                        delivery_source='src',
-                                       delivery_project='xyz123',
+                                       delivery_project='snpseq00001',
                                        delivery_status=DeliveryStatus.delivery_in_progress,
-                                       dds_project_id="dds1",
                                        staging_order_id=11,
                                        md5sum_file='file')
         self.mock_delivery_repo.get_delivery_order_by_id.return_value = delivery_order
@@ -144,7 +142,7 @@ class TestDDSService(AsyncTestCase):
         self.mock_staging_service.get_delivery_order_by_id.return_value = self.delivery_order
 
         self.mover_delivery_service.deliver_by_staging_id(staging_id=1,
-                                                          delivery_project='Bullywug anatomy',
+                                                          delivery_project='snpseq00001',
                                                           md5sum_file='md5sum_file',
                                                           skip_mover=True)
 

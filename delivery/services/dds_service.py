@@ -37,7 +37,7 @@ class DDSService(object):
                     '-l', dds_conf["log_path"],
                     'data', 'put',
                     '--source', delivery_order.delivery_source,
-                    '-p', delivery_order.dds_project_id,
+                    '-p', delivery_order.delivery_project,
                     '--silent',
                     ]
 
@@ -67,36 +67,6 @@ class DDSService(object):
             # Always commit the state change to the database
             session.commit()
 
-    @staticmethod
-    @gen.coroutine
-    def _get_dds_project_id(delivery_project, external_program_service):
-        cmd = ['dds', 'project', 'ls', '--json']
-        execution = external_program_service.run(cmd)
-        execution_result = yield external_program_service.wait_for_execution(execution)
-
-        if execution_result.status_code == 0:
-            projects = [project
-                    for project in json.loads(execution_result.stdout)
-                    if project['Title'] == delivery_project]
-
-            if len(projects) == 1:
-                project_id = projects[0]['Project ID']
-                log.info(f"Fetched DDS project id for project {delivery_project}: {project_id}")
-                return project_id
-            elif len(projects) == 0:
-                error_msg = f"Project {delivery_project} could not be found in DDS."
-                log.error(error_msg)
-                raise ProjectNotFoundException(error_msg)
-            else:
-                error_msg = f"Multiple projects found with name {delivery_project}."
-                log.error(error_msg)
-                raise TooManyProjectsFound(error_msg)
-
-        else:
-            error_msg = f"Project {delivery_project} could not be found in DDS. DDS returned status code: {execution_result.status_code}, DDS stderr: {execution_result.stderr}"
-            log.error(error_msg)
-            raise ProjectNotFoundException(error_msg)
-
     @gen.coroutine
     def deliver_by_staging_id(self, staging_id, delivery_project, md5sum_file, skip_mover=False):
 
@@ -105,16 +75,10 @@ class DDSService(object):
             raise InvalidStatusException("Only deliver by staging_id if it has a successful status!"
                                          "Staging order was: {}".format(stage_order))
 
-        if not skip_mover:
-            dds_project_id = yield DDSService._get_dds_project_id(delivery_project, self.mover_external_program_service)
-        else:
-            dds_project_id = None
-
         delivery_order = self.delivery_repo.create_delivery_order(delivery_source=stage_order.get_staging_path(),
                                                                   delivery_project=delivery_project,
                                                                   delivery_status=DeliveryStatus.pending,
                                                                   staging_order_id=staging_id,
-                                                                  dds_project_id=dds_project_id,
                                                                   md5sum_file=md5sum_file)
 
         args_for_run_dds_put = {'delivery_order_id': delivery_order.id,

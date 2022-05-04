@@ -112,7 +112,6 @@ class DeliveryOrder(SQLAlchemyBase):
     id = Column(Integer, primary_key=True, autoincrement=True)
     delivery_source = Column(String, nullable=False)
     delivery_project = Column(String, nullable=False)
-    dds_project_id = Column(String)
 
     # Optional path to md5sum file
     md5sum_file = Column(String)
@@ -133,10 +132,13 @@ class DeliveryOrder(SQLAlchemyBase):
 
     def __repr__(self):
         return (
-                f"Delivery order: {{"
+                "Delivery order: {"
                 f"id: {self.id}, "
                 f"source: {self.delivery_source}, "
                 f"project: {self.delivery_project}, "
                 f"status: {self.delivery_status}, "
-                f"dds_project_id: {self.dds_project_id} }}"
+                " }"
                 )
+
+    def is_dds(self):
+        return self.delivery_project.startswith("snpseq")
