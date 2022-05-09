@@ -135,8 +135,8 @@ class TestIntegrationMover(BaseIntegration):
                 for project, link in staging_status_links.items():
                     self.assertEqual(project, 'XYZ_123')
 
-                status_response = yield self.http_client.fetch(link)
-                self.assertEqual(json.loads(status_response.body)["status"], StagingStatus.staging_successful.name)
+                    status_response = yield self.http_client.fetch(link)
+                    self.assertEqual(json.loads(status_response.body)["status"], StagingStatus.staging_successful.name)
 
     @gen_test
     def test_can_stage_and_deliver_batch_flowcells(self):
@@ -167,9 +167,6 @@ class TestIntegrationMover(BaseIntegration):
 
                 status_response = yield self.http_client.fetch(link)
                 self.assertEqual(json.loads(status_response.body)["status"], StagingStatus.staging_successful.name)
-
-            status_response = yield self.http_client.fetch(link)
-            self.assertEqual(json.loads(status_response.body)["status"], StagingStatus.staging_successful.name)
 
     @gen_test
     def test_can_stage_and_deliver_force_flowcells(self):
@@ -203,5 +200,5 @@ class TestIntegrationMover(BaseIntegration):
             for project, link in staging_status_links.items():
                 self.assertEqual(project, 'XYZ_123')
 
-            status_response = yield self.http_client.fetch(link)
-            self.assertEqual(json.loads(status_response.body)["status"], StagingStatus.staging_successful.name)
+                status_response = yield self.http_client.fetch(link)
+                self.assertEqual(json.loads(status_response.body)["status"], StagingStatus.staging_successful.name)
