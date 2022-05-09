@@ -71,28 +71,6 @@ class TestIntegrationMover(BaseIntegration):
 
                 self.assertTrue(not os.path.exists(f"/tmp/{staging_id}/{project}"))
 
-    def test_cannot_stage_the_same_runfolder_twice(self):
-        # Note that this is a test which skips mover (since to_outbox is not expected to be installed on the system
-        # where this runs)
-
-        with tempfile.TemporaryDirectory(dir='./tests/resources/runfolders/', prefix='160930_ST-E00216_0111_BH37CWALXX_') as tmp_dir:
-
-            dir_name = os.path.basename(tmp_dir)
-            self._create_projects_dir_with_random_data(tmp_dir)
-            self._create_checksums_file(tmp_dir)
-
-            url = "/".join([self.API_BASE, "stage", "runfolder", dir_name])
-            response = self.fetch(url, method='POST', body='')
-            self.assertEqual(response.code, 202)
-
-            response = self.fetch(url, method='POST', body='')
-            print(response.reason)
-            self.assertEqual(response.code, 403)
-
-            # Unless you force the delivery
-            response = self.fetch(url, method='POST', body=json.dumps({"force_delivery": True}))
-            self.assertEqual(response.code, 202)
-
     @gen_test
     def test_can_stage_and_delivery_project_dir(self):
         # Note that this is a test which skips mover (since to_outbox is not expected to be installed on the system
@@ -131,26 +109,6 @@ class TestIntegrationMover(BaseIntegration):
 
                 status_response = yield self.http_client.fetch(delivery_link)
                 self.assertEqual(json.loads(status_response.body)["status"], DeliveryStatus.delivery_skipped.name)
-
-    def test_cannot_stage_the_same_project_twice(self):
-        # Note that this is a test which skips mover (since to_outbox is not expected to be installed on the system
-        # where this runs)
-
-        with tempfile.TemporaryDirectory(dir='./tests/resources/projects') as tmp_dir:
-
-            # Stage once should work
-            dir_name = os.path.basename(tmp_dir)
-            url = "/".join([self.API_BASE, "stage", "project", dir_name])
-            response = self.fetch(url, method='POST', body='')
-            self.assertEqual(response.code, 202)
-
-            # The second time should not
-            response = self.fetch(url, method='POST', body='')
-            self.assertEqual(response.code, 403)
-
-            # Unless you force the delivery
-            response = self.fetch(url, method='POST', body=json.dumps({"force_delivery": True}))
-            self.assertEqual(response.code, 202)
 
     @gen_test
     def test_can_stage_and_deliver_clean_flowcells(self):
