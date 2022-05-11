@@ -1,10 +1,10 @@
-
-
 import json
 from functools import partial
 import sys
 import time
 import tempfile
+
+import mock
 
 from tornado.testing import *
 from tornado.web import Application
@@ -14,6 +14,7 @@ from arteria.web.app import AppService
 from delivery.app import routes as app_routes, compose_application
 from delivery.models.db_models import StagingStatus, DeliveryStatus
 from delivery.services.metadata_service import MetadataService
+from delivery.services.external_program_service import ExternalProgramService
 
 from tests.integration_tests.base import BaseIntegration
 from tests.test_utils import assert_eventually_equals, unorganised_runfolder, samplesheet_file_from_runfolder, \
@@ -246,3 +247,21 @@ class TestIntegrationDDS(BaseIntegration):
 
                 staging_response = yield self.http_client.fetch(staging_status_links["ABC_123"])
                 self.assertEqual(json.loads(staging_response.body)["status"], StagingStatus.staging_successful.name)
+
+    @gen_test
+    def test_can_create_project(self):
+        return
+        project_name = "CD-1234"
+        url = "/".join([self.API_BASE, "dds_project", "create", project_name])
+        payload = {
+            "description": "Dummy project",
+            "pi": "alex@doe.com",
+            "researchers": ["robin@doe.com", "kim@doe.com"],
+            "owners": ["alex@doe.com"],
+            "non-sensitive": False,
+        }
+        response = yield self.http_client.fetch(
+                self.get_url(url), method='POST',
+                body=json.dumps(payload))
+
+        self.assertEqual(response.code, 202)

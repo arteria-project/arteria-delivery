@@ -15,6 +15,7 @@ from delivery.handlers.utility_handlers import VersionHandler
 from delivery.handlers.runfolder_handlers import RunfolderHandler
 from delivery.handlers.project_handlers import ProjectHandler, ProjectsForRunfolderHandler, \
     BestPracticeProjectSampleHandler
+from delivery.handlers.dds_handlers import DDSCreateProjectHandler
 from delivery.handlers.delivery_handlers import DeliverByStageIdHandler, DeliveryStatusHandler
 from delivery.handlers.staging_handlers import StagingRunfolderHandler, StagingHandler,\
     StageGeneralDirectoryHandler, StagingProjectRunfoldersHandler
@@ -24,7 +25,7 @@ from delivery.repositories.runfolder_repository import FileSystemBasedRunfolderR
     FileSystemBasedUnorganisedRunfolderRepository
 from delivery.repositories.staging_repository import DatabaseBasedStagingRepository
 from delivery.repositories.deliveries_repository import DatabaseBasedDeliveriesRepository
-from delivery.repositories.project_repository import GeneralProjectRepository, UnorganisedRunfolderProjectRepository
+from delivery.repositories.project_repository import GeneralProjectRepository, UnorganisedRunfolderProjectRepository, DDSProjectRepository
 from delivery.repositories.delivery_sources_repository import DatabaseBasedDeliverySourcesRepository
 from delivery.repositories.sample_repository import RunfolderProjectBasedSampleRepository
 
@@ -75,6 +76,8 @@ def routes(**kwargs):
         url(r"/api/1.0/deliver/status/(.+)", DeliveryStatusHandler,
             name="delivery_status", kwargs=kwargs),
 
+        url(r"/api/1.0/dds_project/create/(.+)", DDSCreateProjectHandler,
+            name="create_dds_project", kwargs=kwargs),
     ]
 
 
@@ -161,9 +164,11 @@ def compose_application(config):
                                                   path_to_mover=path_to_mover)
 
     dds_conf = config['dds_conf']
+    dds_project_repo = DDSProjectRepository(session_factory=session_factory)
     dds_service = DDSService(external_program_service=external_program_service,
                                                   staging_service=staging_service,
                                                   delivery_repo=delivery_repo,
+                                                  dds_project_repo=dds_project_repo,
                                                   session_factory=session_factory,
                                                   dds_conf=dds_conf)
 

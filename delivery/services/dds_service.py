@@ -6,20 +6,81 @@ import json
 from tornado import gen
 
 from delivery.models.db_models import StagingStatus, DeliveryStatus
-from delivery.exceptions import ProjectNotFoundException, TooManyProjectsFound, InvalidStatusException
+from delivery.exceptions import ProjectNotFoundException, TooManyProjectsFound, InvalidStatusException, CannotParseDDSOutputException
 
 log = logging.getLogger(__name__)
 
 
 class DDSService(object):
 
-    def __init__(self, external_program_service, staging_service, delivery_repo, session_factory, dds_conf):
+    def __init__(
+            self,
+            external_program_service,
+            staging_service,
+            delivery_repo,
+            dds_project_repo,
+            session_factory,
+            dds_conf):
         self.external_program_service = external_program_service
         self.mover_external_program_service = self.external_program_service
         self.staging_service = staging_service
         self.delivery_repo = delivery_repo
+        self.dds_project_repo = dds_project_repo
         self.session_factory = session_factory
         self.dds_conf = dds_conf
+
+    @staticmethod
+    def _parse_dds_project_id(dds_output):
+        log.debug('DDS output was: {}'.format(dds_output))
+        pattern = re.compile('Project created with id: (snpseq\d+)')
+        hits = pattern.search(dds_output)
+        if hits:
+            return hits.group(1)
+        else:
+            raise CannotParseDDSOutputException(f"Could not parse DDS project ID from: {dds_output}")
+
+    async def create_dds_project(self, project_name, project_metadata):
+        assert not self.dds_project_repo.project_exists(project_name)
+
+        cmd = [
+                'dds',
+                '--token-path', self.dds_conf["token_path"],
+                '--log-file', self.dds_conf["log_path"],
+                ]
+
+        cmd += [
+                'project', 'create',
+                '--title', project_name,
+                '--description', project_metadata['description'],
+                '-pi',  project_metadata['pi']
+                ]
+
+        cmd += [
+                args
+                for owner in project_metadata.get('owners', [])
+                for args in ['--owner', owner]
+                ]
+
+        cmd += [
+                args
+                for researcher in project_metadata.get('researchers', [])
+                for args in ['--researcher', researcher]
+                ]
+
+        if project_metadata.get('--non-sensitive', False):
+            cmd += ['--non-sensitive']
+
+        log.debug("Running dds with command: {' '.join(cmd)}")
+        execution_result = self.external_program_service.run_and_wait(cmd)
+
+        if execution_result.status_code == 0:
+            dds_project_id = DDSService._parse_dds_project_id(execution_result.stdout)
+        else:
+            error_msg = f"Failed to create project in DDS: {execution_result.stderr}. DDS returned status code: {execution_result.status_code}"
+            log.error(error_msg)
+            raise RuntimeError(error_msg)
+
+        self.dds_project_repo.add_dds_project(project_name, dds_project_id)
 
     @staticmethod
     @gen.coroutine
@@ -33,11 +94,14 @@ class DDSService(object):
         try:
             cmd = [
                     'dds',
-                    '-tp', token_path,
-                    '-l', dds_conf["log_path"],
+                    '--token-path', token_path,
+                    '--log-file', dds_conf["log_path"],
+                    ]
+
+            cmd += [
                     'data', 'put',
                     '--source', delivery_order.delivery_source,
-                    '-p', delivery_order.delivery_project,
+                    '--project', delivery_order.delivery_project,
                     '--silent',
                     ]
 
@@ -96,7 +160,7 @@ class DDSService(object):
         else:
             yield DDSService._run_dds_put(**args_for_run_dds_put)
 
-        logging.info(f"Removing staged runfolder at {stage_order.staging_target}")
+        log.info(f"Removing staged runfolder at {stage_order.staging_target}")
         shutil.rmtree(stage_order.staging_target)
 
         return delivery_order.id

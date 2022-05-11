@@ -7,7 +7,7 @@ from tornado.gen import coroutine
 
 from delivery.services.external_program_service import ExternalProgramService
 from delivery.services.dds_service import DDSService
-from delivery.models.db_models import DeliveryOrder, StagingOrder, StagingStatus, DeliveryStatus
+from delivery.models.db_models import DeliveryOrder, StagingOrder, StagingStatus, DeliveryStatus, DDSProject
 from delivery.models.execution import ExecutionResult, Execution
 from delivery.exceptions import InvalidStatusException, CannotParseMoverOutputException
 
@@ -53,6 +53,7 @@ class TestDDSService(AsyncTestCase):
 
         self.mock_staging_service = MagicMock()
         self.mock_delivery_repo = MagicMock()
+        self.mock_dds_project_repo = MagicMock()
 
         self.delivery_order = DeliveryOrder(
                 id=1,
@@ -66,9 +67,10 @@ class TestDDSService(AsyncTestCase):
         self.mock_session_factory = MagicMock()
         self.mock_dds_config = {'token_path': '/foo/bar/auth', 'log_path': '/foo/bar/log'}
         self.dds_service = DDSService(
-                external_program_service=None,
+                external_program_service=ExternalProgramService(),
                 staging_service=self.mock_staging_service,
                 delivery_repo=self.mock_delivery_repo,
+                dds_project_repo=self.mock_dds_project_repo,
                 session_factory=self.mock_session_factory,
                 dds_conf=self.mock_dds_config
                 )
@@ -95,12 +97,12 @@ class TestDDSService(AsyncTestCase):
                     delivery_project='snpseq00001',
                     token_path='token_path',
                     md5sum_file='md5sum_file')
-            mock_rmtree.assert_called_with(staging_target)
+            mock_rmtree.assert_called_once_with(staging_target)
 
         def _get_delivery_order():
             return self.delivery_order.delivery_status
         assert_eventually_equals(self, 1, _get_delivery_order, DeliveryStatus.delivery_successful)
-        self.mock_mover_runner.run.assert_called_with(['dds', '-tp', 'token_path', '-l', '/foo/bar/log', 'data', 'put', '--source', '/foo', '-p', 'snpseq00001', '--silent'])
+        self.mock_mover_runner.run.assert_called_with(['dds', '--token-path', '/foo/bar/auth', '--log-file', '/foo/bar/log', 'data', 'put', '--source', '/foo', '--project', 'snpseq00001', '--silent'])
 
     @gen_test
     def test_deliver_by_staging_id_raises_on_non_existent_stage_id(self):
@@ -161,3 +163,55 @@ class TestDDSService(AsyncTestCase):
         def _get_delivery_order():
             return self.delivery_order.delivery_status
         assert_eventually_equals(self, 1, _get_delivery_order, DeliveryStatus.delivery_skipped)
+
+    def test_parse_dds_project_id(self):
+        dds_output = """Current user: bio
+Project created with id: snpseq00003
+User forskare was associated with Project snpseq00003 as Owner=True. An e-mail notification has not been sent.
+Invitation sent to annamatilda.aslin+phdstudent@gmail.com. The user should have a valid account to be added to a
+project"""
+
+        self.assertEqual(DDSService._parse_dds_project_id(dds_output), "snpseq00003")
+
+    @gen_test
+    def test_create_project(self):
+        self.mock_dds_project_repo.project_exists.return_value = False
+
+        project_name = "AA-1221"
+        project_metadata = {
+                "description": "Dummy project",
+                "pi": "alex@doe.com",
+                "researchers": ["robin@doe.com", "kim@doe.com"],
+                "owners": ["alex@doe.com"],
+                "non-sensitive": False,
+                }
+
+        with patch('delivery.services.external_program_service.ExternalProgramService.run_and_wait') as mock_run,\
+                patch('delivery.services.dds_service.DDSService._parse_dds_project_id') as mock_parse_dds_project_id:
+            mock_run.return_value.status_code = 0
+            mock_parse_dds_project_id.return_value = "snpseq00001"
+
+            yield self.dds_service.create_dds_project(project_name, project_metadata)
+
+            mock_run.assert_called_once_with([
+                'dds',
+                '--token-path', '/foo/bar/auth',
+                '--log-file', '/foo/bar/log',
+                'project', 'create',
+                '--title', project_name,
+                '--description', project_metadata['description'],
+                '-pi', project_metadata['pi'],
+                '--owner', project_metadata['owners'][0],
+                '--researcher', project_metadata['researchers'][0],
+                '--researcher', project_metadata['researchers'][1],
+                ])
+            self.mock_dds_project_repo.add_dds_project\
+                    .assert_called_once_with(
+                            project_name,
+                            mock_parse_dds_project_id.return_value)
+
+    @gen_test
+    def test_cannot_create_if_project_exists(self):
+        self.mock_dds_project_repo.project_exists.return_value = True
+        with self.assertRaises(AssertionError):
+            yield self.dds_service.create_dds_project("AA-1111", {})

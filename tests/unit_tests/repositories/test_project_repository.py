@@ -42,14 +42,18 @@ class TestDDSProjectRepository(unittest.TestCase):
         # Prep the repo
         self.dds_project_repo = DDSProjectRepository(session_factory)
 
+    def test_project_exists(self):
+        self.assertTrue(self.dds_project_repo.project_exists("CD-1234"))
+        self.assertFalse(self.dds_project_repo.project_exists("IJ-6666"))
+
     def test_get_dds_project_by_name(self):
         actual = self.dds_project_repo\
                 .get_dds_project_by_name(self.dds_project_1.project_name)
         self.assertEqual(actual.dds_project_id, actual.dds_project_id)
 
-    def test_create_dds_project(self):
+    def test_add_dds_project(self):
         dds_project = self.dds_project_repo\
-                .create_dds_project(project_name="GH-9012", dds_project_id="snpseq00003")
+                .add_dds_project(project_name="GH-9012", dds_project_id="snpseq00003")
 
         self.assertIsInstance(dds_project, DDSProject)
         self.assertEqual(dds_project.project_name, "GH-9012")

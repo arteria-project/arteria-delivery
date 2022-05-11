@@ -25,6 +25,17 @@ class DDSProjectRepository:
         """
         self.session = session_factory()
 
+    def project_exists(self, project_name):
+        """
+        Check if project exists in the database
+        :param project_name: Clarity project name
+        :return: Bool
+        """
+        return self.session.query(DDSProject)\
+                .filter(DDSProject.project_name == project_name)\
+                .count() >= 1
+
+
     def get_dds_project_by_name(self, project_name):
         """
         Get DDS project by Clarity project name
@@ -35,7 +46,7 @@ class DDSProjectRepository:
                 .filter(DDSProject.project_name == project_name)\
                 .one()
 
-    def create_dds_project(self, project_name, dds_project_id):
+    def add_dds_project(self, project_name, dds_project_id):
         """
         Add a DDS project and commit it to the database
         :param project_name: Clarity project name
