@@ -54,13 +54,13 @@ class TestDeliveryRepository(unittest.TestCase):
     def test_create_delivery_order(self):
 
         actual = self.delivery_repo.create_delivery_order(delivery_source='/foo/source2',
-                                                          delivery_project='bar2',
+                                                          delivery_project='snpseq00001',
                                                           delivery_status=DeliveryStatus.pending,
                                                           staging_order_id=2)
 
         self.assertEqual(actual.id, 2)
         self.assertEqual(actual.delivery_source, '/foo/source2')
-        self.assertEqual(actual.delivery_project, 'bar2')
+        self.assertEqual(actual.delivery_project, 'snpseq00001')
         self.assertEqual(actual.delivery_status, DeliveryStatus.pending)
         self.assertEqual(actual.staging_order_id, 2)
 

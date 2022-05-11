@@ -81,10 +81,15 @@ class StagingOrder(SQLAlchemyBase):
         return os.path.join(self.staging_target)
 
     def __repr__(self):
-        return "Staging order: {id: %s, source: %s, status: %s, pid: %s }" % (str(self.id),
-                                                                              self.source,
-                                                                              self.status,
-                                                                              self.pid)
+        return (
+                "Staging order: {"
+                f"id: { self.id }, "
+                f"source: { self.source }, "
+                f"status: { self.status }, "
+                f"staging_target: { self.staging_target }, "
+                f"size: { self.size }, "
+                f"pid: { self.pid } "
+                "}")
 
 
 class DeliveryStatus(base_enum.Enum):
@@ -131,7 +136,14 @@ class DeliveryOrder(SQLAlchemyBase):
     staging_order_id = Column(Integer)
 
     def __repr__(self):
-        return "Delivery order: {id: %s, source: %s, project: %s, status: %s }" % (str(self.id),
-                                                                                   self.delivery_source,
-                                                                                   self.delivery_project,
-                                                                                   self.delivery_status)
+        return (
+                "Delivery order: {"
+                f"id: {self.id}, "
+                f"source: {self.delivery_source}, "
+                f"project: {self.delivery_project}, "
+                f"status: {self.delivery_status}, "
+                " }"
+                )
+
+    def is_dds(self):
+        return self.delivery_project.startswith("snpseq")

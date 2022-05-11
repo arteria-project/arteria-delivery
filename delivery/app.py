@@ -30,6 +30,7 @@ from delivery.repositories.sample_repository import RunfolderProjectBasedSampleR
 
 
 from delivery.services.mover_service import MoverDeliveryService
+from delivery.services.dds_service import DDSService
 from delivery.services.external_program_service import ExternalProgramService
 from delivery.services.staging_service import StagingService
 from delivery.services.file_system_service import FileSystemService
@@ -159,6 +160,13 @@ def compose_application(config):
                                                   session_factory=session_factory,
                                                   path_to_mover=path_to_mover)
 
+    dds_conf = config['dds_conf']
+    dds_service = DDSService(external_program_service=external_program_service,
+                                                  staging_service=staging_service,
+                                                  delivery_repo=delivery_repo,
+                                                  session_factory=session_factory,
+                                                  dds_conf=dds_conf)
+
     delivery_sources_repo = DatabaseBasedDeliverySourcesRepository(session_factory=session_factory)
     runfolder_service = RunfolderService(runfolder_repo)
 
@@ -179,6 +187,7 @@ def compose_application(config):
                 external_program_service=external_program_service,
                 staging_service=staging_service,
                 mover_delivery_service=mover_delivery_service,
+                dds_service=dds_service,
                 delivery_service=delivery_service,
                 general_project_repo=general_project_repo,
                 best_practice_analysis_service=best_practice_analysis_service,
