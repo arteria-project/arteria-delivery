@@ -1,4 +1,7 @@
 import os
+import mock
+
+from subprocess import PIPE
 
 from tornado.testing import *
 from tornado.web import Application
@@ -7,10 +10,19 @@ from arteria.web.app import AppService
 
 from delivery.app import routes as app_routes, compose_application
 from delivery.services.metadata_service import MetadataService
+from delivery.models.execution import Execution
 
 from tests.test_utils import samplesheet_file_from_runfolder
 
+log = logging.getLogger(__name__)
+
 class BaseIntegration(AsyncHTTPTestCase):
+    def __init__(self, *args):
+        super().__init__(*args)
+
+        # Default duration of mock delivery
+        self.mock_duration = 10
+
     def _create_projects_dir_with_random_data(self, base_dir, proj_name='ABC_123'):
         tmp_proj_dir = os.path.join(base_dir, 'Projects', proj_name)
         os.makedirs(tmp_proj_dir)
@@ -65,7 +77,26 @@ class BaseIntegration(AsyncHTTPTestCase):
 
         config = app_svc.config_svc
 
+        def mock_delivery(cmd):
+            # TODO Mock dds output as well
+            log.debug(f"Mock is called with {cmd}")
+            if any(
+                    cmd[0].endswith(delivery_prgm)
+                    for delivery_prgm in ['dds', 'moverinfo', 'to_outbox']):
+                cmd = ['sleep', str(self.mock_duration)]
+
+            log.debug(f"Running mocked {cmd}")
+            p = Subprocess(cmd,
+                           stdout=PIPE,
+                           stderr=PIPE,
+                           stdin=PIPE)
+            return Execution(pid=p.pid, process_obj=p)
+
+        patcher = mock.patch(
+                'delivery.services.external_program_service.ExternalProgramService.run',
+                wraps=mock_delivery)
+
+        patcher.start()
         composed_application = compose_application(config)
-        # TODO Later swap the "real" delivery service here for mock one.
 
         return Application(app_routes(**composed_application))

@@ -81,10 +81,15 @@ class StagingOrder(SQLAlchemyBase):
         return os.path.join(self.staging_target)
 
     def __repr__(self):
-        return "Staging order: {id: %s, source: %s, status: %s, pid: %s }" % (str(self.id),
-                                                                              self.source,
-                                                                              self.status,
-                                                                              self.pid)
+        return (
+                "Staging order: {"
+                f"id: { self.id }, "
+                f"source: { self.source }, "
+                f"status: { self.status }, "
+                f"staging_target: { self.staging_target }, "
+                f"size: { self.size }, "
+                f"pid: { self.pid } "
+                "}")
 
 
 class DeliveryStatus(base_enum.Enum):

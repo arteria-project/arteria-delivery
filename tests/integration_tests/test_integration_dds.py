@@ -19,7 +19,7 @@ from tests.integration_tests.base import BaseIntegration
 from tests.test_utils import assert_eventually_equals, unorganised_runfolder, samplesheet_file_from_runfolder, \
     project_report_files
 
-class TestIntegrationMover(BaseIntegration):
+class TestIntegrationDDS(BaseIntegration):
     @gen_test
     def test_can_stage_and_delivery_runfolder(self):
         # Note that this is a test which skips mover (since to_outbox is not expected to be installed on the system
@@ -54,13 +54,13 @@ class TestIntegrationMover(BaseIntegration):
             staging_order_project_and_id = response_json.get("staging_order_ids")
 
             for project, staging_id in staging_order_project_and_id.items():
-                self.assertTrue(os.path.exists(f"/tmp/{staging_id}"))
+                self.assertTrue(os.path.exists(f"/tmp/{staging_id}/{project}"))
                 delivery_url = '/'.join([self.API_BASE, 'deliver', 'stage_id', str(staging_id)])
                 delivery_body = {
                         'delivery_project_id': 'fakedeliveryid2016',
                         'dds': True,
                         'token_path': 'token_path',
-                        'skip_mover': True
+                        'skip_mover': True,
                         }
                 delivery_resp = yield self.http_client.fetch(self.get_url(delivery_url), method='POST', body=json.dumps(delivery_body))
                 delivery_resp_as_json = json.loads(delivery_resp.body)
@@ -69,7 +69,7 @@ class TestIntegrationMover(BaseIntegration):
                 status_response = yield self.http_client.fetch(delivery_link)
                 self.assertEqual(json.loads(status_response.body)["status"], DeliveryStatus.delivery_skipped.name)
 
-                self.assertTrue(not os.path.exists(f"/tmp/{staging_id}/{project}"))
+                self.assertFalse(os.path.exists(f"/tmp/{staging_id}/{project}"))
 
     @gen_test
     def test_can_stage_and_delivery_project_dir(self):
@@ -202,3 +202,47 @@ class TestIntegrationMover(BaseIntegration):
 
                 status_response = yield self.http_client.fetch(link)
                 self.assertEqual(json.loads(status_response.body)["status"], StagingStatus.staging_successful.name)
+
+    @gen_test
+    def test_can_deliver_and_respond(self):
+        with tempfile.TemporaryDirectory(dir='./tests/resources/runfolders/', prefix='160930_ST-E00216_0111_BH37CWALXX_') as tmp_dir:
+
+            dir_name = os.path.basename(tmp_dir)
+            self._create_projects_dir_with_random_data(tmp_dir)
+            self._create_checksums_file(tmp_dir)
+
+            url = "/".join([self.API_BASE, "stage", "runfolder", dir_name])
+            response = yield self.http_client.fetch(self.get_url(url), method='POST', body='')
+            self.assertEqual(response.code, 202)
+
+            response_json = json.loads(response.body)
+
+            staging_status_links = response_json.get("staging_order_links")
+
+            for project, link in staging_status_links.items():
+
+                self.assertEqual(project, "ABC_123")
+
+                status_response = yield self.http_client.fetch(link)
+                self.assertEqual(json.loads(status_response.body)["status"], StagingStatus.staging_successful.name)
+
+
+                # The size of the fake project is 1024 bytes
+                status_response = yield self.http_client.fetch(link)
+                self.assertEqual(json.loads(status_response.body)["size"], 1024)
+
+            staging_order_project_and_id = response_json.get("staging_order_ids")
+
+            for project, staging_id in staging_order_project_and_id.items():
+                self.assertTrue(os.path.exists(f"/tmp/{staging_id}"))
+                delivery_url = '/'.join([self.API_BASE, 'deliver', 'stage_id', str(staging_id)])
+                delivery_body = {
+                        'delivery_project_id': 'fakedeliveryid2016',
+                        'dds': True,
+                        'token_path': 'token_path',
+                        'skip_mover': False,
+                        }
+                delivery_response = self.http_client.fetch(self.get_url(delivery_url), method='POST', body=json.dumps(delivery_body))
+
+                staging_response = yield self.http_client.fetch(staging_status_links["ABC_123"])
+                self.assertEqual(json.loads(staging_response.body)["status"], StagingStatus.staging_successful.name)

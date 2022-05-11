@@ -56,7 +56,7 @@ class TestDDSService(AsyncTestCase):
 
         self.delivery_order = DeliveryOrder(
                 id=1,
-                delivery_source="/foo",
+                delivery_source="/staging/dir/bar",
                 delivery_project="snpseq00001",
                 )
 
