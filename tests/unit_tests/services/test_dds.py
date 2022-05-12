@@ -209,9 +209,3 @@ project"""
                     .assert_called_once_with(
                             project_name,
                             mock_parse_dds_project_id.return_value)
-
-    @gen_test
-    def test_cannot_create_if_project_exists(self):
-        self.mock_dds_project_repo.project_exists.return_value = True
-        with self.assertRaises(AssertionError):
-            yield self.dds_service.create_dds_project("AA-1111", {})

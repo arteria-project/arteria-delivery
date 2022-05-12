@@ -43,11 +43,16 @@ class DDSProject(SQLAlchemyBase):
     Keeps track of project names and project IDs in DDS
     """
     __tablename__ = 'dds_projects'
-    project_name = Column(String, nullable=False, primary_key=True)
-    dds_project_id = Column(String)
+    dds_project_id = Column(String, nullable=False, primary_key=True)
+    project_name = Column(String)
 
     def __repr__(self):
-        return f"DDS Project: {{project_name: {self.project_name}, dds_project_id: {self.dds_project_id} }}"
+        return (
+                "DDS Project: { "
+                f"dds_project_id: {self.dds_project_id}, "
+                f"project_name: {self.project_name} "
+                "}"
+                )
 
 
 class StagingStatus(base_enum.Enum):

@@ -17,8 +17,8 @@ depends_on = None
 
 def upgrade():
     op.create_table('dds_projects',
-            sa.Column('project_name', sa.String, nullable=False, primary_key=True),
-            sa.Column('dds_project_id', sa.String),
+            sa.Column('dds_project_id', sa.String, nullable=False, primary_key=True),
+            sa.Column('project_name', sa.String),
             )
 
 

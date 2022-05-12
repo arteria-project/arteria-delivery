@@ -40,8 +40,6 @@ class DDSService(object):
             raise CannotParseDDSOutputException(f"Could not parse DDS project ID from: {dds_output}")
 
     async def create_dds_project(self, project_name, project_metadata):
-        assert not self.dds_project_repo.project_exists(project_name)
-
         cmd = [
                 'dds',
                 '--token-path', self.dds_conf["token_path"],
