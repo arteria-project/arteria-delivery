@@ -42,7 +42,7 @@ class DDSService(object):
     async def create_dds_project(self, project_name, project_metadata):
         cmd = [
                 'dds',
-                '--token-path', self.dds_conf["token_path"],
+                '--token-path', project_metadata["token_path"],
                 '--log-file', self.dds_conf["log_path"],
                 ]
 
@@ -68,8 +68,8 @@ class DDSService(object):
         if project_metadata.get('--non-sensitive', False):
             cmd += ['--non-sensitive']
 
-        log.debug("Running dds with command: {' '.join(cmd)}")
-        execution_result = self.external_program_service.run_and_wait(cmd)
+        log.debug(f"Running dds with command: {' '.join(cmd)}")
+        execution_result = await self.external_program_service.run_and_wait(cmd)
 
         if execution_result.status_code == 0:
             dds_project_id = DDSService._parse_dds_project_id(execution_result.stdout)
@@ -78,7 +78,9 @@ class DDSService(object):
             log.error(error_msg)
             raise RuntimeError(error_msg)
 
-        self.dds_project_repo.add_dds_project(project_name, dds_project_id)
+        self.dds_project_repo.add_dds_project(
+                project_name=project_name,
+                dds_project_id=dds_project_id)
 
     @staticmethod
     @gen.coroutine

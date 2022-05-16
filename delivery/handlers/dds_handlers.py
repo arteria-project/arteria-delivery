@@ -1,6 +1,10 @@
 from tornado.gen import coroutine
 
+from delivery.handlers import *
 from delivery.handlers.utility_handlers import ArteriaDeliveryBaseHandler
+
+import logging
+log = logging.getLogger(__name__)
 
 class DDSProjectBaseHandler(ArteriaDeliveryBaseHandler):
     """
@@ -8,7 +12,6 @@ class DDSProjectBaseHandler(ArteriaDeliveryBaseHandler):
     """
 
     def initialize(self, **kwargs):
-        self.dds_project_repo = kwargs["dds_project_repo"]
         self.dds_service = kwargs["dds_service"]
         super(DDSProjectBaseHandler, self).initialize(kwargs)
 
@@ -39,7 +42,8 @@ class DDSCreateProjectHandler(DDSProjectBaseHandler):
             response = requests.request("POST", url, json=payload)
         """
 
-        project_metadata = self.body_as_object()
+        required_members = ["token_path"]
+        project_metadata = self.body_as_object(required_members=required_members)
 
         await self.dds_service.create_dds_project(project_name, project_metadata)
         self.set_status(ACCEPTED)

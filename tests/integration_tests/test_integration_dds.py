@@ -205,6 +205,55 @@ class TestIntegrationDDS(BaseIntegration):
                 self.assertEqual(json.loads(status_response.body)["status"], StagingStatus.staging_successful.name)
 
     @gen_test
+    def test_can_create_project(self):
+        project_name = "CD-1234"
+        url = "/".join([self.API_BASE, "dds_project", "create", project_name])
+        payload = {
+            "description": "Dummy project",
+            "pi": "alex@doe.com",
+            "researchers": ["robin@doe.com", "kim@doe.com"],
+            "owners": ["alex@doe.com"],
+            "non-sensitive": False,
+            "token_path": '/foo/bar/auth',
+        }
+
+        response = yield self.http_client.fetch(
+                self.get_url(url), method='POST',
+                body=json.dumps(payload))
+
+        self.assertEqual(response.code, 202)
+
+    @gen_test
+    def test_can_create_two_projects(self):
+        project_name = "CD-1234"
+        url = "/".join([self.API_BASE, "dds_project", "create", project_name])
+        payload = {
+            "description": "Dummy project",
+            "pi": "alex@doe.com",
+            "researchers": ["robin@doe.com", "kim@doe.com"],
+            "owners": ["alex@doe.com"],
+            "non-sensitive": False,
+            "token_path": '/foo/bar/auth',
+        }
+
+        response = yield self.http_client.fetch(
+                self.get_url(url), method='POST',
+                body=json.dumps(payload))
+        self.assertEqual(response.code, 202)
+
+        response = yield self.http_client.fetch(
+                self.get_url(url), method='POST',
+                body=json.dumps(payload))
+        self.assertEqual(response.code, 202)
+
+
+class TestIntegrationDDSLongWait(BaseIntegration):
+    def __init__(self, *args):
+        super().__init__(*args)
+
+        self.mock_duration = 10
+
+    @gen_test
     def test_can_deliver_and_respond(self):
         with tempfile.TemporaryDirectory(dir='./tests/resources/runfolders/', prefix='160930_ST-E00216_0111_BH37CWALXX_') as tmp_dir:
 
@@ -248,20 +297,3 @@ class TestIntegrationDDS(BaseIntegration):
                 staging_response = yield self.http_client.fetch(staging_status_links["ABC_123"])
                 self.assertEqual(json.loads(staging_response.body)["status"], StagingStatus.staging_successful.name)
 
-    @gen_test
-    def test_can_create_project(self):
-        return
-        project_name = "CD-1234"
-        url = "/".join([self.API_BASE, "dds_project", "create", project_name])
-        payload = {
-            "description": "Dummy project",
-            "pi": "alex@doe.com",
-            "researchers": ["robin@doe.com", "kim@doe.com"],
-            "owners": ["alex@doe.com"],
-            "non-sensitive": False,
-        }
-        response = yield self.http_client.fetch(
-                self.get_url(url), method='POST',
-                body=json.dumps(payload))
-
-        self.assertEqual(response.code, 202)

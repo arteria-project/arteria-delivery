@@ -1,6 +1,6 @@
 
 import random
-from mock import MagicMock, create_autospec, patch
+from mock import MagicMock, AsyncMock, create_autospec, patch
 
 from tornado.testing import AsyncTestCase, gen_test
 from tornado.gen import coroutine
@@ -102,7 +102,15 @@ class TestDDSService(AsyncTestCase):
         def _get_delivery_order():
             return self.delivery_order.delivery_status
         assert_eventually_equals(self, 1, _get_delivery_order, DeliveryStatus.delivery_successful)
-        self.mock_mover_runner.run.assert_called_with(['dds', '--token-path', '/foo/bar/auth', '--log-file', '/foo/bar/log', 'data', 'put', '--source', '/foo', '--project', 'snpseq00001', '--silent'])
+        self.mock_mover_runner.run.assert_called_with([
+            'dds',
+            '--token-path', 'token_path',
+            '--log-file', '/foo/bar/log',
+            'data', 'put',
+            '--source', '/staging/dir/bar',
+            '--project', 'snpseq00001',
+            '--silent'
+            ])
 
     @gen_test
     def test_deliver_by_staging_id_raises_on_non_existent_stage_id(self):
@@ -168,7 +176,7 @@ class TestDDSService(AsyncTestCase):
         dds_output = """Current user: bio
 Project created with id: snpseq00003
 User forskare was associated with Project snpseq00003 as Owner=True. An e-mail notification has not been sent.
-Invitation sent to annamatilda.aslin+phdstudent@gmail.com. The user should have a valid account to be added to a
+Invitation sent to email@adress.com. The user should have a valid account to be added to a
 project"""
 
         self.assertEqual(DDSService._parse_dds_project_id(dds_output), "snpseq00003")
@@ -184,9 +192,13 @@ project"""
                 "researchers": ["robin@doe.com", "kim@doe.com"],
                 "owners": ["alex@doe.com"],
                 "non-sensitive": False,
+                "token_path": "/foo/bar/auth",
                 }
 
-        with patch('delivery.services.external_program_service.ExternalProgramService.run_and_wait') as mock_run,\
+        with patch(
+                'delivery.services.external_program_service'
+                '.ExternalProgramService.run_and_wait',
+                new_callable=AsyncMock) as mock_run,\
                 patch('delivery.services.dds_service.DDSService._parse_dds_project_id') as mock_parse_dds_project_id:
             mock_run.return_value.status_code = 0
             mock_parse_dds_project_id.return_value = "snpseq00001"
@@ -207,5 +219,5 @@ project"""
                 ])
             self.mock_dds_project_repo.add_dds_project\
                     .assert_called_once_with(
-                            project_name,
-                            mock_parse_dds_project_id.return_value)
+                            project_name=project_name,
+                            dds_project_id=mock_parse_dds_project_id.return_value)
