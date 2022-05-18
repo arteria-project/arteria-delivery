@@ -5,3 +5,4 @@ sqlalchemy==1.4.35
 alembic==1.7.7
 enum34==1.1.10
 arteria==1.1.3
+dds-cli==1.0.5
