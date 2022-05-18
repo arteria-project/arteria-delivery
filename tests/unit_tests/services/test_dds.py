@@ -183,8 +183,6 @@ project"""
 
     @gen_test
     def test_create_project(self):
-        self.mock_dds_project_repo.project_exists.return_value = False
-
         project_name = "AA-1221"
         project_metadata = {
                 "description": "Dummy project",
