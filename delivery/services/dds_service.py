@@ -40,6 +40,14 @@ class DDSService(object):
             raise CannotParseDDSOutputException(f"Could not parse DDS project ID from: {dds_output}")
 
     async def create_dds_project(self, project_name, project_metadata):
+        """
+        Create a new project in dds
+        :param project_name: Project name from Clarity
+        :param project_metadata: dictionnary containing pi email, project
+        description, owner and researcher emails as well as whether the data is
+        sensitive or not.
+        :return: project id in dds
+        """
         cmd = [
                 'dds',
                 '--token-path', project_metadata["token_path"],
@@ -65,7 +73,7 @@ class DDSService(object):
                 for args in ['--researcher', researcher]
                 ]
 
-        if project_metadata.get('--non-sensitive', False):
+        if project_metadata.get('non-sensitive', False):
             cmd += ['--non-sensitive']
 
         log.debug(f"Running dds with command: {' '.join(cmd)}")
@@ -81,6 +89,8 @@ class DDSService(object):
         self.dds_project_repo.add_dds_project(
                 project_name=project_name,
                 dds_project_id=dds_project_id)
+
+        return dds_project_id
 
     @staticmethod
     @gen.coroutine

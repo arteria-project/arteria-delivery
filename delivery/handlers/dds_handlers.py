@@ -45,5 +45,7 @@ class DDSCreateProjectHandler(DDSProjectBaseHandler):
         required_members = ["token_path"]
         project_metadata = self.body_as_object(required_members=required_members)
 
-        await self.dds_service.create_dds_project(project_name, project_metadata)
+        dds_project_id = await self.dds_service.create_dds_project(project_name, project_metadata)
+
         self.set_status(ACCEPTED)
+        self.write_json({'dds_project_id': dds_project_id})

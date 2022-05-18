@@ -222,6 +222,7 @@ class TestIntegrationDDS(BaseIntegration):
                 body=json.dumps(payload))
 
         self.assertEqual(response.code, 202)
+        self.assertTrue(json.loads(response.body)["dds_project_id"].startswith("snpseq"))
 
     @gen_test
     def test_can_create_two_projects(self):
@@ -240,11 +241,15 @@ class TestIntegrationDDS(BaseIntegration):
                 self.get_url(url), method='POST',
                 body=json.dumps(payload))
         self.assertEqual(response.code, 202)
+        dds_project_id1 = json.loads(response.body)["dds_project_id"]
 
         response = yield self.http_client.fetch(
                 self.get_url(url), method='POST',
                 body=json.dumps(payload))
         self.assertEqual(response.code, 202)
+        dds_project_id2 = json.loads(response.body)["dds_project_id"]
+
+        self.assertNotEqual(dds_project_id1, dds_project_id2)
 
 
 class TestIntegrationDDSLongWait(BaseIntegration):
