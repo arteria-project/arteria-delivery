@@ -1,5 +1,6 @@
 import os
 import mock
+import random
 
 from subprocess import PIPE
 
@@ -21,7 +22,7 @@ class BaseIntegration(AsyncHTTPTestCase):
         super().__init__(*args)
 
         # Default duration of mock delivery
-        self.mock_duration = 10
+        self.mock_duration = 0.1
 
     def _create_projects_dir_with_random_data(self, base_dir, proj_name='ABC_123'):
         tmp_proj_dir = os.path.join(base_dir, 'Projects', proj_name)
@@ -78,18 +79,32 @@ class BaseIntegration(AsyncHTTPTestCase):
         config = app_svc.config_svc
 
         def mock_delivery(cmd):
-            # TODO Mock dds output as well
+            project_id = f"snpseq{random.randint(0, 10**10):010d}"
+            dds_output = f"""Current user: bio
+Project created with id: {project_id}
+User forskare was associated with Project {project_id} as Owner=True. An e-mail notification has not been sent.
+Invitation sent to email@adress.com. The user should have a valid account to be added to a
+project"""
             log.debug(f"Mock is called with {cmd}")
+            shell = False
             if any(
                     cmd[0].endswith(delivery_prgm)
                     for delivery_prgm in ['dds', 'moverinfo', 'to_outbox']):
-                cmd = ['sleep', str(self.mock_duration)]
+                new_cmd = ['sleep', str(self.mock_duration)]
 
-            log.debug(f"Running mocked {cmd}")
-            p = Subprocess(cmd,
+                if cmd[0].endswith('dds') and 'project' in cmd:
+                    new_cmd += ['&&', 'echo', f'"{dds_output}"']
+                    new_cmd = " ".join(new_cmd)
+                    shell = True
+            else:
+                new_cmd = cmd
+
+            log.debug(f"Running mocked {new_cmd}")
+            p = Subprocess(new_cmd,
                            stdout=PIPE,
                            stderr=PIPE,
-                           stdin=PIPE)
+                           stdin=PIPE,
+                           shell=shell)
             return Execution(pid=p.pid, process_obj=p)
 
         patcher = mock.patch(

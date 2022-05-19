@@ -5,11 +5,39 @@ import os
 from delivery.services.file_system_service import FileSystemService
 from delivery.services.metadata_service import MetadataService
 from delivery.models.project import GeneralProject, RunfolderProject
+from delivery.models.db_models import DDSProject
 from delivery.models.runfolder import RunfolderFile
 from delivery.exceptions import TooManyProjectsFound, ProjectNotFoundException, ProjectReportNotFoundException, \
     ProjectsDirNotfoundException
 
 log = logging.getLogger(__name__)
+
+
+class DDSProjectRepository:
+    """
+    A repository of DDS projects backed by a database.
+    """
+
+    def __init__(self, session_factory):
+        """
+        Instantiate a new DDSProjectRepository
+        :param session_factory: factory method which can produce new sqlalchemy Session objects
+        """
+        self.session = session_factory()
+
+    def add_dds_project(self, dds_project_id, project_name):
+        """
+        Add a DDS project and commit it to the database
+        :param dds_project_id: DDS project id
+        :param project_name: Clarity project name
+
+        :return: DDSProject
+        """
+        dds_project = DDSProject(dds_project_id=dds_project_id, project_name=project_name)
+        self.session.add(dds_project)
+        self.session.commit()
+
+        return dds_project
 
 
 class GeneralProjectRepository(object):

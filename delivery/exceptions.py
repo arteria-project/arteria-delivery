@@ -84,3 +84,9 @@ class ProjectsDirNotfoundException(Exception):
     Should be raised when a directory containing projects could not be found
     """
     pass
+
+class CannotParseDDSOutputException(Exception):
+    """
+    Should be raised when DDS's output cannot be parsed for e.g. creating a project.
+    """
+    pass

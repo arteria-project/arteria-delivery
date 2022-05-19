@@ -112,13 +112,13 @@ class StagingService(object):
                 log.info("Successfully staged: {} to: {}".format(staging_order, staging_order.get_staging_path()))
             else:
                 staging_order.status = StagingStatus.staging_failed
-                log.info("Failed in staging: {} because rsync returned exit code: {}".
+                log.error("Failed in staging: {} because rsync returned exit code: {}".
                          format(staging_order, execution_result.status_code))
 
         # TODO Better exception handling here...
         except Exception as e:
             staging_order.status = StagingStatus.staging_failed
-            log.info("Failed in staging: {} because this exception was logged: {}".
+            log.error("Failed in staging: {} because this exception was logged: {}".
                      format(staging_order, e))
         finally:
             # Always commit the state change to the database

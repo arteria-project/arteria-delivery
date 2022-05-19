@@ -3,14 +3,58 @@ import os
 import mock
 import unittest
 
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
 from delivery.exceptions import ProjectReportNotFoundException
 from delivery.models.project import GeneralProject, RunfolderProject
-from delivery.repositories.project_repository import GeneralProjectRepository, UnorganisedRunfolderProjectRepository
+from delivery.repositories.project_repository import GeneralProjectRepository, UnorganisedRunfolderProjectRepository, DDSProjectRepository
+from delivery.models.db_models import SQLAlchemyBase, DDSProject
 from delivery.repositories.sample_repository import RunfolderProjectBasedSampleRepository
 from delivery.services.file_system_service import FileSystemService
 from delivery.services.metadata_service import MetadataService
 
 from tests.test_utils import UNORGANISED_RUNFOLDER
+
+
+class TestDDSProjectRepository(unittest.TestCase):
+    def setUp(self):
+        # NOTE setting echo to true is very useful to se which sql statements get
+        # executed, but since it fills up the logs a lot it's been disabled by
+        # default here.
+        engine = create_engine('sqlite:///:memory:', echo=False)
+        SQLAlchemyBase.metadata.create_all(engine)
+
+        # Throw some data into the in-memory db
+        session_factory = sessionmaker()
+        session_factory.configure(bind=engine)
+
+        self.session = session_factory()
+
+        self.dds_project_1 = DDSProject(project_name="CD-1234", dds_project_id="snpseq00001")
+        self.session.add(self.dds_project_1)
+
+        self.dds_project_2 = DDSProject(project_name="EF-5678", dds_project_id="snpseq00002")
+        self.session.add(self.dds_project_2)
+
+        self.session.commit()
+
+        # Prep the repo
+        self.dds_project_repo = DDSProjectRepository(session_factory)
+
+    def test_add_dds_project(self):
+        dds_project = self.dds_project_repo\
+                .add_dds_project(project_name="GH-9012", dds_project_id="snpseq00003")
+
+        self.assertIsInstance(dds_project, DDSProject)
+        self.assertEqual(dds_project.project_name, "GH-9012")
+        self.assertEqual(dds_project.dds_project_id, "snpseq00003")
+
+        # Check that the object has been committed, i.e. there are no 'dirty' objects in session
+        self.assertEqual(len(self.session.dirty), 0)
+        project_from_session = self.session.query(
+            DDSProject).filter(DDSProject.project_name == dds_project.project_name).one()
+        self.assertEqual(project_from_session.dds_project_id, dds_project.dds_project_id)
 
 
 class TestGeneralProjectRepository(unittest.TestCase):
