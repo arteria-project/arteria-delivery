@@ -32,7 +32,7 @@ class DDSService(object):
     @staticmethod
     def _parse_dds_project_id(dds_output):
         log.debug('DDS output was: {}'.format(dds_output))
-        pattern = re.compile('Project created with id: (snpseq\d+)')
+        pattern = re.compile(r'Project created with id: (snpseq\d+)')
         hits = pattern.search(dds_output)
         if hits:
             return hits.group(1)
