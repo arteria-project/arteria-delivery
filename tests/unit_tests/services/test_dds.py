@@ -209,7 +209,7 @@ project"""
                 '--log-file', '/foo/bar/log',
                 'project', 'create',
                 '--title', project_name,
-                '--description', project_metadata['description'],
+                '--description', f'"{project_metadata["description"]}"',
                 '-pi', project_metadata['pi'],
                 '--owner', project_metadata['owners'][0],
                 '--researcher', project_metadata['researchers'][0],

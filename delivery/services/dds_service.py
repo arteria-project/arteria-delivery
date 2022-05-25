@@ -57,7 +57,7 @@ class DDSService(object):
         cmd += [
                 'project', 'create',
                 '--title', project_name,
-                '--description', project_metadata['description'],
+                '--description', f"\"{project_metadata['description']}\"",
                 '-pi',  project_metadata['pi']
                 ]
 
