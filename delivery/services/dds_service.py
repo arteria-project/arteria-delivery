@@ -110,6 +110,7 @@ class DDSService(object):
 
             cmd += [
                     'data', 'put',
+                    '--mount-dir', dds_conf["mount_dir"],
                     '--source', delivery_order.delivery_source,
                     '--project', delivery_order.delivery_project,
                     '--silent',
