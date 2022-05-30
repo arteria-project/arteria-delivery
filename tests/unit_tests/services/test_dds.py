@@ -65,7 +65,10 @@ class TestDDSService(AsyncTestCase):
         self.mock_delivery_repo.get_delivery_order_by_id.return_value = self.delivery_order
 
         self.mock_session_factory = MagicMock()
-        self.mock_dds_config = {'token_path': '/foo/bar/auth', 'log_path': '/foo/bar/log'}
+        self.mock_dds_config = {
+                'log_path': '/foo/bar/log',
+                'mount_dir': '/foo/bar/mount_dir',
+                }
         self.dds_service = DDSService(
                 external_program_service=ExternalProgramService(),
                 staging_service=self.mock_staging_service,
@@ -107,6 +110,7 @@ class TestDDSService(AsyncTestCase):
             '--token-path', 'token_path',
             '--log-file', '/foo/bar/log',
             'data', 'put',
+            '--mount-dir', '/foo/bar/mount_dir',
             '--source', '/staging/dir/bar',
             '--project', 'snpseq00001',
             '--silent'
@@ -209,7 +213,7 @@ project"""
                 '--log-file', '/foo/bar/log',
                 'project', 'create',
                 '--title', project_name,
-                '--description', project_metadata['description'],
+                '--description', f'"{project_metadata["description"]}"',
                 '-pi', project_metadata['pi'],
                 '--owner', project_metadata['owners'][0],
                 '--researcher', project_metadata['researchers'][0],

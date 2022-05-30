@@ -37,6 +37,7 @@ class DDSCreateProjectHandler(DDSProjectBaseHandler):
                 "researchers": ["robin@doe.com", "kim@doe.com"],
                 "owners": ["alex@doe.com"],
                 "non-sensitive": False,
+                "token_path": "/foo/bar"
             }
 
             response = requests.request("POST", url, json=payload)

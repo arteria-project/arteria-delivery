@@ -57,7 +57,7 @@ class DDSService(object):
         cmd += [
                 'project', 'create',
                 '--title', project_name,
-                '--description', project_metadata['description'],
+                '--description', f"\"{project_metadata['description']}\"",
                 '-pi',  project_metadata['pi']
                 ]
 
@@ -110,6 +110,7 @@ class DDSService(object):
 
             cmd += [
                     'data', 'put',
+                    '--mount-dir', dds_conf["mount_dir"],
                     '--source', delivery_order.delivery_source,
                     '--project', delivery_order.delivery_project,
                     '--silent',
