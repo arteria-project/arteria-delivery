@@ -167,6 +167,7 @@ def compose_application(config):
     dds_project_repo = DDSProjectRepository(session_factory=session_factory)
     dds_service = DDSService(external_program_service=external_program_service,
                                                   staging_service=staging_service,
+                                                  staging_dir=staging_dir,
                                                   delivery_repo=delivery_repo,
                                                   dds_project_repo=dds_project_repo,
                                                   session_factory=session_factory,

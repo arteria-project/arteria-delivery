@@ -17,6 +17,7 @@ class DDSService(object):
             self,
             external_program_service,
             staging_service,
+            staging_dir,
             delivery_repo,
             dds_project_repo,
             session_factory,
@@ -24,6 +25,7 @@ class DDSService(object):
         self.external_program_service = external_program_service
         self.mover_external_program_service = self.external_program_service
         self.staging_service = staging_service
+        self.staging_dir = staging_dir
         self.delivery_repo = delivery_repo
         self.dds_project_repo = dds_project_repo
         self.session_factory = session_factory
@@ -94,7 +96,14 @@ class DDSService(object):
 
     @staticmethod
     @gen.coroutine
-    def _run_dds_put(delivery_order_id, delivery_order_repo, external_program_service, session_factory, token_path, dds_conf):
+    def _run_dds_put(
+            delivery_order_id,
+            delivery_order_repo,
+            staging_dir,
+            external_program_service,
+            session_factory,
+            token_path,
+            dds_conf):
         session = session_factory()
 
         # This is a somewhat hacky work-around to the problem that objects created in one
@@ -110,7 +119,7 @@ class DDSService(object):
 
             cmd += [
                     'data', 'put',
-                    '--mount-dir', dds_conf["mount_dir"],
+                    '--mount-dir', staging_dir,
                     '--source', delivery_order.delivery_source,
                     '--project', delivery_order.delivery_project,
                     '--silent',
@@ -150,19 +159,22 @@ class DDSService(object):
             raise InvalidStatusException("Only deliver by staging_id if it has a successful status!"
                                          "Staging order was: {}".format(stage_order))
 
-        delivery_order = self.delivery_repo.create_delivery_order(delivery_source=stage_order.get_staging_path(),
-                                                                  delivery_project=delivery_project,
-                                                                  delivery_status=DeliveryStatus.pending,
-                                                                  staging_order_id=staging_id,
-                                                                  md5sum_file=md5sum_file)
+        delivery_order = self.delivery_repo.create_delivery_order(
+                delivery_source=stage_order.get_staging_path(),
+                delivery_project=delivery_project,
+                delivery_status=DeliveryStatus.pending,
+                staging_order_id=staging_id,
+                md5sum_file=md5sum_file)
 
-        args_for_run_dds_put = {'delivery_order_id': delivery_order.id,
-                              'delivery_order_repo': self.delivery_repo,
-                              'external_program_service': self.mover_external_program_service,
-                              'session_factory': self.session_factory,
-                              'token_path': token_path,
-                              'dds_conf': self.dds_conf,
-                              }
+        args_for_run_dds_put = {
+            'delivery_order_id': delivery_order.id,
+            'delivery_order_repo': self.delivery_repo,
+            'staging_dir': self.staging_dir,
+            'external_program_service': self.mover_external_program_service,
+            'session_factory': self.session_factory,
+            'token_path': token_path,
+            'dds_conf': self.dds_conf,
+            }
 
         if skip_mover:
             session = self.session_factory()
