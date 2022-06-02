@@ -20,13 +20,16 @@ from tests.integration_tests.base import BaseIntegration
 from tests.test_utils import assert_eventually_equals, unorganised_runfolder, samplesheet_file_from_runfolder, \
     project_report_files
 
+
 class TestIntegrationDDS(BaseIntegration):
     @gen_test
     def test_can_stage_and_delivery_runfolder(self):
-        # Note that this is a test which skips mover (since to_outbox is not expected to be installed on the system
-        # where this runs)
+        # Note that this is a test which skips delivery (since to_outbox is not
+        # expected to be installed on the system where this runs)
 
-        with tempfile.TemporaryDirectory(dir='./tests/resources/runfolders/', prefix='160930_ST-E00216_0111_BH37CWALXX_') as tmp_dir:
+        with tempfile.TemporaryDirectory(
+                dir='./tests/resources/runfolders/',
+                prefix='160930_ST-E00216_0111_BH37CWALXX_') as tmp_dir:
 
             dir_name = os.path.basename(tmp_dir)
             self._create_projects_dir_with_random_data(tmp_dir)
@@ -59,11 +62,13 @@ class TestIntegrationDDS(BaseIntegration):
                 delivery_url = '/'.join([self.API_BASE, 'deliver', 'stage_id', str(staging_id)])
                 delivery_body = {
                         'delivery_project_id': 'fakedeliveryid2016',
-                        'dds': True,
                         'token_path': 'token_path',
-                        'skip_mover': True,
+                        'skip_delivery': True,
                         }
-                delivery_resp = yield self.http_client.fetch(self.get_url(delivery_url), method='POST', body=json.dumps(delivery_body))
+                delivery_resp = yield self.http_client.fetch(
+                        self.get_url(delivery_url),
+                        method='POST',
+                        body=json.dumps(delivery_body))
                 delivery_resp_as_json = json.loads(delivery_resp.body)
                 delivery_link = delivery_resp_as_json['delivery_order_link']
 
@@ -74,8 +79,8 @@ class TestIntegrationDDS(BaseIntegration):
 
     @gen_test
     def test_can_stage_and_delivery_project_dir(self):
-        # Note that this is a test which skips mover (since to_outbox is not expected to be installed on the system
-        # where this runs)
+        # Note that this is a test which skips delivery (since to_outbox is not
+        # expected to be installed on the system where this runs)
 
         with tempfile.TemporaryDirectory(dir='./tests/resources/projects') as tmp_dir:
 
@@ -100,7 +105,7 @@ class TestIntegrationDDS(BaseIntegration):
                 delivery_url = '/'.join([self.API_BASE, 'deliver', 'stage_id', str(staging_id)])
                 delivery_body = {
                         'delivery_project_id': 'fakedeliveryid2016',
-                        'skip_mover': True,
+                        'skip_delivery': True,
                         'dds': True,
                         'token_path': 'token_path',
                         }
@@ -295,7 +300,7 @@ class TestIntegrationDDSLongWait(BaseIntegration):
                         'delivery_project_id': 'fakedeliveryid2016',
                         'dds': True,
                         'token_path': 'token_path',
-                        'skip_mover': False,
+                        'skip_delivery': False,
                         }
                 delivery_response = self.http_client.fetch(self.get_url(delivery_url), method='POST', body=json.dumps(delivery_body))
 

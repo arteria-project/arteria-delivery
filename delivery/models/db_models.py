@@ -6,9 +6,10 @@ from sqlalchemy import Column, Integer, BigInteger, String, Enum
 from sqlalchemy.ext.declarative import declarative_base
 
 """
-Use this as the base for all database based models. This is used by alembic to know what the tables
-should look like in the database, so defining new base classes elsewhere will mean that they will not
-be updated properly in the actual database.
+Use this as the base for all database based models. This is used by alembic to
+know what the tables should look like in the database, so defining new base
+classes elsewhere will mean that they will not be updated properly in the
+actual database.
 """
 SQLAlchemyBase = declarative_base()
 
@@ -117,8 +118,6 @@ class DeliveryStatus(base_enum.Enum):
 
     pending = 'pending'
 
-    mover_processing_delivery = 'mover_processing_delivery'
-    mover_failed_delivery = 'mover_failed_delivery'
     delivery_in_progress = 'delivery_in_progress'
     delivery_successful = 'delivery_successful'
     delivery_failed = 'delivery_failed'
@@ -136,15 +135,8 @@ class DeliveryOrder(SQLAlchemyBase):
     delivery_source = Column(String, nullable=False)
     delivery_project = Column(String, nullable=False)
 
-    # Optional path to md5sum file
-    md5sum_file = Column(String)
-
     # Process id of Mover process used to start the delivery
-    mover_pid = Column(Integer)
-
-    # Mover delivery id - the id that is needed to query mover about
-    # a delivery status
-    mover_delivery_id = Column(String)
+    dds_pid = Column(Integer)
 
     delivery_status = Column(Enum(DeliveryStatus))
     # TODO This should really be enforcing a foreign key constraint

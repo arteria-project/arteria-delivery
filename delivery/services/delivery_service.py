@@ -18,12 +18,12 @@ class DeliveryService(object):
                  general_project_repo,
                  runfolder_service,
                  staging_service,
-                 mover_service,
+                 dds_service,
                  project_links_directory,
                  file_system_service=FileSystemService()):
         self.delivery_sources_repo = delivery_sources_repo
         self.staging_service = staging_service
-        self.mover_service = mover_service
+        self.dds_service = dds_service
         self.general_project_repo = general_project_repo
         self.runfolder_service = runfolder_service
         self.project_links_directory = project_links_directory
@@ -131,21 +131,26 @@ class DeliveryService(object):
 
     def deliver_all_runfolders_for_project(self, project_name, mode):
         """
-        This method will attempt to deliver all runfolders for the specified project.
+        This method will attempt to deliver all runfolders for the specified
+        project.
 
-        Since the process is somewhat involved, here's a explanation of what's going on and why.
+        Since the process is somewhat involved, here's a explanation of what's
+        going on and why.
 
-        First, there are three modes of delivery which needs to be handled. CLEAN, which denotes
-        that this project is not allowed to be delivered previously. BATCH, which will deliver any
-        runfolders which have not previously been delivered. And finally, FORCE, which will deliver
-        all the runfolders regardless of their previous status.
+        First, there are three modes of delivery which needs to be handled.
+        CLEAN, which denotes that this project is not allowed to be delivered
+        previously. BATCH, which will deliver any runfolders which have not
+        previously been delivered. And finally, FORCE, which will deliver all
+        the runfolders regardless of their previous status.
 
-        Two steps are then required to enable the staging, that require some explanation.
-        Reading the code you will note that the _get_projects_to_deliver will create a
-        DeliverySource and then a new DeliverySource will be created by this method. The reason
-        for this is that since we create a intermediate directory in which links to all the
-        runfolders which are to be delivered together are created. This directory is then passed
-        as a DeliverySource when creating a new StagingOrder (which is goes on to be staged).
+        Two steps are then required to enable the staging, that require some
+        explanation.  Reading the code you will note that the
+        _get_projects_to_deliver will create a DeliverySource and then a new
+        DeliverySource will be created by this method. The reason for this is
+        that since we create a intermediate directory in which links to all the
+        runfolders which are to be delivered together are created. This
+        directory is then passed as a DeliverySource when creating a new
+        StagingOrder (which is goes on to be staged).
 
         :param project_name: of project to deliver
         :param mode: A DeliveryMode

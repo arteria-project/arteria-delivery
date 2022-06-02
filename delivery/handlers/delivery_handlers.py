@@ -16,15 +16,15 @@ class DeliverByStageIdHandler(ArteriaDeliveryBaseHandler):
     """
 
     def initialize(self, **kwargs):
-        self.dds = self.body_as_object().get('dds', False)
-        self.delivery_service = kwargs["dds_service"] if self.dds else kwargs["mover_delivery_service"]
+        self.delivery_service = kwargs["dds_service"]
         super(DeliverByStageIdHandler, self).initialize(kwargs)
 
     @coroutine
     def post(self, staging_id):
-        required_members = ["delivery_project_id"]
-        if self.dds:
-            required_members += ["token_path"]
+        required_members = [
+                "delivery_project_id",
+                "token_path"
+                ]
         request_data = self.body_as_object(required_members=required_members)
 
         delivery_project_id = request_data["delivery_project_id"]
@@ -36,24 +36,25 @@ class DeliverByStageIdHandler(ArteriaDeliveryBaseHandler):
             extra_args['token_path'] = token_path
 
         # This should only be used for testing purposes /JD 20170202
-        skip_mover_request = request_data.get("skip_mover")
-        if skip_mover_request and skip_mover_request == True:
-            log.info("Got the command to skip Mover...")
-            skip_mover = True
+        skip_delivery_request = request_data.get("skip_delivery")
+        if skip_delivery_request and skip_delivery_request == True:
+            log.info("Got the command to skip delivery...")
+            skip_delivery = True
         else:
-            log.debug("Will not skip running mover!")
-            skip_mover = False
+            log.debug("Will not skip running delivery!")
+            skip_delivery = False
 
         delivery_id = yield self.delivery_service.deliver_by_staging_id(
                 staging_id=staging_id,
                 delivery_project=delivery_project_id,
                 md5sum_file=md5sum_file,
-                skip_mover=skip_mover,
+                skip_delivery=skip_delivery,
                 **extra_args)
 
-        status_end_point = "{0}://{1}{2}".format(self.request.protocol,
-                                                 self.request.host,
-                                                 self.reverse_url("delivery_status", delivery_id))
+        status_end_point = "{0}://{1}{2}".format(
+                self.request.protocol,
+                self.request.host,
+                self.reverse_url("delivery_status", delivery_id))
 
         self.set_status(ACCEPTED)
         self.write_json({'delivery_order_id': delivery_id,
@@ -63,25 +64,20 @@ class DeliverByStageIdHandler(ArteriaDeliveryBaseHandler):
 class DeliveryStatusHandler(ArteriaDeliveryBaseHandler):
 
     def initialize(self, **kwargs):
-        self.mover_delivery_service = kwargs["mover_delivery_service"]
-        self.dds_delivery_service = kwargs["dds_service"]
+        self.delivery_service = kwargs["dds_service"]
         super(DeliveryStatusHandler, self).initialize(kwargs)
 
     @coroutine
     def get(self, delivery_order_id):
-        delivery_order = self.mover_delivery_service\
+        delivery_order = self.delivery_service\
             .get_delivery_order_by_id(delivery_order_id)
 
-        delivery_service = self.dds_delivery_service\
-                if delivery_order.is_dds()\
-                else self.mover_delivery_service
-
-        delivery_order = yield delivery_service.update_delivery_status(delivery_order_id)
+        delivery_order = yield self.delivery_service.update_delivery_status(
+                delivery_order_id)
 
         body = {
                 'id': delivery_order.id,
                 'status': delivery_order.delivery_status.name,
-                'mover_delivery_id': delivery_order.mover_delivery_id
                 }
 
         self.write_json(body)

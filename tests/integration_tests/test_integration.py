@@ -119,8 +119,8 @@ class TestIntegration(BaseIntegration):
                         _verify_checksum(relative_file_path, sample_file.checksum)
 
     def test_cannot_stage_the_same_runfolder_twice(self):
-        # Note that this is a test which skips mover (since to_outbox is not expected to be installed on the system
-        # where this runs)
+        # Note that this is a test which skips delivery (since to_outbox is not
+        # expected to be installed on the system where this runs)
 
         with tempfile.TemporaryDirectory(dir='./tests/resources/runfolders/', prefix='160930_ST-E00216_0111_BH37CWALXX_') as tmp_dir:
 
@@ -141,8 +141,8 @@ class TestIntegration(BaseIntegration):
             self.assertEqual(response.code, 202)
 
     def test_cannot_stage_the_same_project_twice(self):
-        # Note that this is a test which skips mover (since to_outbox is not expected to be installed on the system
-        # where this runs)
+        # Note that this is a test which skips delivery (since to_outbox is not
+        # expected to be installed on the system where this runs)
 
         with tempfile.TemporaryDirectory(dir='./tests/resources/projects') as tmp_dir:
 

@@ -17,9 +17,11 @@ log = logging.getLogger(__name__)
 
 class StagingService(object):
     """
-    Starting in this context means copying a directory or file to a separate directory before delivering it.
-    This service handles that in a asynchronous way. Copying operations (right nwo powered by rsync) can be
-    started, and their status monitored by querying the underlying database for their status.
+    Starting in this context means copying a directory or file to a separate
+    directory before delivering it.  This service handles that in a
+    asynchronous way. Copying operations (right now powered by rsync) can be
+    started, and their status monitored by querying the underlying database for
+    their status.
     """
 
     # TODO On initiation of a Staging service, restart any ongoing stagings

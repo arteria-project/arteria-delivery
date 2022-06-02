@@ -30,7 +30,6 @@ from delivery.repositories.delivery_sources_repository import DatabaseBasedDeliv
 from delivery.repositories.sample_repository import RunfolderProjectBasedSampleRepository
 
 
-from delivery.services.mover_service import MoverDeliveryService
 from delivery.services.dds_service import DDSService
 from delivery.services.external_program_service import ExternalProgramService
 from delivery.services.staging_service import StagingService
@@ -100,16 +99,17 @@ def create_and_migrate_db(db_engine, alembic_path, db_connection_string):
 
 def compose_application(config):
     """
-    Instantiates all service, repos, etc which are then used by the application.
-    The resulting dictionary can then be passed on to routes which instantiates the
-    http handlers.
+    Instantiates all service, repos, etc which are then used by the
+    application.  The resulting dictionary can then be passed on to routes
+    which instantiates the http handlers.
     :param config: a configuration instance
     :return: a dictionary with references to any relevant resources
     """
 
     def _assert_is_dir(directory):
         if not FileSystemService.isdir(directory):
-            raise AssertionError("{} is not a directory".format(os.path.abspath(directory)))
+            raise AssertionError(
+                    "{} is not a directory".format(os.path.abspath(directory)))
 
     staging_dir = config['staging_directory']
     _assert_is_dir(staging_dir)
@@ -132,7 +132,8 @@ def compose_application(config):
     general_project_dir = config['general_project_directory']
     _assert_is_dir(general_project_dir)
 
-    general_project_repo = GeneralProjectRepository(root_directory=general_project_dir)
+    general_project_repo = GeneralProjectRepository(
+            root_directory=general_project_dir)
     external_program_service = ExternalProgramService()
 
     db_connection_string = config["db_connection_string"]
@@ -144,45 +145,45 @@ def compose_application(config):
     session_factory = scoped_session(sessionmaker())
     session_factory.configure(bind=engine)
 
-    staging_repo = DatabaseBasedStagingRepository(session_factory=session_factory)
+    staging_repo = DatabaseBasedStagingRepository(
+            session_factory=session_factory)
 
-    staging_service = StagingService(external_program_service=external_program_service,
-                                     runfolder_repo=runfolder_repo,
-                                     project_dir_repo=general_project_repo,
-                                     staging_repo=staging_repo,
-                                     staging_dir=staging_dir,
-                                     project_links_directory=project_links_directory,
-                                     session_factory=session_factory)
+    staging_service = StagingService(
+            external_program_service=external_program_service,
+            runfolder_repo=runfolder_repo,
+            project_dir_repo=general_project_repo,
+            staging_repo=staging_repo,
+            staging_dir=staging_dir,
+            project_links_directory=project_links_directory,
+            session_factory=session_factory)
 
-    delivery_repo = DatabaseBasedDeliveriesRepository(session_factory=session_factory)
-
-    path_to_mover = config['path_to_mover']
-    mover_delivery_service = MoverDeliveryService(external_program_service=external_program_service,
-                                                  staging_service=staging_service,
-                                                  delivery_repo=delivery_repo,
-                                                  session_factory=session_factory,
-                                                  path_to_mover=path_to_mover)
+    delivery_repo = DatabaseBasedDeliveriesRepository(
+            session_factory=session_factory)
 
     dds_conf = config['dds_conf']
     dds_project_repo = DDSProjectRepository(session_factory=session_factory)
-    dds_service = DDSService(external_program_service=external_program_service,
-                                                  staging_service=staging_service,
-                                                  delivery_repo=delivery_repo,
-                                                  dds_project_repo=dds_project_repo,
-                                                  session_factory=session_factory,
-                                                  dds_conf=dds_conf)
+    dds_service = DDSService(
+            external_program_service=external_program_service,
+            staging_service=staging_service,
+            delivery_repo=delivery_repo,
+            dds_project_repo=dds_project_repo,
+            session_factory=session_factory,
+            dds_conf=dds_conf)
 
-    delivery_sources_repo = DatabaseBasedDeliverySourcesRepository(session_factory=session_factory)
+    delivery_sources_repo = DatabaseBasedDeliverySourcesRepository(
+            session_factory=session_factory)
     runfolder_service = RunfolderService(runfolder_repo)
 
-    delivery_service = DeliveryService(mover_service=mover_delivery_service,
-                                       staging_service=staging_service,
-                                       delivery_sources_repo=delivery_sources_repo,
-                                       general_project_repo=general_project_repo,
-                                       runfolder_service=runfolder_service,
-                                       project_links_directory=project_links_directory)
+    delivery_service = DeliveryService(
+            dds_service=dds_service,
+            staging_service=staging_service,
+            delivery_sources_repo=delivery_sources_repo,
+            general_project_repo=general_project_repo,
+            runfolder_service=runfolder_service,
+            project_links_directory=project_links_directory)
 
-    best_practice_analysis_service = BestPracticeAnalysisService(general_project_repo)
+    best_practice_analysis_service = BestPracticeAnalysisService(
+            general_project_repo)
 
     organise_service = OrganiseService(
         runfolder_service=RunfolderService(unorganised_runfolder_repo))
@@ -191,7 +192,6 @@ def compose_application(config):
                 runfolder_repo=runfolder_repo,
                 external_program_service=external_program_service,
                 staging_service=staging_service,
-                mover_delivery_service=mover_delivery_service,
                 dds_service=dds_service,
                 delivery_service=delivery_service,
                 general_project_repo=general_project_repo,

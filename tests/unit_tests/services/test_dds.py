@@ -9,7 +9,7 @@ from delivery.services.external_program_service import ExternalProgramService
 from delivery.services.dds_service import DDSService
 from delivery.models.db_models import DeliveryOrder, StagingOrder, StagingStatus, DeliveryStatus, DDSProject
 from delivery.models.execution import ExecutionResult, Execution
-from delivery.exceptions import InvalidStatusException, CannotParseMoverOutputException
+from delivery.exceptions import InvalidStatusException
 
 from tests.test_utils import MockIOLoop, assert_eventually_equals
 
@@ -39,16 +39,16 @@ class TestDDSService(AsyncTestCase):
         """
 
 
-        self.mock_mover_runner = create_autospec(ExternalProgramService)
+        self.mock_dds_runner = create_autospec(ExternalProgramService)
         mock_process = MagicMock()
         mock_execution = Execution(pid=random.randint(1, 1000), process_obj=mock_process)
-        self.mock_mover_runner.run.return_value = mock_execution
+        self.mock_dds_runner.run.return_value = mock_execution
 
         @coroutine
         def wait_as_coroutine(x):
             return ExecutionResult(stdout=example_dds_project_ls_stdout, stderr="", status_code=0)
 
-        self.mock_mover_runner.wait_for_execution = wait_as_coroutine
+        self.mock_dds_runner.wait_for_execution = wait_as_coroutine
 
 
         self.mock_staging_service = MagicMock()
@@ -80,7 +80,7 @@ class TestDDSService(AsyncTestCase):
 
         # Inject separate external runner instances for the tests, since they need to return
         # different information
-        self.dds_service.mover_external_program_service = self.mock_mover_runner
+        self.dds_service.dds_external_program_service = self.mock_dds_runner
 
         super(TestDDSService, self).setUp()
 
@@ -105,7 +105,7 @@ class TestDDSService(AsyncTestCase):
         def _get_delivery_order():
             return self.delivery_order.delivery_status
         assert_eventually_equals(self, 1, _get_delivery_order, DeliveryStatus.delivery_successful)
-        self.mock_mover_runner.run.assert_called_with([
+        self.mock_dds_runner.run.assert_called_with([
             'dds',
             '--token-path', 'token_path',
             '--log-file', '/foo/bar/log',
@@ -151,12 +151,12 @@ class TestDDSService(AsyncTestCase):
                                        delivery_project='snpseq00001',
                                        delivery_status=DeliveryStatus.delivery_in_progress,
                                        staging_order_id=11,
-                                       md5sum_file='file')
+                                       )
         self.mock_delivery_repo.get_delivery_order_by_id.return_value = delivery_order
         actual = self.dds_service.get_delivery_order_by_id(1)
         self.assertEqual(actual.id, 1)
 
-    def test_possible_to_delivery_by_staging_id_and_skip_mover(self):
+    def test_possible_to_delivery_by_staging_id_and_skip_delivery(self):
 
         staging_order = StagingOrder(source='/foo/bar', staging_target='/staging/dir/bar')
         staging_order.status = StagingStatus.staging_successful
@@ -169,7 +169,7 @@ class TestDDSService(AsyncTestCase):
                 delivery_project='snpseq00001',
                 md5sum_file='md5sum_file',
                 token_path='token_path',
-                skip_mover=True,
+                skip_delivery=True,
                 )
 
         def _get_delivery_order():

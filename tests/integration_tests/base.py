@@ -87,12 +87,10 @@ Invitation sent to email@adress.com. The user should have a valid account to be 
 project"""
             log.debug(f"Mock is called with {cmd}")
             shell = False
-            if any(
-                    cmd[0].endswith(delivery_prgm)
-                    for delivery_prgm in ['dds', 'moverinfo', 'to_outbox']):
+            if cmd[0].endswith('dds'):
                 new_cmd = ['sleep', str(self.mock_duration)]
 
-                if cmd[0].endswith('dds') and 'project' in cmd:
+                if 'project' in cmd:
                     new_cmd += ['&&', 'echo', f'"{dds_output}"']
                     new_cmd = " ".join(new_cmd)
                     shell = True
