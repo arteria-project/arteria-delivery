@@ -37,13 +37,13 @@ class DDSCreateProjectHandler(DDSProjectBaseHandler):
                 "researchers": ["robin@doe.com", "kim@doe.com"],
                 "owners": ["alex@doe.com"],
                 "non-sensitive": False,
-                "token_path": "/foo/bar"
+                "auth_token": "1234"
             }
 
             response = requests.request("POST", url, json=payload)
         """
 
-        required_members = ["token_path"]
+        required_members = ["auth_token"]
         project_metadata = self.body_as_object(required_members=required_members)
 
         dds_project_id = await self.dds_service.create_dds_project(project_name, project_metadata)

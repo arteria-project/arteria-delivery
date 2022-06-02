@@ -4,6 +4,7 @@ import logging
 import re
 import json
 from tornado import gen
+import tempfile
 
 from delivery.models.db_models import StagingStatus, DeliveryStatus
 from delivery.exceptions import ProjectNotFoundException, TooManyProjectsFound, InvalidStatusException, CannotParseDDSOutputException
@@ -50,36 +51,41 @@ class DDSService(object):
         sensitive or not.
         :return: project id in dds
         """
-        cmd = [
-                'dds',
-                '--token-path', project_metadata["token_path"],
-                '--log-file', self.dds_conf["log_path"],
-                ]
 
-        cmd += [
-                'project', 'create',
-                '--title', project_name,
-                '--description', f"\"{project_metadata['description']}\"",
-                '-pi',  project_metadata['pi']
-                ]
+        with tempfile.NamedTemporaryFile(mode='w', delete=True) as token_file:
+            token_file.write(project_metadata["auth_token"])
+            token_file.flush()
 
-        cmd += [
-                args
-                for owner in project_metadata.get('owners', [])
-                for args in ['--owner', owner]
-                ]
+            cmd = [
+                    'dds',
+                    '--token-path', token_file.name,
+                    '--log-file', self.dds_conf["log_path"],
+                    ]
 
-        cmd += [
-                args
-                for researcher in project_metadata.get('researchers', [])
-                for args in ['--researcher', researcher]
-                ]
+            cmd += [
+                    'project', 'create',
+                    '--title', project_name,
+                    '--description', f"\"{project_metadata['description']}\"",
+                    '-pi',  project_metadata['pi']
+                    ]
 
-        if project_metadata.get('non-sensitive', False):
-            cmd += ['--non-sensitive']
+            cmd += [
+                    args
+                    for owner in project_metadata.get('owners', [])
+                    for args in ['--owner', owner]
+                    ]
 
-        log.debug(f"Running dds with command: {' '.join(cmd)}")
-        execution_result = await self.external_program_service.run_and_wait(cmd)
+            cmd += [
+                    args
+                    for researcher in project_metadata.get('researchers', [])
+                    for args in ['--researcher', researcher]
+                    ]
+
+            if project_metadata.get('non-sensitive', False):
+                cmd += ['--non-sensitive']
+
+            log.debug(f"Running dds with command: {' '.join(cmd)}")
+            execution_result = await self.external_program_service.run_and_wait(cmd)
 
         if execution_result.status_code == 0:
             dds_project_id = DDSService._parse_dds_project_id(execution_result.stdout)
@@ -102,7 +108,7 @@ class DDSService(object):
             staging_dir,
             external_program_service,
             session_factory,
-            token_path,
+            auth_token,
             dds_conf):
         session = session_factory()
 
@@ -111,28 +117,32 @@ class DDSService(object):
         # thread, therefore it is re-materialized in here...
         delivery_order = delivery_order_repo.get_delivery_order_by_id(delivery_order_id, session)
         try:
-            cmd = [
-                    'dds',
-                    '--token-path', token_path,
-                    '--log-file', dds_conf["log_path"],
-                    ]
+            with tempfile.NamedTemporaryFile(mode='w', delete=True) as token_file:
+                token_file.write(auth_token)
+                token_file.flush()
 
-            cmd += [
-                    'data', 'put',
-                    '--mount-dir', staging_dir,
-                    '--source', delivery_order.delivery_source,
-                    '--project', delivery_order.delivery_project,
-                    '--silent',
-                    ]
+                cmd = [
+                        'dds',
+                        '--token-path', token_file.name,
+                        '--log-file', dds_conf["log_path"],
+                        ]
 
-            log.debug("Running dds with cmd: {}".format(" ".join(cmd)))
+                cmd += [
+                        'data', 'put',
+                        '--mount-dir', staging_dir,
+                        '--source', delivery_order.delivery_source,
+                        '--project', delivery_order.delivery_project,
+                        '--silent',
+                        ]
 
-            execution = external_program_service.run(cmd)
-            delivery_order.delivery_status = DeliveryStatus.delivery_in_progress
-            delivery_order.mover_pid = execution.pid
-            session.commit()
+                log.debug("Running dds with cmd: {}".format(" ".join(cmd)))
 
-            execution_result = yield external_program_service.wait_for_execution(execution)
+                execution = external_program_service.run(cmd)
+                delivery_order.delivery_status = DeliveryStatus.delivery_in_progress
+                delivery_order.mover_pid = execution.pid
+                session.commit()
+
+                execution_result = yield external_program_service.wait_for_execution(execution)
 
             if execution_result.status_code == 0:
                 delivery_order.delivery_status = DeliveryStatus.delivery_successful
@@ -152,7 +162,7 @@ class DDSService(object):
             session.commit()
 
     @gen.coroutine
-    def deliver_by_staging_id(self, staging_id, delivery_project, md5sum_file, token_path, skip_mover=False):
+    def deliver_by_staging_id(self, staging_id, delivery_project, md5sum_file, auth_token, skip_mover=False):
 
         stage_order = self.staging_service.get_stage_order_by_id(staging_id)
         if not stage_order or not stage_order.status == StagingStatus.staging_successful:
@@ -172,7 +182,7 @@ class DDSService(object):
             'staging_dir': self.staging_dir,
             'external_program_service': self.mover_external_program_service,
             'session_factory': self.session_factory,
-            'token_path': token_path,
+            'auth_token': auth_token,
             'dds_conf': self.dds_conf,
             }
 

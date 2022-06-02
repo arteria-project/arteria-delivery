@@ -60,7 +60,7 @@ class TestIntegrationDDS(BaseIntegration):
                 delivery_body = {
                         'delivery_project_id': 'fakedeliveryid2016',
                         'dds': True,
-                        'token_path': 'token_path',
+                        'auth_token': '1234',
                         'skip_mover': True,
                         }
                 delivery_resp = yield self.http_client.fetch(self.get_url(delivery_url), method='POST', body=json.dumps(delivery_body))
@@ -102,7 +102,7 @@ class TestIntegrationDDS(BaseIntegration):
                         'delivery_project_id': 'fakedeliveryid2016',
                         'skip_mover': True,
                         'dds': True,
-                        'token_path': 'token_path',
+                        'auth_token': '1234',
                         }
                 delivery_resp = yield self.http_client.fetch(self.get_url(delivery_url), method='POST', body=json.dumps(delivery_body))
                 delivery_resp_as_json = json.loads(delivery_resp.body)
@@ -214,7 +214,7 @@ class TestIntegrationDDS(BaseIntegration):
             "researchers": ["robin@doe.com", "kim@doe.com"],
             "owners": ["alex@doe.com"],
             "non-sensitive": False,
-            "token_path": '/foo/bar/auth',
+            "auth_token": '1234',
         }
 
         response = yield self.http_client.fetch(
@@ -234,7 +234,7 @@ class TestIntegrationDDS(BaseIntegration):
             "researchers": ["robin@doe.com", "kim@doe.com"],
             "owners": ["alex@doe.com"],
             "non-sensitive": False,
-            "token_path": '/foo/bar/auth',
+            "auth_token": '1234',
         }
 
         response = yield self.http_client.fetch(
@@ -294,7 +294,7 @@ class TestIntegrationDDSLongWait(BaseIntegration):
                 delivery_body = {
                         'delivery_project_id': 'fakedeliveryid2016',
                         'dds': True,
-                        'token_path': 'token_path',
+                        'auth_token': '1234',
                         'skip_mover': False,
                         }
                 delivery_response = self.http_client.fetch(self.get_url(delivery_url), method='POST', body=json.dumps(delivery_body))

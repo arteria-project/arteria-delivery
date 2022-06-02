@@ -88,26 +88,31 @@ class TestDDSService(AsyncTestCase):
     def test_deliver_by_staging_id(self):
         source = '/foo/bar'
         staging_target = '/staging/dir/bar'
+        auth_token = '1234'
         staging_order = StagingOrder(source=source, staging_target=staging_target)
         staging_order.status = StagingStatus.staging_successful
         self.mock_staging_service.get_stage_order_by_id.return_value = staging_order
 
         self.mock_staging_service.get_delivery_order_by_id.return_value = self.delivery_order
 
-        with patch('shutil.rmtree') as mock_rmtree:
+        with patch('shutil.rmtree') as mock_rmtree,\
+             patch('tempfile.NamedTemporaryFile') as mock_tempfile:
+            mock_tempfile.return_value.__enter__.return_value.name = 'auth_token'
             res = yield self.dds_service.deliver_by_staging_id(
                     staging_id=1,
                     delivery_project='snpseq00001',
-                    token_path='token_path',
+                    auth_token=auth_token,
                     md5sum_file='md5sum_file')
             mock_rmtree.assert_called_once_with(staging_target)
+            mock_tempfile.return_value.__enter__.return_value.write.assert_called_with(auth_token)
 
         def _get_delivery_order():
             return self.delivery_order.delivery_status
+
         assert_eventually_equals(self, 1, _get_delivery_order, DeliveryStatus.delivery_successful)
         self.mock_mover_runner.run.assert_called_with([
             'dds',
-            '--token-path', 'token_path',
+            '--token-path', 'auth_token',
             '--log-file', '/foo/bar/log',
             'data', 'put',
             '--mount-dir', '/foo/bar/staging_dir',
@@ -126,7 +131,7 @@ class TestDDSService(AsyncTestCase):
                     staging_id=1,
                     delivery_project='snpseq00001',
                     md5sum_file='md5sum_file',
-                    token_path='token_path',
+                    auth_token='auth_token',
                     )
 
     @gen_test
@@ -142,7 +147,7 @@ class TestDDSService(AsyncTestCase):
                     staging_id=1,
                     delivery_project='snpseq00001',
                     md5sum_file='md5sum_file',
-                    token_path='token_path',
+                    auth_token='auth_token',
                     )
 
     def test_delivery_order_by_id(self):
@@ -168,7 +173,7 @@ class TestDDSService(AsyncTestCase):
                 staging_id=1,
                 delivery_project='snpseq00001',
                 md5sum_file='md5sum_file',
-                token_path='token_path',
+                auth_token='auth_token',
                 skip_mover=True,
                 )
 
@@ -188,28 +193,33 @@ project"""
     @gen_test
     def test_create_project(self):
         project_name = "AA-1221"
+        auth_token = "1234"
         project_metadata = {
                 "description": "Dummy project",
                 "pi": "alex@doe.com",
                 "researchers": ["robin@doe.com", "kim@doe.com"],
                 "owners": ["alex@doe.com"],
                 "non-sensitive": False,
-                "token_path": "/foo/bar/auth",
+                "auth_token": auth_token,
                 }
 
         with patch(
                 'delivery.services.external_program_service'
                 '.ExternalProgramService.run_and_wait',
-                new_callable=AsyncMock) as mock_run,\
-                patch('delivery.services.dds_service.DDSService._parse_dds_project_id') as mock_parse_dds_project_id:
+                new_callable=AsyncMock) as mock_run, \
+             patch('tempfile.NamedTemporaryFile') as mock_tempfile, \
+             patch('delivery.services.dds_service.DDSService._parse_dds_project_id') as mock_parse_dds_project_id:
             mock_run.return_value.status_code = 0
             mock_parse_dds_project_id.return_value = "snpseq00001"
+            mock_tempfile.return_value.__enter__.return_value.name = 'auth_token'
 
             yield self.dds_service.create_dds_project(project_name, project_metadata)
 
+            mock_tempfile.return_value.__enter__.return_value.write.assert_called_with(auth_token)
+
             mock_run.assert_called_once_with([
                 'dds',
-                '--token-path', '/foo/bar/auth',
+                '--token-path', 'auth_token',
                 '--log-file', '/foo/bar/log',
                 'project', 'create',
                 '--title', project_name,
@@ -220,6 +230,6 @@ project"""
                 '--researcher', project_metadata['researchers'][1],
                 ])
             self.mock_dds_project_repo.add_dds_project\
-                    .assert_called_once_with(
-                            project_name=project_name,
-                            dds_project_id=mock_parse_dds_project_id.return_value)
+                .assert_called_once_with(
+                    project_name=project_name,
+                    dds_project_id=mock_parse_dds_project_id.return_value)

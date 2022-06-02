@@ -24,16 +24,16 @@ class DeliverByStageIdHandler(ArteriaDeliveryBaseHandler):
     def post(self, staging_id):
         required_members = ["delivery_project_id"]
         if self.dds:
-            required_members += ["token_path"]
+            required_members += ["auth_token"]
         request_data = self.body_as_object(required_members=required_members)
 
         delivery_project_id = request_data["delivery_project_id"]
-        token_path = request_data.get("token_path")
+        auth_token = request_data.get("auth_token")
         md5sum_file = request_data.get("md5sums_file")
 
         extra_args = {}
-        if token_path:
-            extra_args['token_path'] = token_path
+        if auth_token:
+            extra_args['auth_token'] = auth_token
 
         # This should only be used for testing purposes /JD 20170202
         skip_mover_request = request_data.get("skip_mover")
