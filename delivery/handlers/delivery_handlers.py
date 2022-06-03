@@ -1,6 +1,8 @@
 
+import os
 import json
 import logging
+import tempfile
 
 from tornado.gen import coroutine
 
@@ -32,8 +34,6 @@ class DeliverByStageIdHandler(ArteriaDeliveryBaseHandler):
         md5sum_file = request_data.get("md5sums_file")
 
         extra_args = {}
-        if auth_token:
-            extra_args['auth_token'] = auth_token
 
         # This should only be used for testing purposes /JD 20170202
         skip_mover_request = request_data.get("skip_mover")
@@ -44,12 +44,24 @@ class DeliverByStageIdHandler(ArteriaDeliveryBaseHandler):
             log.debug("Will not skip running mover!")
             skip_mover = False
 
-        delivery_id = yield self.delivery_service.deliver_by_staging_id(
-                staging_id=staging_id,
-                delivery_project=delivery_project_id,
-                md5sum_file=md5sum_file,
-                skip_mover=skip_mover,
-                **extra_args)
+        with tempfile.NamedTemporaryFile(mode='w', delete=True) as token_file:
+            if auth_token:
+                if os.path.exists(auth_token):
+                    token_path = auth_token
+                else:
+                    token_file.write(auth_token)
+                    token_file.flush()
+
+                    token_path = token_file.name
+
+                extra_args['token_path'] = token_path
+
+            delivery_id = yield self.delivery_service.deliver_by_staging_id(
+                    staging_id=staging_id,
+                    delivery_project=delivery_project_id,
+                    md5sum_file=md5sum_file,
+                    skip_mover=skip_mover,
+                    **extra_args)
 
         status_end_point = "{0}://{1}{2}".format(self.request.protocol,
                                                  self.request.host,
