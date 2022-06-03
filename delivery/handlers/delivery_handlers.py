@@ -31,10 +31,6 @@ class DeliverByStageIdHandler(ArteriaDeliveryBaseHandler):
         token_path = request_data.get("token_path")
         md5sum_file = request_data.get("md5sums_file")
 
-        extra_args = {}
-        if token_path:
-            extra_args['token_path'] = token_path
-
         # This should only be used for testing purposes /JD 20170202
         skip_delivery_request = request_data.get("skip_delivery")
         if skip_delivery_request and skip_delivery_request == True:
@@ -49,7 +45,8 @@ class DeliverByStageIdHandler(ArteriaDeliveryBaseHandler):
                 delivery_project=delivery_project_id,
                 md5sum_file=md5sum_file,
                 skip_delivery=skip_delivery,
-                **extra_args)
+                token_path=token_path,
+                )
 
         status_end_point = "{0}://{1}{2}".format(
                 self.request.protocol,
