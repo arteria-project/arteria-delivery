@@ -41,18 +41,23 @@ class DDSService(object):
         else:
             raise CannotParseDDSOutputException(f"Could not parse DDS project ID from: {dds_output}")
 
-    async def create_dds_project(self, project_name, project_metadata):
+    async def create_dds_project(
+            self,
+            project_name,
+            project_metadata,
+            token_path):
         """
         Create a new project in dds
         :param project_name: Project name from Clarity
         :param project_metadata: dictionnary containing pi email, project
         description, owner and researcher emails as well as whether the data is
         sensitive or not.
+        :param token_path: path to DDS authentication token.
         :return: project id in dds
         """
         cmd = [
                 'dds',
-                '--token-path', project_metadata["token_path"],
+                '--token-path', token_path,
                 '--log-file', self.dds_conf["log_path"],
                 ]
 
@@ -152,7 +157,13 @@ class DDSService(object):
             session.commit()
 
     @gen.coroutine
-    def deliver_by_staging_id(self, staging_id, delivery_project, md5sum_file, token_path, skip_mover=False):
+    def deliver_by_staging_id(
+            self,
+            staging_id,
+            delivery_project,
+            md5sum_file,
+            token_path,
+            skip_mover=False):
 
         stage_order = self.staging_service.get_stage_order_by_id(staging_id)
         if not stage_order or not stage_order.status == StagingStatus.staging_successful:

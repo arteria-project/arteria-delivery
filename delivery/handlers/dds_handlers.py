@@ -3,6 +3,8 @@ from tornado.gen import coroutine
 from delivery.handlers import *
 from delivery.handlers.utility_handlers import ArteriaDeliveryBaseHandler
 
+import os
+import tempfile
 import logging
 log = logging.getLogger(__name__)
 
@@ -25,7 +27,8 @@ class DDSCreateProjectHandler(DDSProjectBaseHandler):
         Create a new project in DDS. The project description as well as the
         email of its pi must be specified in the request body. Project owners,
         researchers, and whether the data is sensitive or not (default is yes),
-        can also be specified there. E.g.:
+        can also be specified there. "auth_token" can be either the path to
+        the authentication token or the token itself. E.g.:
 
             import requests
 
@@ -37,16 +40,30 @@ class DDSCreateProjectHandler(DDSProjectBaseHandler):
                 "researchers": ["robin@doe.com", "kim@doe.com"],
                 "owners": ["alex@doe.com"],
                 "non-sensitive": False,
-                "token_path": "/foo/bar"
+                "auth_token": "1234"
             }
 
             response = requests.request("POST", url, json=payload)
         """
 
-        required_members = ["token_path"]
-        project_metadata = self.body_as_object(required_members=required_members)
+        required_members = ["auth_token"]
+        project_metadata = self.body_as_object(
+                required_members=required_members)
 
-        dds_project_id = await self.dds_service.create_dds_project(project_name, project_metadata)
+        with tempfile.NamedTemporaryFile(mode='w', delete=True) as token_file:
+            if os.path.exists(project_metadata["auth_token"]):
+                token_path = project_metadata["auth_token"]
+            else:
+                token_file.write(project_metadata["auth_token"])
+                token_file.flush()
+
+                token_path = token_file.name
+
+            dds_project_id = await self.dds_service.create_dds_project(
+                    project_name,
+                    project_metadata,
+                    token_path,
+                    )
 
         self.set_status(ACCEPTED)
         self.write_json({'dds_project_id': dds_project_id})

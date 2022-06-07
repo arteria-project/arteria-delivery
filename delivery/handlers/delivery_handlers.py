@@ -1,6 +1,8 @@
 
+import os
 import json
 import logging
+import tempfile
 
 from tornado.gen import coroutine
 
@@ -24,16 +26,14 @@ class DeliverByStageIdHandler(ArteriaDeliveryBaseHandler):
     def post(self, staging_id):
         required_members = ["delivery_project_id"]
         if self.dds:
-            required_members += ["token_path"]
+            required_members += ["auth_token"]
         request_data = self.body_as_object(required_members=required_members)
 
         delivery_project_id = request_data["delivery_project_id"]
-        token_path = request_data.get("token_path")
+        auth_token = request_data.get("auth_token")
         md5sum_file = request_data.get("md5sums_file")
 
         extra_args = {}
-        if token_path:
-            extra_args['token_path'] = token_path
 
         # This should only be used for testing purposes /JD 20170202
         skip_mover_request = request_data.get("skip_mover")
@@ -44,12 +44,24 @@ class DeliverByStageIdHandler(ArteriaDeliveryBaseHandler):
             log.debug("Will not skip running mover!")
             skip_mover = False
 
-        delivery_id = yield self.delivery_service.deliver_by_staging_id(
-                staging_id=staging_id,
-                delivery_project=delivery_project_id,
-                md5sum_file=md5sum_file,
-                skip_mover=skip_mover,
-                **extra_args)
+        with tempfile.NamedTemporaryFile(mode='w', delete=True) as token_file:
+            if auth_token:
+                if os.path.exists(auth_token):
+                    token_path = auth_token
+                else:
+                    token_file.write(auth_token)
+                    token_file.flush()
+
+                    token_path = token_file.name
+
+                extra_args['token_path'] = token_path
+
+            delivery_id = yield self.delivery_service.deliver_by_staging_id(
+                    staging_id=staging_id,
+                    delivery_project=delivery_project_id,
+                    md5sum_file=md5sum_file,
+                    skip_mover=skip_mover,
+                    **extra_args)
 
         status_end_point = "{0}://{1}{2}".format(self.request.protocol,
                                                  self.request.host,
