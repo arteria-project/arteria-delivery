@@ -59,6 +59,7 @@ class DDSService(object):
                 'dds',
                 '--token-path', token_path,
                 '--log-file', self.dds_conf["log_path"],
+                '--no-prompt',
                 ]
 
         cmd += [
@@ -120,6 +121,7 @@ class DDSService(object):
                     'dds',
                     '--token-path', token_path,
                     '--log-file', dds_conf["log_path"],
+                    '--no-prompt',
                     ]
 
             cmd += [
