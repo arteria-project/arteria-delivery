@@ -1,6 +1,8 @@
 
+import os
 import json
 import logging
+import tempfile
 
 from tornado.gen import coroutine
 
@@ -23,12 +25,12 @@ class DeliverByStageIdHandler(ArteriaDeliveryBaseHandler):
     def post(self, staging_id):
         required_members = [
                 "delivery_project_id",
-                "token_path"
+                "auth_token"
                 ]
         request_data = self.body_as_object(required_members=required_members)
 
         delivery_project_id = request_data["delivery_project_id"]
-        token_path = request_data.get("token_path")
+        auth_token = request_data.get("auth_token")
         md5sum_file = request_data.get("md5sums_file")
 
         # This should only be used for testing purposes /JD 20170202
@@ -40,13 +42,22 @@ class DeliverByStageIdHandler(ArteriaDeliveryBaseHandler):
             log.debug("Will not skip running delivery!")
             skip_delivery = False
 
-        delivery_id = yield self.delivery_service.deliver_by_staging_id(
-                staging_id=staging_id,
-                delivery_project=delivery_project_id,
-                md5sum_file=md5sum_file,
-                skip_delivery=skip_delivery,
-                token_path=token_path,
-                )
+        with tempfile.NamedTemporaryFile(mode='w', delete=True) as token_file:
+            if os.path.exists(auth_token):
+                token_path = auth_token
+            else:
+                token_file.write(auth_token)
+                token_file.flush()
+
+                token_path = token_file.name
+
+            delivery_id = yield self.delivery_service.deliver_by_staging_id(
+                    staging_id=staging_id,
+                    delivery_project=delivery_project_id,
+                    md5sum_file=md5sum_file,
+                    skip_delivery=skip_delivery,
+                    token_path=token_path
+                    )
 
         status_end_point = "{0}://{1}{2}".format(
                 self.request.protocol,

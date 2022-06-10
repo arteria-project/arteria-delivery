@@ -17,6 +17,7 @@ class DDSService(object):
             self,
             external_program_service,
             staging_service,
+            staging_dir,
             delivery_repo,
             dds_project_repo,
             session_factory,
@@ -24,6 +25,7 @@ class DDSService(object):
         self.external_program_service = external_program_service
         self.dds_external_program_service = self.external_program_service
         self.staging_service = staging_service
+        self.staging_dir = staging_dir
         self.delivery_repo = delivery_repo
         self.dds_project_repo = dds_project_repo
         self.session_factory = session_factory
@@ -39,19 +41,25 @@ class DDSService(object):
         else:
             raise CannotParseDDSOutputException(f"Could not parse DDS project ID from: {dds_output}")
 
-    async def create_dds_project(self, project_name, project_metadata):
+    async def create_dds_project(
+            self,
+            project_name,
+            project_metadata,
+            token_path):
         """
         Create a new project in dds
         :param project_name: Project name from Clarity
         :param project_metadata: dictionnary containing pi email, project
         description, owner and researcher emails as well as whether the data is
         sensitive or not.
+        :param token_path: path to DDS authentication token.
         :return: project id in dds
         """
         cmd = [
                 'dds',
-                '--token-path', project_metadata["token_path"],
+                '--token-path', token_path,
                 '--log-file', self.dds_conf["log_path"],
+                '--no-prompt',
                 ]
 
         cmd += [
@@ -97,10 +105,11 @@ class DDSService(object):
     def _run_dds_put(
             delivery_order_id,
             delivery_order_repo,
+            staging_dir,
             external_program_service,
             session_factory,
             token_path,
-            dds_conf,
+            dds_conf
             ):
         session = session_factory()
 
@@ -115,11 +124,12 @@ class DDSService(object):
                     'dds',
                     '--token-path', token_path,
                     '--log-file', dds_conf["log_path"],
+                    '--no-prompt',
                     ]
 
             cmd += [
                     'data', 'put',
-                    '--mount-dir', dds_conf["mount_dir"],
+                    '--mount-dir', staging_dir,
                     '--source', delivery_order.delivery_source,
                     '--project', delivery_order.delivery_project,
                     '--silent',
@@ -181,6 +191,7 @@ class DDSService(object):
         args_for_run_dds_put = {
             'delivery_order_id': delivery_order.id,
             'delivery_order_repo': self.delivery_repo,
+            'staging_dir': self.staging_dir,
             'external_program_service': self.dds_external_program_service,
             'session_factory': self.session_factory,
             'token_path': token_path,

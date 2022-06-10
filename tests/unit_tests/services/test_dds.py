@@ -67,11 +67,11 @@ class TestDDSService(AsyncTestCase):
         self.mock_session_factory = MagicMock()
         self.mock_dds_config = {
                 'log_path': '/foo/bar/log',
-                'mount_dir': '/foo/bar/mount_dir',
                 }
         self.dds_service = DDSService(
                 external_program_service=ExternalProgramService(),
                 staging_service=self.mock_staging_service,
+                staging_dir='/foo/bar/staging_dir',
                 delivery_repo=self.mock_delivery_repo,
                 dds_project_repo=self.mock_dds_project_repo,
                 session_factory=self.mock_session_factory,
@@ -109,8 +109,9 @@ class TestDDSService(AsyncTestCase):
             'dds',
             '--token-path', 'token_path',
             '--log-file', '/foo/bar/log',
+            '--no-prompt',
             'data', 'put',
-            '--mount-dir', '/foo/bar/mount_dir',
+            '--mount-dir', '/foo/bar/staging_dir',
             '--source', '/staging/dir/bar',
             '--project', 'snpseq00001',
             '--silent'
@@ -186,7 +187,7 @@ project"""
         self.assertEqual(DDSService._parse_dds_project_id(dds_output), "snpseq00003")
 
     @gen_test
-    def test_create_project(self):
+    def test_create_project_token_file(self):
         project_name = "AA-1221"
         project_metadata = {
                 "description": "Dummy project",
@@ -194,23 +195,31 @@ project"""
                 "researchers": ["robin@doe.com", "kim@doe.com"],
                 "owners": ["alex@doe.com"],
                 "non-sensitive": False,
-                "token_path": "/foo/bar/auth",
                 }
+
+        token_path = "/foo/bar/auth"
 
         with patch(
                 'delivery.services.external_program_service'
                 '.ExternalProgramService.run_and_wait',
                 new_callable=AsyncMock) as mock_run,\
-                patch('delivery.services.dds_service.DDSService._parse_dds_project_id') as mock_parse_dds_project_id:
+                patch(
+                    'delivery.services.dds_service'
+                    '.DDSService._parse_dds_project_id'
+                    ) as mock_parse_dds_project_id:
             mock_run.return_value.status_code = 0
             mock_parse_dds_project_id.return_value = "snpseq00001"
 
-            yield self.dds_service.create_dds_project(project_name, project_metadata)
+            yield self.dds_service.create_dds_project(
+                    project_name,
+                    project_metadata,
+                    token_path)
 
             mock_run.assert_called_once_with([
                 'dds',
-                '--token-path', '/foo/bar/auth',
+                '--token-path', token_path,
                 '--log-file', '/foo/bar/log',
+                '--no-prompt',
                 'project', 'create',
                 '--title', project_name,
                 '--description', f'"{project_metadata["description"]}"',
@@ -220,6 +229,6 @@ project"""
                 '--researcher', project_metadata['researchers'][1],
                 ])
             self.mock_dds_project_repo.add_dds_project\
-                    .assert_called_once_with(
-                            project_name=project_name,
-                            dds_project_id=mock_parse_dds_project_id.return_value)
+                .assert_called_once_with(
+                    project_name=project_name,
+                    dds_project_id=mock_parse_dds_project_id.return_value)
