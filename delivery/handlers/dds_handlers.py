@@ -2,6 +2,7 @@ from tornado.gen import coroutine
 
 from delivery.handlers import *
 from delivery.handlers.utility_handlers import ArteriaDeliveryBaseHandler
+from delivery.services.dds_service import DDSToken
 
 import os
 import tempfile
@@ -50,15 +51,7 @@ class DDSCreateProjectHandler(DDSProjectBaseHandler):
         project_metadata = self.body_as_object(
                 required_members=required_members)
 
-        with tempfile.NamedTemporaryFile(mode='w', delete=True) as token_file:
-            if os.path.exists(project_metadata["auth_token"]):
-                token_path = project_metadata["auth_token"]
-            else:
-                token_file.write(project_metadata["auth_token"])
-                token_file.flush()
-
-                token_path = token_file.name
-
+        with DDSToken(project_metadata["auth_token"]) as token_path:
             dds_project_id = await self.dds_service.create_dds_project(
                     project_name,
                     project_metadata,

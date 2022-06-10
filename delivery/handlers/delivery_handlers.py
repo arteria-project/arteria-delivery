@@ -8,6 +8,7 @@ from tornado.gen import coroutine
 
 from delivery.handlers import *
 from delivery.handlers.utility_handlers import ArteriaDeliveryBaseHandler
+from delivery.services.dds_service import DDSToken
 
 log = logging.getLogger(__name__)
 
@@ -42,15 +43,7 @@ class DeliverByStageIdHandler(ArteriaDeliveryBaseHandler):
             log.debug("Will not skip running delivery!")
             skip_delivery = False
 
-        with tempfile.NamedTemporaryFile(mode='w', delete=True) as token_file:
-            if os.path.exists(auth_token):
-                token_path = auth_token
-            else:
-                token_file.write(auth_token)
-                token_file.flush()
-
-                token_path = token_file.name
-
+        with DDSToken(auth_token) as token_path:
             delivery_id = yield self.delivery_service.deliver_by_staging_id(
                     staging_id=staging_id,
                     delivery_project=delivery_project_id,

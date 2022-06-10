@@ -1,17 +1,49 @@
-
+import os
 import random
+import tempfile
+import unittest
 from mock import MagicMock, AsyncMock, create_autospec, patch
 
 from tornado.testing import AsyncTestCase, gen_test
 from tornado.gen import coroutine
 
 from delivery.services.external_program_service import ExternalProgramService
-from delivery.services.dds_service import DDSService
+from delivery.services.dds_service import DDSToken, DDSService
 from delivery.models.db_models import DeliveryOrder, StagingOrder, StagingStatus, DeliveryStatus, DDSProject
 from delivery.models.execution import ExecutionResult, Execution
 from delivery.exceptions import InvalidStatusException
 
 from tests.test_utils import MockIOLoop, assert_eventually_equals
+
+
+class TestDDSToken(unittest.TestCase):
+    # TODO test can handle existing file
+    # TODO raise error if file is deleted
+    def test_can_write_token(self):
+        auth_token = "1234"
+        with DDSToken(auth_token) as token_path:
+            with open(token_path, mode='r') as token_file:
+                self.assertEqual(auth_token, token_file.read())
+
+        self.assertFalse(os.path.exists(token_path))
+
+    def test_can_handle_existing_token(self):
+        auth_token = "1234"
+        with tempfile.NamedTemporaryFile(mode='w', delete=True) as token_file:
+            token_file.write(auth_token)
+            token_file.flush()
+
+            with DDSToken(token_file.name) as token_path:
+                self.assertEqual(token_file.name, token_path)
+
+                with open(token_path, mode='r') as dds_token:
+                    self.assertEqual(auth_token, dds_token.read())
+
+    def test_raise_error_if_file_is_deleted(self):
+        auth_token = "1234"
+        with self.assertRaises(FileNotFoundError):
+            with DDSToken(auth_token) as token_path:
+                os.remove(token_path)
 
 
 class TestDDSService(AsyncTestCase):

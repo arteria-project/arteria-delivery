@@ -1,3 +1,4 @@
+import tempfile
 import os.path
 import shutil
 import logging
@@ -9,6 +10,54 @@ from delivery.models.db_models import StagingStatus, DeliveryStatus
 from delivery.exceptions import ProjectNotFoundException, TooManyProjectsFound, InvalidStatusException, CannotParseDDSOutputException
 
 log = logging.getLogger(__name__)
+
+
+class DDSToken:
+    """
+    A wrapper to handle DDS tokens either from the string itself or from an
+    existing token file.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the token is expired, DDS will delete it when attempting to create
+        a project or deliver data.
+    """
+    def __init__(self, auth_token):
+        """
+        Parameters
+        ----------
+        auth_token : str
+            can be either the token string or a path to the token file
+        """
+        self.auth_token = auth_token
+
+    def __enter__(self):
+        if os.path.exists(self.auth_token):
+            self.token_path = self.auth_token
+        else:
+            self.temporary_token = tempfile.NamedTemporaryFile(
+                    mode='w', delete=True)
+            self.temporary_token.write(self.auth_token)
+            self.temporary_token.flush()
+
+            self.token_path = self.temporary_token.name
+
+        return self.token_path
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        try:
+            self.temporary_token.close()
+
+        except AttributeError:
+            # No temporary file was created, nothing to do here
+            pass
+
+        except FileNotFoundError:
+            log.error(
+                "Token was deleted during delivery (probably by DDS)."
+                " Check token expiry date (`dds auth info`).")
+            raise
 
 
 class DDSService(object):
@@ -39,7 +88,8 @@ class DDSService(object):
         if hits:
             return hits.group(1)
         else:
-            raise CannotParseDDSOutputException(f"Could not parse DDS project ID from: {dds_output}")
+            raise CannotParseDDSOutputException(
+                    f"Could not parse DDS project ID from: {dds_output}")
 
     async def create_dds_project(
             self,
@@ -88,9 +138,12 @@ class DDSService(object):
         execution_result = await self.external_program_service.run_and_wait(cmd)
 
         if execution_result.status_code == 0:
-            dds_project_id = DDSService._parse_dds_project_id(execution_result.stdout)
+            dds_project_id = DDSService._parse_dds_project_id(
+                    execution_result.stdout)
         else:
-            error_msg = f"Failed to create project in DDS: {execution_result.stderr}. DDS returned status code: {execution_result.status_code}"
+            error_msg = (
+                f"Failed to create project in DDS: {execution_result.stderr}."
+                " DDS returned status code: {execution_result.status_code}")
             log.error(error_msg)
             raise RuntimeError(error_msg)
 
