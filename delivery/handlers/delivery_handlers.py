@@ -32,7 +32,6 @@ class DeliverByStageIdHandler(ArteriaDeliveryBaseHandler):
 
         delivery_project_id = request_data["delivery_project_id"]
         auth_token = request_data.get("auth_token")
-        md5sum_file = request_data.get("md5sums_file")
 
         # This should only be used for testing purposes /JD 20170202
         skip_delivery_request = request_data.get("skip_delivery")
@@ -47,7 +46,6 @@ class DeliverByStageIdHandler(ArteriaDeliveryBaseHandler):
             delivery_id = yield self.delivery_service.deliver_by_staging_id(
                     staging_id=staging_id,
                     delivery_project=delivery_project_id,
-                    md5sum_file=md5sum_file,
                     skip_delivery=skip_delivery,
                     token_path=token_path
                     )

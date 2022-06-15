@@ -154,6 +154,3 @@ class DeliveryOrder(SQLAlchemyBase):
                 f"status: {self.delivery_status}, "
                 " }"
                 )
-
-    def is_dds(self):
-        return self.delivery_project.startswith("snpseq")

@@ -131,7 +131,7 @@ class TestDDSService(AsyncTestCase):
                     staging_id=1,
                     delivery_project='snpseq00001',
                     token_path='token_path',
-                    md5sum_file='md5sum_file')
+                    )
             mock_rmtree.assert_called_once_with(staging_target)
 
         def _get_delivery_order():
@@ -158,7 +158,6 @@ class TestDDSService(AsyncTestCase):
             yield self.dds_service.deliver_by_staging_id(
                     staging_id=1,
                     delivery_project='snpseq00001',
-                    md5sum_file='md5sum_file',
                     token_path='token_path',
                     )
 
@@ -174,7 +173,6 @@ class TestDDSService(AsyncTestCase):
             yield self.dds_service.deliver_by_staging_id(
                     staging_id=1,
                     delivery_project='snpseq00001',
-                    md5sum_file='md5sum_file',
                     token_path='token_path',
                     )
 
@@ -200,7 +198,6 @@ class TestDDSService(AsyncTestCase):
         self.dds_service.deliver_by_staging_id(
                 staging_id=1,
                 delivery_project='snpseq00001',
-                md5sum_file='md5sum_file',
                 token_path='token_path',
                 skip_delivery=True,
                 )

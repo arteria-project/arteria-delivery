@@ -223,7 +223,6 @@ class DDSService(object):
             self,
             staging_id,
             delivery_project,
-            md5sum_file,
             token_path,
             skip_delivery=False):
 
