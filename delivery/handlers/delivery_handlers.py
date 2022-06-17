@@ -8,7 +8,7 @@ from tornado.gen import coroutine
 
 from delivery.handlers import *
 from delivery.handlers.utility_handlers import ArteriaDeliveryBaseHandler
-from delivery.services.dds_service import DDSToken
+from delivery.models.project import DDSProject
 
 log = logging.getLogger(__name__)
 
@@ -26,12 +26,15 @@ class DeliverByStageIdHandler(ArteriaDeliveryBaseHandler):
     def post(self, staging_id):
         required_members = [
                 "delivery_project_id",
-                "auth_token"
+                "ngi_project_name",
+                "auth_token",
                 ]
         request_data = self.body_as_object(required_members=required_members)
 
         delivery_project_id = request_data["delivery_project_id"]
-        auth_token = request_data.get("auth_token")
+        auth_token = request_data["auth_token"]
+        deadline = request_data.get("deadline")
+        release = request_data.get("release", True)
 
         # This should only be used for testing purposes /JD 20170202
         skip_delivery_request = request_data.get("skip_delivery")
@@ -42,13 +45,17 @@ class DeliverByStageIdHandler(ArteriaDeliveryBaseHandler):
             log.debug("Will not skip running delivery!")
             skip_delivery = False
 
-        with DDSToken(auth_token) as token_path:
-            delivery_id = yield self.delivery_service.deliver_by_staging_id(
-                    staging_id=staging_id,
-                    delivery_project=delivery_project_id,
-                    skip_delivery=skip_delivery,
-                    token_path=token_path
-                    )
+        dds_project = DDSProject(
+                self.delivery_service,
+                auth_token,
+                delivery_project_id)
+
+        delivery_id = yield dds_project.put(
+                staging_id,
+                skip_delivery=skip_delivery,
+                deadline=deadline,
+                release=release,
+                )
 
         status_end_point = "{0}://{1}{2}".format(
                 self.request.protocol,

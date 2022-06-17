@@ -52,11 +52,13 @@ class DatabaseBasedDeliveriesRepository(object):
         """
         return self.session.query(DeliveryOrder).all()
 
-    def create_delivery_order(self,
-                              delivery_source,
-                              delivery_project,
-                              delivery_status,
-                              staging_order_id,
+    def create_delivery_order(
+            self,
+            delivery_source,
+            delivery_project,
+            ngi_project_name,
+            delivery_status,
+            staging_order_id,
                               ):
         """
         Create a new delivery order and commit it to the database
@@ -68,10 +70,12 @@ class DatabaseBasedDeliveriesRepository(object):
             point there is no validation that the value is valid!
         :return: the created delivery order
         """
-        order = DeliveryOrder(delivery_source=delivery_source,
-                              delivery_project=delivery_project,
-                              delivery_status=delivery_status,
-                              staging_order_id=staging_order_id,
+        order = DeliveryOrder(
+                delivery_source=delivery_source,
+                delivery_project=delivery_project,
+                ngi_project_name=ngi_project_name,
+                delivery_status=delivery_status,
+                staging_order_id=staging_order_id,
                               )
         self.session.add(order)
         self.session.commit()

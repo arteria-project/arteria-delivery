@@ -1,24 +1,12 @@
 import json
-from functools import partial
-import sys
 import time
 import tempfile
 
-import mock
-
 from tornado.testing import *
-from tornado.web import Application
 
-from arteria.web.app import AppService
-
-from delivery.app import routes as app_routes, compose_application
 from delivery.models.db_models import StagingStatus, DeliveryStatus
-from delivery.services.metadata_service import MetadataService
-from delivery.services.external_program_service import ExternalProgramService
 
 from tests.integration_tests.base import BaseIntegration
-from tests.test_utils import assert_eventually_equals, unorganised_runfolder, samplesheet_file_from_runfolder, \
-    project_report_files
 
 
 class TestIntegrationDDS(BaseIntegration):
@@ -50,7 +38,6 @@ class TestIntegrationDDS(BaseIntegration):
                 status_response = yield self.http_client.fetch(link)
                 self.assertEqual(json.loads(status_response.body)["status"], StagingStatus.staging_successful.name)
 
-
                 # The size of the fake project is 1024 bytes
                 status_response = yield self.http_client.fetch(link)
                 self.assertEqual(json.loads(status_response.body)["size"], 1024)
@@ -61,7 +48,8 @@ class TestIntegrationDDS(BaseIntegration):
                 self.assertTrue(os.path.exists(f"/tmp/{staging_id}/{project}"))
                 delivery_url = '/'.join([self.API_BASE, 'deliver', 'stage_id', str(staging_id)])
                 delivery_body = {
-                        'delivery_project_id': 'fakedeliveryid2016',
+                        'delivery_project_id': 'snpseq00025',
+                        'ngi_project_name': 'AB-1234',
                         'auth_token': '1234',
                         'skip_delivery': True,
                         }
@@ -74,8 +62,6 @@ class TestIntegrationDDS(BaseIntegration):
 
                 status_response = yield self.http_client.fetch(delivery_link)
                 self.assertEqual(json.loads(status_response.body)["status"], DeliveryStatus.delivery_skipped.name)
-
-                self.assertFalse(os.path.exists(f"/tmp/{staging_id}/{project}"))
 
     @gen_test
     def test_can_stage_and_delivery_project_dir(self):
@@ -104,7 +90,8 @@ class TestIntegrationDDS(BaseIntegration):
             for project, staging_id in staging_order_project_and_id.items():
                 delivery_url = '/'.join([self.API_BASE, 'deliver', 'stage_id', str(staging_id)])
                 delivery_body = {
-                        'delivery_project_id': 'fakedeliveryid2016',
+                        'delivery_project_id': 'snpseq00025',
+                        'ngi_project_name': 'AB-1234',
                         'skip_delivery': True,
                         'dds': True,
                         'auth_token': '1234',
@@ -257,6 +244,64 @@ class TestIntegrationDDS(BaseIntegration):
         self.assertNotEqual(dds_project_id1, dds_project_id2)
 
 
+class TestIntegrationDDSShortWait(BaseIntegration):
+    def __init__(self, *args):
+        super().__init__(*args)
+
+        self.mock_duration = 2
+
+    @gen_test(timeout=5)
+    def test_mock_duration_is_2(self):
+        with tempfile.TemporaryDirectory(
+                dir='./tests/resources/runfolders/',
+                prefix='160930_ST-E00216_0111_BH37CWALXX_') as tmp_dir:
+
+            dir_name = os.path.basename(tmp_dir)
+            self._create_projects_dir_with_random_data(tmp_dir)
+            self._create_checksums_file(tmp_dir)
+
+            url = "/".join([self.API_BASE, "stage", "runfolder", dir_name])
+            response = yield self.http_client.fetch(
+                    self.get_url(url),
+                    method='POST',
+                    body='')
+
+            response_json = json.loads(response.body)
+
+            staging_order_project_and_id = response_json.get("staging_order_ids")
+
+            for project, staging_id in staging_order_project_and_id.items():
+                delivery_url = '/'.join([
+                    self.API_BASE, 'deliver', 'stage_id', str(staging_id)])
+                delivery_body = {
+                        'delivery_project_id': 'snpseq00025',
+                        'ngi_project_name': 'AB-1234',
+                        'dds': True,
+                        'auth_token': '1234',
+                        'skip_mover': False,
+                        }
+
+                start = time.time()
+
+                delivery_resp = yield self.http_client.fetch(
+                        self.get_url(delivery_url),
+                        method='POST',
+                        body=json.dumps(delivery_body))
+
+                delivery_resp_as_json = json.loads(delivery_resp.body)
+                delivery_link = delivery_resp_as_json['delivery_order_link']
+
+                while True:
+                    status_response = yield self.http_client.fetch(
+                            delivery_link)
+                    if (json.loads(status_response.body)["status"]
+                            == DeliveryStatus.delivery_successful.name):
+                        break
+
+                stop = time.time()
+                self.assertTrue(stop - start >= self.mock_duration)
+
+
 class TestIntegrationDDSLongWait(BaseIntegration):
     def __init__(self, *args):
         super().__init__(*args)
@@ -264,48 +309,44 @@ class TestIntegrationDDSLongWait(BaseIntegration):
         self.mock_duration = 10
 
     @gen_test
-    def test_can_deliver_and_respond(self):
-        with tempfile.TemporaryDirectory(dir='./tests/resources/runfolders/', prefix='160930_ST-E00216_0111_BH37CWALXX_') as tmp_dir:
+    def test_can_deliver_and_not_timeout(self):
+        """
+        This test checks that the service does not wait for the full duration
+        of the delivery (10s in this case) to respond. If it does wait, it will
+        raise a time-out error after 5s (default duration of tornado tests).
+        """
+        with tempfile.TemporaryDirectory(
+                dir='./tests/resources/runfolders/',
+                prefix='160930_ST-E00216_0111_BH37CWALXX_') as tmp_dir:
 
             dir_name = os.path.basename(tmp_dir)
             self._create_projects_dir_with_random_data(tmp_dir)
             self._create_checksums_file(tmp_dir)
 
             url = "/".join([self.API_BASE, "stage", "runfolder", dir_name])
-            response = yield self.http_client.fetch(self.get_url(url), method='POST', body='')
-            self.assertEqual(response.code, 202)
+            response = yield self.http_client.fetch(
+                    self.get_url(url), method='POST', body='')
 
             response_json = json.loads(response.body)
 
-            staging_status_links = response_json.get("staging_order_links")
-
-            for project, link in staging_status_links.items():
-
-                self.assertEqual(project, "ABC_123")
-
-                status_response = yield self.http_client.fetch(link)
-                self.assertEqual(json.loads(status_response.body)["status"], StagingStatus.staging_successful.name)
-
-
-                # The size of the fake project is 1024 bytes
-                status_response = yield self.http_client.fetch(link)
-                self.assertEqual(json.loads(status_response.body)["size"], 1024)
-
-            staging_order_project_and_id = response_json.get("staging_order_ids")
+            staging_order_project_and_id = response_json.get(
+                    "staging_order_ids")
 
             for project, staging_id in staging_order_project_and_id.items():
-                self.assertTrue(os.path.exists(f"/tmp/{staging_id}"))
-                delivery_url = '/'.join([self.API_BASE, 'deliver', 'stage_id', str(staging_id)])
+                delivery_url = '/'.join([
+                    self.API_BASE, 'deliver', 'stage_id', str(staging_id)])
                 delivery_body = {
-                        'delivery_project_id': 'fakedeliveryid2016',
+                        'delivery_project_id': 'snpseq00025',
+                        'ngi_project_name': 'AB-1234',
                         'dds': True,
                         'auth_token': '1234',
                         'skip_delivery': False,
                         }
-                delivery_response = self.http_client.fetch(self.get_url(delivery_url), method='POST', body=json.dumps(delivery_body))
-
-                staging_response = yield self.http_client.fetch(staging_status_links["ABC_123"])
-                self.assertEqual(json.loads(staging_response.body)["status"], StagingStatus.staging_successful.name)
+                delivery_response = yield self.http_client.fetch(
+                        self.get_url(delivery_url),
+                        method='POST',
+                        body=json.dumps(delivery_body))
+                self.assertEqual(delivery_response.code, 202)
 
 
 class TestIntegrationDDSUnmocked(BaseIntegration):

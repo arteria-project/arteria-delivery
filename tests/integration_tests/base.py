@@ -1,6 +1,8 @@
 import os
+import json
 import mock
 import random
+import logging
 
 from subprocess import PIPE
 
@@ -9,7 +11,6 @@ from tornado.web import Application
 
 from arteria.web.app import AppService
 
-import delivery
 from delivery.app import routes as app_routes, compose_application
 from delivery.services.metadata_service import MetadataService
 from delivery.models.execution import Execution
@@ -17,6 +18,7 @@ from delivery.models.execution import Execution
 from tests.test_utils import samplesheet_file_from_runfolder
 
 log = logging.getLogger(__name__)
+
 
 class BaseIntegration(AsyncHTTPTestCase):
     def __init__(self, *args):
@@ -86,18 +88,32 @@ class BaseIntegration(AsyncHTTPTestCase):
         if self.mock_delivery:
             def mock_delivery(cmd):
                 project_id = f"snpseq{random.randint(0, 10**10):010d}"
-                dds_output = f"""Current user: bio
-Project created with id: {project_id}
-User forskare was associated with Project {project_id} as Owner=True. An e-mail notification has not been sent.
-Invitation sent to email@adress.com. The user should have a valid account to be added to a
-project"""
                 log.debug(f"Mock is called with {cmd}")
                 shell = False
                 if cmd[0].endswith('dds'):
                     new_cmd = ['sleep', str(self.mock_duration)]
 
                     if 'project' in cmd:
+                        dds_output = f"""Current user: bio
+        Project created with id: {project_id}
+        User forskare was associated with Project {project_id} as Owner=True. An e-mail notification has not been sent.
+        Invitation sent to email@adress.com. The user should have a valid account to be added to a
+        project"""
                         new_cmd += ['&&', 'echo', f'"{dds_output}"']
+                        new_cmd = " ".join(new_cmd)
+                        shell = True
+                    elif cmd[-2:] == ['ls', '--json']:
+                        new_cmd = ['sleep', str(0.01)]
+                        dds_output = json.dumps([{
+                                    "Access": True,
+                                    "Last updated": "Fri, 01 Jul 2022 14:31:13 CEST",
+                                    "PI": "matilda.aslin@medsci.uu.se",
+                                    "Project ID": "snpseq00025",
+                                    "Size": 25856185058,
+                                    "Status": "In Progress",
+                                    "Title": "AB1234"
+                                    }])
+                        new_cmd += ['&&', 'echo', f"'{dds_output}'"]
                         new_cmd = " ".join(new_cmd)
                         shell = True
                 else:

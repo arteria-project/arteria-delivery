@@ -11,6 +11,6 @@ class TestStagingOrder(unittest.TestCase):
                 status=StagingStatus.pending,
                 )
 
-        self.assertEquals(
+        self.assertEqual(
                 staging_order.get_staging_path(),
                 '/staging/target/data')

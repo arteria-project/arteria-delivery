@@ -1,23 +1,15 @@
 
 
 import json
-from functools import partial
 import sys
-import time
 import tempfile
 
 from tornado.testing import *
-from tornado.web import Application
 
-from arteria.web.app import AppService
-
-from delivery.app import routes as app_routes, compose_application
-from delivery.models.db_models import StagingStatus, DeliveryStatus
 from delivery.services.metadata_service import MetadataService
 
 from tests.integration_tests.base import BaseIntegration
-from tests.test_utils import assert_eventually_equals, unorganised_runfolder, samplesheet_file_from_runfolder, \
-    project_report_files
+from tests.test_utils import unorganised_runfolder
 
 class TestPythonVersion(unittest.TestCase):
     """
