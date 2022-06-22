@@ -9,6 +9,7 @@ from tornado.web import Application
 
 from arteria.web.app import AppService
 
+import delivery
 from delivery.app import routes as app_routes, compose_application
 from delivery.services.metadata_service import MetadataService
 from delivery.models.execution import Execution
@@ -20,6 +21,8 @@ log = logging.getLogger(__name__)
 class BaseIntegration(AsyncHTTPTestCase):
     def __init__(self, *args):
         super().__init__(*args)
+
+        self.mock_delivery = True
 
         # Default duration of mock delivery
         self.mock_duration = 0.1
@@ -77,41 +80,56 @@ class BaseIntegration(AsyncHTTPTestCase):
                                     config_root="{}/../../config/".format(path_to_this_file))
 
         config = app_svc.config_svc
-
-        def mock_delivery(cmd):
-            project_id = f"snpseq{random.randint(0, 10**10):010d}"
-            dds_output = f"""Current user: bio
-Project created with id: {project_id}
-User forskare was associated with Project {project_id} as Owner=True. An e-mail notification has not been sent.
-Invitation sent to email@adress.com. The user should have a valid account to be added to a
-project"""
-            log.debug(f"Mock is called with {cmd}")
-            shell = False
-            if any(
-                    cmd[0].endswith(delivery_prgm)
-                    for delivery_prgm in ['dds', 'moverinfo', 'to_outbox']):
-                new_cmd = ['sleep', str(self.mock_duration)]
-
-                if cmd[0].endswith('dds') and 'project' in cmd:
-                    new_cmd += ['&&', 'echo', f'"{dds_output}"']
-                    new_cmd = " ".join(new_cmd)
-                    shell = True
-            else:
-                new_cmd = cmd
-
-            log.debug(f"Running mocked {new_cmd}")
-            p = Subprocess(new_cmd,
-                           stdout=PIPE,
-                           stderr=PIPE,
-                           stdin=PIPE,
-                           shell=shell)
-            return Execution(pid=p.pid, process_obj=p)
-
-        patcher = mock.patch(
-                'delivery.services.external_program_service.ExternalProgramService.run',
-                wraps=mock_delivery)
-
-        patcher.start()
         composed_application = compose_application(config)
+        routes = app_routes(**composed_application)
 
-        return Application(app_routes(**composed_application))
+        if self.mock_delivery:
+            def mock_delivery(cmd):
+                project_id = f"snpseq{random.randint(0, 10**10):010d}"
+                dds_output = f"""Current user: bio
+    Project created with id: {project_id}
+    User forskare was associated with Project {project_id} as Owner=True. An e-mail notification has not been sent.
+    Invitation sent to email@adress.com. The user should have a valid account to be added to a
+    project"""
+                log.debug(f"Mock is called with {cmd}")
+                shell = False
+                if any(
+                        cmd[0].endswith(delivery_prgm)
+                        for delivery_prgm in ['dds', 'moverinfo', 'to_outbox']):
+                    new_cmd = ['sleep', str(self.mock_duration)]
+
+                    if cmd[0].endswith('dds') and 'project' in cmd:
+                        new_cmd += ['&&', 'echo', f'"{dds_output}"']
+                        new_cmd = " ".join(new_cmd)
+                        shell = True
+                else:
+                    new_cmd = cmd
+
+                log.debug(f"Running mocked {new_cmd}")
+                p = Subprocess(new_cmd,
+                               stdout=PIPE,
+                               stderr=PIPE,
+                               stdin=PIPE,
+                               shell=shell)
+                return Execution(pid=p.pid, process_obj=p)
+
+            self.patcher = mock.patch(
+                    'delivery.services.external_program_service'
+                    '.ExternalProgramService.run',
+                    wraps=mock_delivery)
+
+        return Application(routes)
+
+    def setUp(self):
+        super().setUp()
+        try:
+            self.patcher.start()
+        except AttributeError:
+            pass
+
+    def tearDown(self):
+        try:
+            self.patcher.stop()
+        except AttributeError:
+            pass
+        super().tearDown()

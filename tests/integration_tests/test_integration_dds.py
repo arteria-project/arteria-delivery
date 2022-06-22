@@ -20,6 +20,7 @@ from tests.integration_tests.base import BaseIntegration
 from tests.test_utils import assert_eventually_equals, unorganised_runfolder, samplesheet_file_from_runfolder, \
     project_report_files
 
+
 class TestIntegrationDDS(BaseIntegration):
     @gen_test
     def test_can_stage_and_delivery_runfolder(self):
@@ -302,3 +303,30 @@ class TestIntegrationDDSLongWait(BaseIntegration):
                 staging_response = yield self.http_client.fetch(staging_status_links["ABC_123"])
                 self.assertEqual(json.loads(staging_response.body)["status"], StagingStatus.staging_successful.name)
 
+
+class TestIntegrationDDSUnmocked(BaseIntegration):
+    def __init__(self, *args):
+        super().__init__(*args)
+
+        self.mock_delivery = False
+
+    @gen_test
+    def test_responds_with_dummy_token(self):
+        project_name = "CD-1234"
+        url = "/".join([self.API_BASE, "dds_project", "create", project_name])
+        payload = {
+            "description": "Dummy project",
+            "pi": "alex@doe.com",
+            "researchers": ["robin@doe.com", "kim@doe.com"],
+            "owners": ["alex@doe.com"],
+            "non-sensitive": False,
+            "auth_token": '1234',
+        }
+
+        response = yield self.http_client.fetch(
+                self.get_url(url), method='POST',
+                body=json.dumps(payload),
+                raise_error=False,
+                )
+
+        self.assertEqual(response.code, 500)
