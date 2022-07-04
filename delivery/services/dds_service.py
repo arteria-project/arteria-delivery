@@ -194,7 +194,7 @@ class DDSService(object):
             delivery_order.delivery_status = DeliveryStatus.delivery_skipped
             session.commit()
         else:
-            yield DDSService._run_dds_put(**args_for_run_dds_put)
+            DDSService._run_dds_put(**args_for_run_dds_put)
 
         log.info(f"Removing staged runfolder at {stage_order.staging_target}")
         shutil.rmtree(stage_order.staging_target)

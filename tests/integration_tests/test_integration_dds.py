@@ -298,18 +298,23 @@ class TestIntegrationDDSShortWait(BaseIntegration):
                         'auth_token': '1234',
                         'skip_mover': False,
                         }
+
                 start = time.time()
 
                 delivery_resp = yield self.http_client.fetch(self.get_url(delivery_url), method='POST', body=json.dumps(delivery_body))
 
-                stop = time.time()
-                self.assertTrue(stop - start >= self.mock_duration)
-
                 delivery_resp_as_json = json.loads(delivery_resp.body)
                 delivery_link = delivery_resp_as_json['delivery_order_link']
 
-                status_response = yield self.http_client.fetch(delivery_link)
-                self.assertEqual(json.loads(status_response.body)["status"], DeliveryStatus.delivery_successful.name)
+                while True:
+                    status_response = yield self.http_client.fetch(
+                            delivery_link)
+                    if (json.loads(status_response.body)["status"]
+                            == DeliveryStatus.delivery_successful.name):
+                        break
+
+                stop = time.time()
+                self.assertTrue(stop - start >= self.mock_duration)
 
                 self.assertFalse(os.path.exists(f"/tmp/{staging_id}/{project}"))
 
@@ -320,7 +325,7 @@ class TestIntegrationDDSLongWait(BaseIntegration):
         self.mock_duration = 10
 
     @gen_test
-    def test_can_deliver_and_respond(self):
+    def test_can_deliver_and_not_timeout(self):
         with tempfile.TemporaryDirectory(dir='./tests/resources/runfolders/', prefix='160930_ST-E00216_0111_BH37CWALXX_') as tmp_dir:
 
             dir_name = os.path.basename(tmp_dir)
@@ -358,10 +363,7 @@ class TestIntegrationDDSLongWait(BaseIntegration):
                         'auth_token': '1234',
                         'skip_mover': False,
                         }
-                delivery_response = self.http_client.fetch(self.get_url(delivery_url), method='POST', body=json.dumps(delivery_body))
-
-                staging_response = yield self.http_client.fetch(staging_status_links["ABC_123"])
-                self.assertEqual(json.loads(staging_response.body)["status"], StagingStatus.staging_successful.name)
+                delivery_response = yield self.http_client.fetch(self.get_url(delivery_url), method='POST', body=json.dumps(delivery_body))
 
 
 class TestIntegrationDDSUnmocked(BaseIntegration):
