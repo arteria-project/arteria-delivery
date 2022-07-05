@@ -158,6 +158,45 @@ class DDSService(object):
             # Always commit the state change to the database
             session.commit()
 
+        DDSService._release_project(
+                token_path,
+                dds_conf,
+                external_program_service,
+                delivery_order.delivery_project)
+
+    @staticmethod
+    @gen.coroutine
+    def _release_project(
+            token_path,
+            dds_conf,
+            external_program_service,
+            project_id):
+        cmd = [
+                'dds',
+                '--token-path', token_path,
+                '--log-file', dds_conf["log_path"],
+                '--no-prompt',
+                ]
+
+        cmd += [
+                'project', 'status', 'release',
+                '--project', project_id,
+                ]
+
+        log.debug("Running dds with cmd: {}".format(" ".join(cmd)))
+
+        execution_result = yield external_program_service.run_and_wait(cmd)
+
+        if execution_result.status_code == 0:
+            log.info(f"Successfully released project {project_id}")
+        else:
+            error_msg = (
+                f"Failed to deliver project {project_id}:"
+                f"{execution_result.stderr}. "
+                f"DDS returned status code: {execution_result.status_code}")
+            log.error(error_msg)
+            raise RuntimeError(error_msg)
+
     @gen.coroutine
     def deliver_by_staging_id(
             self,

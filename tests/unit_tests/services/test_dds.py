@@ -117,6 +117,15 @@ class TestDDSService(AsyncTestCase):
             '--silent'
             ])
 
+        self.mock_mover_runner.run_and_wait.assert_called_with([
+            'dds',
+            '--token-path', 'token_path',
+            '--log-file', '/foo/bar/log',
+            '--no-prompt',
+            'project', 'status', 'release',
+            '--project', 'snpseq00001',
+            ])
+
     @gen_test
     def test_deliver_by_staging_id_raises_on_non_existent_stage_id(self):
         self.mock_staging_service.get_stage_order_by_id.return_value = None
