@@ -260,38 +260,28 @@ class TestIntegrationDDSShortWait(BaseIntegration):
         self.mock_duration = 2
 
     @gen_test(timeout=2+1)
-    def test_mock_duration_is_10(self):
-        with tempfile.TemporaryDirectory(dir='./tests/resources/runfolders/', prefix='160930_ST-E00216_0111_BH37CWALXX_') as tmp_dir:
+    def test_mock_duration_is_2(self):
+        with tempfile.TemporaryDirectory(
+                dir='./tests/resources/runfolders/',
+                prefix='160930_ST-E00216_0111_BH37CWALXX_') as tmp_dir:
 
             dir_name = os.path.basename(tmp_dir)
             self._create_projects_dir_with_random_data(tmp_dir)
             self._create_checksums_file(tmp_dir)
 
             url = "/".join([self.API_BASE, "stage", "runfolder", dir_name])
-            response = yield self.http_client.fetch(self.get_url(url), method='POST', body='')
-            self.assertEqual(response.code, 202)
+            response = yield self.http_client.fetch(
+                    self.get_url(url),
+                    method='POST',
+                    body='')
 
             response_json = json.loads(response.body)
-
-            staging_status_links = response_json.get("staging_order_links")
-
-            for project, link in staging_status_links.items():
-
-                self.assertEqual(project, "ABC_123")
-
-                status_response = yield self.http_client.fetch(link)
-                self.assertEqual(json.loads(status_response.body)["status"], StagingStatus.staging_successful.name)
-
-
-                # The size of the fake project is 1024 bytes
-                status_response = yield self.http_client.fetch(link)
-                self.assertEqual(json.loads(status_response.body)["size"], 1024)
 
             staging_order_project_and_id = response_json.get("staging_order_ids")
 
             for project, staging_id in staging_order_project_and_id.items():
-                self.assertTrue(os.path.exists(f"/tmp/{staging_id}/{project}"))
-                delivery_url = '/'.join([self.API_BASE, 'deliver', 'stage_id', str(staging_id)])
+                delivery_url = '/'.join([
+                    self.API_BASE, 'deliver', 'stage_id', str(staging_id)])
                 delivery_body = {
                         'delivery_project_id': 'fakedeliveryid2016',
                         'dds': True,
@@ -301,7 +291,10 @@ class TestIntegrationDDSShortWait(BaseIntegration):
 
                 start = time.time()
 
-                delivery_resp = yield self.http_client.fetch(self.get_url(delivery_url), method='POST', body=json.dumps(delivery_body))
+                delivery_resp = yield self.http_client.fetch(
+                        self.get_url(delivery_url),
+                        method='POST',
+                        body=json.dumps(delivery_body))
 
                 delivery_resp_as_json = json.loads(delivery_resp.body)
                 delivery_link = delivery_resp_as_json['delivery_order_link']
@@ -316,7 +309,6 @@ class TestIntegrationDDSShortWait(BaseIntegration):
                 stop = time.time()
                 self.assertTrue(stop - start >= self.mock_duration)
 
-                self.assertFalse(os.path.exists(f"/tmp/{staging_id}/{project}"))
 
 class TestIntegrationDDSLongWait(BaseIntegration):
     def __init__(self, *args):
@@ -326,44 +318,36 @@ class TestIntegrationDDSLongWait(BaseIntegration):
 
     @gen_test
     def test_can_deliver_and_not_timeout(self):
-        with tempfile.TemporaryDirectory(dir='./tests/resources/runfolders/', prefix='160930_ST-E00216_0111_BH37CWALXX_') as tmp_dir:
+        with tempfile.TemporaryDirectory(
+                dir='./tests/resources/runfolders/',
+                prefix='160930_ST-E00216_0111_BH37CWALXX_') as tmp_dir:
 
             dir_name = os.path.basename(tmp_dir)
             self._create_projects_dir_with_random_data(tmp_dir)
             self._create_checksums_file(tmp_dir)
 
             url = "/".join([self.API_BASE, "stage", "runfolder", dir_name])
-            response = yield self.http_client.fetch(self.get_url(url), method='POST', body='')
-            self.assertEqual(response.code, 202)
+            response = yield self.http_client.fetch(
+                    self.get_url(url), method='POST', body='')
 
             response_json = json.loads(response.body)
 
-            staging_status_links = response_json.get("staging_order_links")
-
-            for project, link in staging_status_links.items():
-
-                self.assertEqual(project, "ABC_123")
-
-                status_response = yield self.http_client.fetch(link)
-                self.assertEqual(json.loads(status_response.body)["status"], StagingStatus.staging_successful.name)
-
-
-                # The size of the fake project is 1024 bytes
-                status_response = yield self.http_client.fetch(link)
-                self.assertEqual(json.loads(status_response.body)["size"], 1024)
-
-            staging_order_project_and_id = response_json.get("staging_order_ids")
+            staging_order_project_and_id = response_json.get(
+                    "staging_order_ids")
 
             for project, staging_id in staging_order_project_and_id.items():
-                self.assertTrue(os.path.exists(f"/tmp/{staging_id}"))
-                delivery_url = '/'.join([self.API_BASE, 'deliver', 'stage_id', str(staging_id)])
+                delivery_url = '/'.join([
+                    self.API_BASE, 'deliver', 'stage_id', str(staging_id)])
                 delivery_body = {
                         'delivery_project_id': 'fakedeliveryid2016',
                         'dds': True,
                         'auth_token': '1234',
                         'skip_mover': False,
                         }
-                delivery_response = yield self.http_client.fetch(self.get_url(delivery_url), method='POST', body=json.dumps(delivery_body))
+                delivery_response = yield self.http_client.fetch(
+                        self.get_url(delivery_url),
+                        method='POST',
+                        body=json.dumps(delivery_body))
 
 
 class TestIntegrationDDSUnmocked(BaseIntegration):
