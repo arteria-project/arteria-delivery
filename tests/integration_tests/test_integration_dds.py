@@ -318,6 +318,11 @@ class TestIntegrationDDSLongWait(BaseIntegration):
 
     @gen_test
     def test_can_deliver_and_not_timeout(self):
+        """
+        This test checks that the service does not wait for the full duration
+        of the delivery (10s in this case) to respond. If it does wait, it will
+        raise a time-out error after 5s (default duration of tornado tests).
+        """
         with tempfile.TemporaryDirectory(
                 dir='./tests/resources/runfolders/',
                 prefix='160930_ST-E00216_0111_BH37CWALXX_') as tmp_dir:
@@ -348,6 +353,8 @@ class TestIntegrationDDSLongWait(BaseIntegration):
                         self.get_url(delivery_url),
                         method='POST',
                         body=json.dumps(delivery_body))
+                self.assertEqual(delivery_response.code, 202)
+
 
 
 class TestIntegrationDDSUnmocked(BaseIntegration):
