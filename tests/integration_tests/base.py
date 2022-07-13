@@ -78,8 +78,10 @@ class BaseIntegration(AsyncHTTPTestCase):
         #  app service start method to start up the the application
         path_to_this_file = os.path.abspath(
             os.path.dirname(os.path.realpath(__file__)))
-        app_svc = AppService.create(product_name="test_delivery_service",
-                                    config_root="{}/../../config/".format(path_to_this_file))
+        app_svc = AppService.create(
+                product_name="test_delivery_service",
+                config_root="{}/../../config/".format(path_to_this_file),
+                args=[])
 
         config = app_svc.config_svc
         composed_application = compose_application(config)
