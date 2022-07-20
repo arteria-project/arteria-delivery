@@ -103,7 +103,7 @@ class StagingService(object):
 
                 # Parse the file size from the output of rsync stats:
                 # Total file size: 207,707,566 bytes
-                match = re.search('Total file size: ([\d,]+) bytes',
+                match = re.search(r'Total file size: ([\d,]+) bytes',
                                   execution_result.stdout,
                                   re.MULTILINE)
                 size_of_transfer = match.group(1)
