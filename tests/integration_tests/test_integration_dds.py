@@ -309,6 +309,54 @@ class TestIntegrationDDSShortWait(BaseIntegration):
                 stop = time.time()
                 self.assertTrue(stop - start >= self.mock_duration)
 
+    @gen_test(timeout=2+1)
+    def test_can_delivery_data_asynchronously(self):
+        with tempfile.TemporaryDirectory(
+                dir='./tests/resources/runfolders/',
+                prefix='160930_ST-E00216_0111_BH37CWALXX_') as tmp_dir:
+
+            dir_name = os.path.basename(tmp_dir)
+            self._create_projects_dir_with_random_data(tmp_dir)
+            self._create_checksums_file(tmp_dir)
+
+            url = "/".join([self.API_BASE, "stage", "runfolder", dir_name])
+            response = yield self.http_client.fetch(
+                    self.get_url(url),
+                    method='POST',
+                    body='')
+
+            response_json = json.loads(response.body)
+
+            staging_order_project_and_id = response_json.get("staging_order_ids")
+
+            for project, staging_id in staging_order_project_and_id.items():
+                delivery_url = '/'.join([
+                    self.API_BASE, 'deliver', 'stage_id', str(staging_id)])
+                delivery_body = {
+                        'delivery_project_id': 'fakedeliveryid2016',
+                        'dds': True,
+                        'auth_token': '1234',
+                        'skip_mover': False,
+                        }
+
+                delivery_resp = yield self.http_client.fetch(
+                        self.get_url(delivery_url),
+                        method='POST',
+                        body=json.dumps(delivery_body))
+
+                delivery_resp_as_json = json.loads(delivery_resp.body)
+                delivery_link = delivery_resp_as_json['delivery_order_link']
+
+                while True:
+                    status_response = yield self.http_client.fetch(
+                            delivery_link)
+                    if (json.loads(status_response.body)["status"]
+                            == DeliveryStatus.delivery_successful.name):
+                        break
+                    elif (json.loads(status_response.body)["status"]
+                            == DeliveryStatus.delivery_failed.name):
+                        raise Exception("Delivery failed")
+
 
 class TestIntegrationDDSLongWait(BaseIntegration):
     def __init__(self, *args):
@@ -354,7 +402,6 @@ class TestIntegrationDDSLongWait(BaseIntegration):
                         method='POST',
                         body=json.dumps(delivery_body))
                 self.assertEqual(delivery_response.code, 202)
-
 
 
 class TestIntegrationDDSUnmocked(BaseIntegration):
