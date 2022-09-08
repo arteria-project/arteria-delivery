@@ -100,11 +100,15 @@ class TestDDSService(AsyncTestCase):
                     delivery_project='snpseq00001',
                     token_path='token_path',
                     md5sum_file='md5sum_file')
+
+            def _get_delivery_order():
+                return self.delivery_order.delivery_status
+            assert_eventually_equals(
+                    self, 1,
+                    _get_delivery_order, DeliveryStatus.delivery_successful)
+
             mock_rmtree.assert_called_once_with(staging_target)
 
-        def _get_delivery_order():
-            return self.delivery_order.delivery_status
-        assert_eventually_equals(self, 1, _get_delivery_order, DeliveryStatus.delivery_successful)
         self.mock_mover_runner.run.assert_called_with([
             'dds',
             '--token-path', 'token_path',
