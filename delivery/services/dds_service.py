@@ -157,10 +157,11 @@ class DDSService(object):
         finally:
             # Always commit the state change to the database
             session.commit()
+            log.info(
+                    "Removing staged runfolder"
+                    f"at {delivery_order.delivery_source}")
+            shutil.rmtree(delivery_order.delivery_source)
 
-        log.info(
-            f"Removing staged runfolder at {delivery_order.delivery_source}")
-        shutil.rmtree(delivery_order.delivery_source)
 
         DDSService._release_project(
                 token_path,
