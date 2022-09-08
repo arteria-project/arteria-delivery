@@ -157,6 +157,11 @@ class DDSService(object):
         finally:
             # Always commit the state change to the database
             session.commit()
+            log.info(
+                    "Removing staged runfolder"
+                    f"at {delivery_order.delivery_source}")
+            shutil.rmtree(delivery_order.delivery_source)
+
 
         DDSService._release_project(
                 token_path,
@@ -232,11 +237,12 @@ class DDSService(object):
             session = self.session_factory()
             delivery_order.delivery_status = DeliveryStatus.delivery_skipped
             session.commit()
+            log.info(
+                f"Removing staged runfolder at {stage_order.staging_target}")
+            shutil.rmtree(stage_order.staging_target)
         else:
+            # Asynchronous call, all clean-up needs to be done in _run_dds_put
             DDSService._run_dds_put(**args_for_run_dds_put)
-
-        log.info(f"Removing staged runfolder at {stage_order.staging_target}")
-        shutil.rmtree(stage_order.staging_target)
 
         return delivery_order.id
 

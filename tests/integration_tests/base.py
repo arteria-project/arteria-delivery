@@ -98,10 +98,16 @@ class BaseIntegration(AsyncHTTPTestCase):
                         for delivery_prgm in ['dds', 'moverinfo', 'to_outbox']):
                     new_cmd = ['sleep', str(self.mock_duration)]
 
-                    if cmd[0].endswith('dds') and 'project' in cmd:
-                        new_cmd += ['&&', 'echo', f'"{dds_output}"']
-                        new_cmd = " ".join(new_cmd)
-                        shell = True
+                    if cmd[0].endswith('dds'):
+                        if 'project' in cmd:
+                            new_cmd += ['&&', 'echo', f'"{dds_output}"']
+                            new_cmd = " ".join(new_cmd)
+                            shell = True
+                        elif 'put' in cmd:
+                            source_file = cmd[cmd.index("--source") + 1]
+                            new_cmd += ['&&', 'test', '-e', source_file]
+                            new_cmd = " ".join(new_cmd)
+                            shell = True
                 else:
                     new_cmd = cmd
 
