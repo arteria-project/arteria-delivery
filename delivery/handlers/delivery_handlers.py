@@ -44,7 +44,7 @@ class DeliverByStageIdHandler(ArteriaDeliveryBaseHandler):
             log.debug("Will not skip running mover!")
             skip_mover = False
 
-        with tempfile.NamedTemporaryFile(mode='w', delete=True) as token_file:
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as token_file:
             if auth_token:
                 if os.path.exists(auth_token):
                     token_path = auth_token
