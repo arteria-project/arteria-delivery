@@ -120,7 +120,9 @@ class BaseIntegration(AsyncHTTPTestCase):
                         shell = True
                     elif 'put' in cmd:
                         source_file = cmd[cmd.index("--source") + 1]
+                        auth_token = cmd[cmd.index("--token-path") + 1]
                         new_cmd += ['&&', 'test', '-e', source_file]
+                        new_cmd += ['&&', 'test', '-e', auth_token]
                         new_cmd = " ".join(new_cmd)
                         shell = True
                 else:
