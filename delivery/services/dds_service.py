@@ -1,3 +1,4 @@
+import os
 import os.path
 import shutil
 import logging
@@ -141,14 +142,20 @@ class DDSService(object):
 
             execution_result = yield external_program_service.wait_for_execution(execution)
 
-            if execution_result.status_code == 0:
-                delivery_order.delivery_status = DeliveryStatus.delivery_successful
-                log.info(f"Successfully delivered: {delivery_order}")
-            else:
+            if execution_result.status_code != 0:
                 delivery_order.delivery_status = DeliveryStatus.delivery_failed
                 error_msg = f"Failed to deliver: {delivery_order}. DDS returned status code: {execution_result.status_code}"
                 log.error(error_msg)
                 raise RuntimeError(error_msg)
+
+            delivery_order.delivery_status = DeliveryStatus.delivery_successful
+            log.info(f"Successfully delivered: {delivery_order}")
+
+            DDSService._release_project(
+                    token_path,
+                    dds_conf,
+                    external_program_service,
+                    delivery_order.delivery_project)
 
         except Exception as e:
             delivery_order.delivery_status = DeliveryStatus.delivery_failed
@@ -161,13 +168,7 @@ class DDSService(object):
                     "Removing staged runfolder"
                     f"at {delivery_order.delivery_source}")
             shutil.rmtree(delivery_order.delivery_source)
-
-
-        DDSService._release_project(
-                token_path,
-                dds_conf,
-                external_program_service,
-                delivery_order.delivery_project)
+            os.remove(token_path)
 
     @staticmethod
     @gen.coroutine
