@@ -17,9 +17,11 @@ log = logging.getLogger(__name__)
 
 class StagingService(object):
     """
-    Starting in this context means copying a directory or file to a separate directory before delivering it.
-    This service handles that in a asynchronous way. Copying operations (right nwo powered by rsync) can be
-    started, and their status monitored by querying the underlying database for their status.
+    Starting in this context means copying a directory or file to a separate
+    directory before delivering it.  This service handles that in a
+    asynchronous way. Copying operations (right now powered by rsync) can be
+    started, and their status monitored by querying the underlying database for
+    their status.
     """
 
     # TODO On initiation of a Staging service, restart any ongoing stagings
@@ -101,7 +103,7 @@ class StagingService(object):
 
                 # Parse the file size from the output of rsync stats:
                 # Total file size: 207,707,566 bytes
-                match = re.search('Total file size: ([\d,]+) bytes',
+                match = re.search(r'Total file size: ([\d,]+) bytes',
                                   execution_result.stdout,
                                   re.MULTILINE)
                 size_of_transfer = match.group(1)

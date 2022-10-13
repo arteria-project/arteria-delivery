@@ -1,33 +1,23 @@
 import json
-from functools import partial
-import sys
 import time
 import tempfile
 
-import mock
-
 from tornado.testing import *
-from tornado.web import Application
 
-from arteria.web.app import AppService
-
-from delivery.app import routes as app_routes, compose_application
 from delivery.models.db_models import StagingStatus, DeliveryStatus
-from delivery.services.metadata_service import MetadataService
-from delivery.services.external_program_service import ExternalProgramService
 
 from tests.integration_tests.base import BaseIntegration
-from tests.test_utils import assert_eventually_equals, unorganised_runfolder, samplesheet_file_from_runfolder, \
-    project_report_files
 
 
 class TestIntegrationDDS(BaseIntegration):
     @gen_test
     def test_can_stage_and_delivery_runfolder(self):
-        # Note that this is a test which skips mover (since to_outbox is not expected to be installed on the system
-        # where this runs)
+        # Note that this is a test which skips delivery (since to_outbox is not
+        # expected to be installed on the system where this runs)
 
-        with tempfile.TemporaryDirectory(dir='./tests/resources/runfolders/', prefix='160930_ST-E00216_0111_BH37CWALXX_') as tmp_dir:
+        with tempfile.TemporaryDirectory(
+                dir='./tests/resources/runfolders/',
+                prefix='160930_ST-E00216_0111_BH37CWALXX_') as tmp_dir:
 
             dir_name = os.path.basename(tmp_dir)
             self._create_projects_dir_with_random_data(tmp_dir)
@@ -48,7 +38,6 @@ class TestIntegrationDDS(BaseIntegration):
                 status_response = yield self.http_client.fetch(link)
                 self.assertEqual(json.loads(status_response.body)["status"], StagingStatus.staging_successful.name)
 
-
                 # The size of the fake project is 1024 bytes
                 status_response = yield self.http_client.fetch(link)
                 self.assertEqual(json.loads(status_response.body)["size"], 1024)
@@ -59,24 +48,25 @@ class TestIntegrationDDS(BaseIntegration):
                 self.assertTrue(os.path.exists(f"/tmp/{staging_id}/{project}"))
                 delivery_url = '/'.join([self.API_BASE, 'deliver', 'stage_id', str(staging_id)])
                 delivery_body = {
-                        'delivery_project_id': 'fakedeliveryid2016',
-                        'dds': True,
+                        'delivery_project_id': 'snpseq00025',
+                        'ngi_project_name': 'AB-1234',
                         'auth_token': '1234',
-                        'skip_mover': True,
+                        'skip_delivery': True,
                         }
-                delivery_resp = yield self.http_client.fetch(self.get_url(delivery_url), method='POST', body=json.dumps(delivery_body))
+                delivery_resp = yield self.http_client.fetch(
+                        self.get_url(delivery_url),
+                        method='POST',
+                        body=json.dumps(delivery_body))
                 delivery_resp_as_json = json.loads(delivery_resp.body)
                 delivery_link = delivery_resp_as_json['delivery_order_link']
 
                 status_response = yield self.http_client.fetch(delivery_link)
                 self.assertEqual(json.loads(status_response.body)["status"], DeliveryStatus.delivery_skipped.name)
 
-                self.assertFalse(os.path.exists(f"/tmp/{staging_id}/{project}"))
-
     @gen_test
     def test_can_stage_and_delivery_project_dir(self):
-        # Note that this is a test which skips mover (since to_outbox is not expected to be installed on the system
-        # where this runs)
+        # Note that this is a test which skips delivery (since to_outbox is not
+        # expected to be installed on the system where this runs)
 
         with tempfile.TemporaryDirectory(dir='./tests/resources/projects') as tmp_dir:
 
@@ -100,8 +90,9 @@ class TestIntegrationDDS(BaseIntegration):
             for project, staging_id in staging_order_project_and_id.items():
                 delivery_url = '/'.join([self.API_BASE, 'deliver', 'stage_id', str(staging_id)])
                 delivery_body = {
-                        'delivery_project_id': 'fakedeliveryid2016',
-                        'skip_mover': True,
+                        'delivery_project_id': 'snpseq00025',
+                        'ngi_project_name': 'AB-1234',
+                        'skip_delivery': True,
                         'dds': True,
                         'auth_token': '1234',
                         }
@@ -259,7 +250,7 @@ class TestIntegrationDDSShortWait(BaseIntegration):
 
         self.mock_duration = 2
 
-    @gen_test(timeout=2+1)
+    @gen_test(timeout=5)
     def test_mock_duration_is_2(self):
         with tempfile.TemporaryDirectory(
                 dir='./tests/resources/runfolders/',
@@ -283,7 +274,8 @@ class TestIntegrationDDSShortWait(BaseIntegration):
                 delivery_url = '/'.join([
                     self.API_BASE, 'deliver', 'stage_id', str(staging_id)])
                 delivery_body = {
-                        'delivery_project_id': 'fakedeliveryid2016',
+                        'delivery_project_id': 'snpseq00025',
+                        'ngi_project_name': 'AB-1234',
                         'dds': True,
                         'auth_token': '1234',
                         'skip_mover': False,
@@ -309,7 +301,7 @@ class TestIntegrationDDSShortWait(BaseIntegration):
                 stop = time.time()
                 self.assertTrue(stop - start >= self.mock_duration)
 
-    @gen_test(timeout=2+1)
+    @gen_test(timeout=5)
     def test_can_delivery_data_asynchronously(self):
         with tempfile.TemporaryDirectory(
                 dir='./tests/resources/runfolders/',
@@ -333,7 +325,8 @@ class TestIntegrationDDSShortWait(BaseIntegration):
                 delivery_url = '/'.join([
                     self.API_BASE, 'deliver', 'stage_id', str(staging_id)])
                 delivery_body = {
-                        'delivery_project_id': 'fakedeliveryid2016',
+                        'delivery_project_id': 'snpseq00025',
+                        'ngi_project_name': 'AB-1234',
                         'dds': True,
                         'auth_token': '1234',
                         'skip_mover': False,
@@ -392,10 +385,11 @@ class TestIntegrationDDSLongWait(BaseIntegration):
                 delivery_url = '/'.join([
                     self.API_BASE, 'deliver', 'stage_id', str(staging_id)])
                 delivery_body = {
-                        'delivery_project_id': 'fakedeliveryid2016',
+                        'delivery_project_id': 'snpseq00025',
+                        'ngi_project_name': 'AB-1234',
                         'dds': True,
                         'auth_token': '1234',
-                        'skip_mover': False,
+                        'skip_delivery': False,
                         }
                 delivery_response = yield self.http_client.fetch(
                         self.get_url(delivery_url),

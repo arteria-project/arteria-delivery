@@ -1,23 +1,15 @@
 
 
 import json
-from functools import partial
 import sys
-import time
 import tempfile
 
 from tornado.testing import *
-from tornado.web import Application
 
-from arteria.web.app import AppService
-
-from delivery.app import routes as app_routes, compose_application
-from delivery.models.db_models import StagingStatus, DeliveryStatus
 from delivery.services.metadata_service import MetadataService
 
 from tests.integration_tests.base import BaseIntegration
-from tests.test_utils import assert_eventually_equals, unorganised_runfolder, samplesheet_file_from_runfolder, \
-    project_report_files
+from tests.test_utils import unorganised_runfolder
 
 class TestPythonVersion(unittest.TestCase):
     """
@@ -119,8 +111,8 @@ class TestIntegration(BaseIntegration):
                         _verify_checksum(relative_file_path, sample_file.checksum)
 
     def test_cannot_stage_the_same_runfolder_twice(self):
-        # Note that this is a test which skips mover (since to_outbox is not expected to be installed on the system
-        # where this runs)
+        # Note that this is a test which skips delivery (since to_outbox is not
+        # expected to be installed on the system where this runs)
 
         with tempfile.TemporaryDirectory(dir='./tests/resources/runfolders/', prefix='160930_ST-E00216_0111_BH37CWALXX_') as tmp_dir:
 
@@ -141,8 +133,8 @@ class TestIntegration(BaseIntegration):
             self.assertEqual(response.code, 202)
 
     def test_cannot_stage_the_same_project_twice(self):
-        # Note that this is a test which skips mover (since to_outbox is not expected to be installed on the system
-        # where this runs)
+        # Note that this is a test which skips delivery (since to_outbox is not
+        # expected to be installed on the system where this runs)
 
         with tempfile.TemporaryDirectory(dir='./tests/resources/projects') as tmp_dir:
 

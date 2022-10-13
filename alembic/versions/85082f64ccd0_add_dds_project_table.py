@@ -15,9 +15,12 @@ down_revision = 'ea812cd3ab7b'
 branch_labels = None
 depends_on = None
 
+
 def upgrade():
-    op.create_table('dds_projects',
-            sa.Column('dds_project_id', sa.String, nullable=False, primary_key=True),
+    op.create_table(
+            'dds_projects',
+            sa.Column(
+                'dds_project_id', sa.String, nullable=False, primary_key=True),
             sa.Column('project_name', sa.String),
             )
 

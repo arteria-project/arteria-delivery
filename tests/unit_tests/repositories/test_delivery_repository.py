@@ -26,6 +26,7 @@ class TestDeliveryRepository(unittest.TestCase):
         self.session = session_factory()
 
         self.delivery_order_1 = DeliveryOrder(delivery_source='/foo/source',
+                                              ngi_project_name='AB-1234',
                                               delivery_project='bar',
                                               delivery_status=DeliveryStatus.pending,
                                               staging_order_id=1)
@@ -53,10 +54,12 @@ class TestDeliveryRepository(unittest.TestCase):
 
     def test_create_delivery_order(self):
 
-        actual = self.delivery_repo.create_delivery_order(delivery_source='/foo/source2',
-                                                          delivery_project='snpseq00001',
-                                                          delivery_status=DeliveryStatus.pending,
-                                                          staging_order_id=2)
+        actual = self.delivery_repo.create_delivery_order(
+                delivery_source='/foo/source2',
+                delivery_project='snpseq00001',
+                ngi_project_name='AB-1234',
+                delivery_status=DeliveryStatus.pending,
+                staging_order_id=2)
 
         self.assertEqual(actual.id, 2)
         self.assertEqual(actual.delivery_source, '/foo/source2')

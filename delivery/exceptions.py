@@ -2,21 +2,22 @@
 
 class RunfolderNotFoundException(Exception):
     """
-    Should be raised when a runfolder is not found
+    Should be raised when a runfolder is not found.
     """
     pass
 
 
 class ChecksumNotFoundException(Exception):
     """
-    Should be raised when a file checksum could not be found in the list of checksums
+    Should be raised when a file checksum could not be found in the list of
+    checksums.
     """
     pass
 
 
 class ChecksumFileNotFoundException(Exception):
     """
-    Should be raised when an expected checksum file could not be found
+    Should be raised when an expected checksum file could not be found.
     """
     pass
 
@@ -37,22 +38,16 @@ class ProjectReportNotFoundException(Exception):
 
 class TooManyProjectsFound(Exception):
     """
-    Should be raise when to many projects match some specific criteria
+    Should be raise when to many projects match some specific criteria.
     """
     pass
 
 
 class InvalidStatusException(Exception):
     """
-    Should be raised when an object is found to be in a invalid state, e.g. if the program tries to start staging
-    on a StagingOrder which is already `in_progress`
-    """
-    pass
-
-
-class CannotParseMoverOutputException(Exception):
-    """
-    Should be raised when movers output cannot be parsed for e.g. a mover delivery id.
+    Should be raised when an object is found to be in a invalid state, e.g. if
+    the program tries to start staging on a StagingOrder which is already
+    `in_progress`.
     """
     pass
 
@@ -81,12 +76,14 @@ class SamplesheetNotFoundException(Exception):
 
 class ProjectsDirNotfoundException(Exception):
     """
-    Should be raised when a directory containing projects could not be found
+    Should be raised when a directory containing projects could not be found.
     """
     pass
 
+
 class CannotParseDDSOutputException(Exception):
     """
-    Should be raised when DDS's output cannot be parsed for e.g. creating a project.
+    Should be raised when DDS's output cannot be parsed for e.g. creating a
+    project.
     """
     pass

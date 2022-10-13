@@ -11,7 +11,7 @@ from delivery.models.db_models import StagingOrder, StagingStatus, DeliverySourc
 from delivery.models.delivery_modes import DeliveryMode
 from delivery.services.delivery_service import DeliveryService
 
-from delivery.services.mover_service import MoverDeliveryService
+from delivery.services.dds_service import DDSService
 from delivery.services.staging_service import StagingService
 from delivery.services.runfolder_service import RunfolderService
 
@@ -20,37 +20,46 @@ from delivery.repositories.project_repository import GeneralProjectRepository
 
 class TestDeliveryService(unittest.TestCase):
 
-    runfolder_projects = [RunfolderProject(name="ABC_123",
-                                           path="/foo/160930_ST-E00216_0112_BH37CWALXX/Projects/ABC_123",
-                                           runfolder_path="/foo/160930_ST-E00216_0112_BH37CWALXX",
-                                           runfolder_name="160930_ST-E00216_0112_BH37CWALXX"),
-                          RunfolderProject(name="ABC_123",
-                                           path="/foo/160930_ST-E00216_0111_BH37CWALXX/Projects/ABC_123",
-                                           runfolder_path="/foo/160930_ST-E00216_0111_BH37CWALXX/",
-                                           runfolder_name="160930_ST-E00216_0111_BH37CWALXX")]
+    runfolder_projects = [
+            RunfolderProject(
+                name="ABC_123",
+                path="/foo/160930_ST-E00216_0112_BH37CWALXX/Projects/ABC_123",
+                runfolder_path="/foo/160930_ST-E00216_0112_BH37CWALXX",
+                runfolder_name="160930_ST-E00216_0112_BH37CWALXX"),
+            RunfolderProject(
+                name="ABC_123",
+                path="/foo/160930_ST-E00216_0111_BH37CWALXX/Projects/ABC_123",
+                runfolder_path="/foo/160930_ST-E00216_0111_BH37CWALXX/",
+                runfolder_name="160930_ST-E00216_0111_BH37CWALXX"),
+            ]
 
     general_project = GeneralProject(name="ABC_123", path="/foo/bar/ABC_123")
 
-    def _compose_delivery_service(self,
-                                  mover_delivery_service=mock.create_autospec(MoverDeliveryService),
-                                  staging_service=mock.create_autospec(StagingService),
-                                  delivery_sources_repo=mock.create_autospec(DatabaseBasedDeliverySourcesRepository),
-                                  general_project_repo=mock.create_autospec(GeneralProjectRepository),
-                                  runfolder_service=mock.create_autospec(RunfolderService),
-                                  project_links_dir=mock.MagicMock()):
-        mover_delivery_service = mover_delivery_service
+    def _compose_delivery_service(
+            self,
+            dds_delivery_service=mock.create_autospec(DDSService),
+            staging_service=mock.create_autospec(StagingService),
+            delivery_sources_repo=mock.create_autospec(
+                DatabaseBasedDeliverySourcesRepository),
+            general_project_repo=mock.create_autospec(
+                GeneralProjectRepository),
+            runfolder_service=mock.create_autospec(RunfolderService),
+            project_links_dir=mock.MagicMock(),
+            ):
+        dds_delivery_service = dds_delivery_service
         self.staging_service = staging_service
         delivery_sources_repo = delivery_sources_repo
         general_project_repo = general_project_repo
         runfolder_service = runfolder_service
         self.project_links_dir = project_links_dir
 
-        self.delivery_service = DeliveryService(mover_service=mover_delivery_service,
-                                                staging_service=self.staging_service,
-                                                delivery_sources_repo=delivery_sources_repo,
-                                                general_project_repo=general_project_repo,
-                                                runfolder_service=runfolder_service,
-                                                project_links_directory=self.project_links_dir)
+        self.delivery_service = DeliveryService(
+                dds_service=dds_delivery_service,
+                staging_service=self.staging_service,
+                delivery_sources_repo=delivery_sources_repo,
+                general_project_repo=general_project_repo,
+                runfolder_service=runfolder_service,
+                project_links_directory=self.project_links_dir)
 
     def setUp(self):
         self._compose_delivery_service()
@@ -61,13 +70,16 @@ class TestDeliveryService(unittest.TestCase):
             self.delivery_service.project_links_directory = tmpdirname
 
             batch_nbr = 1337
-            project_link_area = self.delivery_service._create_links_area_for_project_runfolders("ABC_123",
-                                                                                                self.runfolder_projects,
-                                                                                                batch_nbr)
+            project_link_area = self.delivery_service\
+                ._create_links_area_for_project_runfolders(
+                    "ABC_123",
+                    self.runfolder_projects,
+                    batch_nbr)
 
-            project_linking_area_base = os.path.join(self.delivery_service.project_links_directory,
-                                                     "ABC_123",
-                                                     str(batch_nbr))
+            project_linking_area_base = os.path.join(
+                    self.delivery_service.project_links_directory,
+                    "ABC_123",
+                    str(batch_nbr))
             self.assertEqual(project_link_area,
                              project_linking_area_base)
 
@@ -114,25 +126,29 @@ class TestDeliveryService(unittest.TestCase):
 
         staging_service_mock = mock.create_autospec(StagingService)
         staging_service_mock.create_new_stage_order.return_value = \
-            StagingOrder(id=1,
-                         source=self.general_project.path,
-                         status=StagingStatus.pending,
-                         staging_target='/foo/bar',
-                         size=1024
-                         )
+            StagingOrder(
+                    id=1,
+                    source=self.general_project.path,
+                    status=StagingStatus.pending,
+                    staging_target='/foo/bar',
+                    size=1024,
+                    )
 
-        general_project_repo_mock = mock.create_autospec(GeneralProjectRepository)
+        general_project_repo_mock = mock.create_autospec(
+                GeneralProjectRepository)
         general_project_repo_mock.get_project.return_value = self.general_project
 
-        delivery_sources_repo_mock = mock.create_autospec(DatabaseBasedDeliverySourcesRepository)
+        delivery_sources_repo_mock = mock.create_autospec(
+                DatabaseBasedDeliverySourcesRepository)
         delivery_sources_repo_mock.source_exists.return_value = True
-        delivery_sources_repo_mock.create_source.return_value = DeliverySource(project_name="ABC_123",
-                                                                               source_name=self.general_project.name,
-                                                                               path=self.general_project.path)
+        delivery_sources_repo_mock.create_source.return_value = DeliverySource(
+                project_name="ABC_123", source_name=self.general_project.name,
+                path=self.general_project.path)
 
-        self._compose_delivery_service(general_project_repo=general_project_repo_mock,
-                                       delivery_sources_repo=delivery_sources_repo_mock,
-                                       staging_service=staging_service_mock)
+        self._compose_delivery_service(
+                general_project_repo=general_project_repo_mock,
+                delivery_sources_repo=delivery_sources_repo_mock,
+                staging_service=staging_service_mock)
 
         with self.assertRaises(ProjectAlreadyDeliveredException):
             self.delivery_service.deliver_arbitrary_directory_project("ABC_123", force_delivery=False)
