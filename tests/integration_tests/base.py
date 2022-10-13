@@ -109,7 +109,7 @@ class BaseIntegration(AsyncHTTPTestCase):
                         dds_output = json.dumps([{
                                     "Access": True,
                                     "Last updated": "Fri, 01 Jul 2022 14:31:13 CEST",
-                                    "PI": "matilda.aslin@medsci.uu.se",
+                                    "PI": "pi@email.com",
                                     "Project ID": "snpseq00025",
                                     "Size": 25856185058,
                                     "Status": "In Progress",

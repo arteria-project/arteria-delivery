@@ -363,14 +363,15 @@ project"""
         mock_dds_project = [{
                 "Access": True,
                 "Last updated": "Fri, 01 Jul 2022 14:31:13 CEST",
-                "PI": "matilda.aslin@medsci.uu.se",
+                "PI": "pi@email.com",
                 "Project ID": "snpseq00025",
                 "Size": 25856185058,
                 "Status": "In Progress",
                 "Title": "AB1234"
                 }]
 
-        with patch( 'delivery.models.project.DDSProject._run',
+        with patch(
+                'delivery.models.project.DDSProject._run',
                 new_callable=AsyncMock,
                 return_value=json.dumps(mock_dds_project),
                 ):
