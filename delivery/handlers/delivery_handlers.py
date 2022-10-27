@@ -26,7 +26,6 @@ class DeliverByStageIdHandler(ArteriaDeliveryBaseHandler):
     def post(self, staging_id):
         required_members = [
                 "delivery_project_id",
-                "ngi_project_name",
                 "auth_token",
                 ]
         request_data = self.body_as_object(required_members=required_members)
