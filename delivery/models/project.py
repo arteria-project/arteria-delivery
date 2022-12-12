@@ -173,8 +173,7 @@ class DDSProject:
         project_metadata: dict
             Project metadata to be sent to DDS, must contain fields
             "description" (str) and "pi" (str). Can also include fields
-            "owners" (list(str)), "researchers" (list(str)) and "non-sensitive"
-            (bool).
+            "owners" (list(str)) and "researchers" (list(str)).
         auth_token: str
             either DDS token string or path to the token file
         dds_project_id: str
@@ -211,9 +210,6 @@ class DDSProject:
             for researcher in project_metadata.get('researchers', [])
             for args in ['--researcher', researcher]
             ]
-
-        if project_metadata.get('non-sensitive', False):
-            cmd += ['--non-sensitive']
 
         stdout = yield self._run(cmd)
         self.project_id = cls._parse_dds_project_id(stdout)

@@ -205,7 +205,6 @@ class TestIntegrationDDS(BaseIntegration):
             "pi": "alex@doe.com",
             "researchers": ["robin@doe.com", "kim@doe.com"],
             "owners": ["alex@doe.com"],
-            "non-sensitive": False,
             "auth_token": '1234',
         }
 
@@ -225,7 +224,6 @@ class TestIntegrationDDS(BaseIntegration):
             "pi": "alex@doe.com",
             "researchers": ["robin@doe.com", "kim@doe.com"],
             "owners": ["alex@doe.com"],
-            "non-sensitive": False,
             "auth_token": '1234',
         }
 
@@ -413,7 +411,6 @@ class TestIntegrationDDSUnmocked(BaseIntegration):
             "pi": "alex@doe.com",
             "researchers": ["robin@doe.com", "kim@doe.com"],
             "owners": ["alex@doe.com"],
-            "non-sensitive": False,
             "auth_token": '1234',
         }
 
