@@ -40,7 +40,6 @@ class DDSCreateProjectHandler(DDSProjectBaseHandler):
                 "pi": "alex@doe.com",
                 "researchers": ["robin@doe.com", "kim@doe.com"],
                 "owners": ["alex@doe.com"],
-                "non-sensitive": False,
                 "auth_token": "1234"
             }
 
