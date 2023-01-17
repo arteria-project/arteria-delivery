@@ -34,6 +34,7 @@ class DeliverByStageIdHandler(ArteriaDeliveryBaseHandler):
         auth_token = request_data["auth_token"]
         deadline = request_data.get("deadline")
         release = request_data.get("release", True)
+        email = request_data.get("email", True)
 
         # This should only be used for testing purposes /JD 20170202
         skip_delivery_request = request_data.get("skip_delivery")
@@ -54,6 +55,7 @@ class DeliverByStageIdHandler(ArteriaDeliveryBaseHandler):
                 skip_delivery=skip_delivery,
                 deadline=deadline,
                 release=release,
+                email=email,
                 )
 
         status_end_point = "{0}://{1}{2}".format(

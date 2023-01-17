@@ -264,6 +264,7 @@ class DDSProject:
             skip_delivery=False,
             deadline=None,
             release=True,
+            email=True,
             ):
         """
         Upload staged data to DDS
@@ -323,12 +324,13 @@ class DDSProject:
                     delivery_order,
                     staging_order,
                     deadline=deadline,
-                    release=release)
+                    release=release,
+                    email=email)
 
         return delivery_order.id
 
     @gen.coroutine
-    def release(self, deadline=None):
+    def release(self, deadline=None, email=True):
         """
         Release the project in DDS
 
@@ -342,13 +344,16 @@ class DDSProject:
         cmd += [
                 'project', 'status', 'release',
                 '--project', self.project_id,
-                '--no-mail',
                 ]
 
         if deadline:
             cmd += [
                 '--deadline', str(deadline),
                 ]
+
+        if not email:
+            cmd.append('--no-mail')
+
         yield self._run(cmd)
 
     @gen.coroutine
@@ -383,6 +388,7 @@ class DDSProject:
             staging_order,
             deadline=None,
             release=True,
+            email=True,
             ):
         """
         Start a delivery and release the project in DDS
@@ -424,7 +430,7 @@ class DDSProject:
                     # specific endpoint, e.g. if we want to do several
                     # deliveries before releasing a project /AC 2022-06-23
                     log.info(f"Releasing project {self.project_id}")
-                    yield self.release(deadline=deadline)
+                    yield self.release(deadline=deadline, email=email)
 
                 delivery_order.delivery_status = DeliveryStatus.delivery_successful
                 log.info(f"Successfully delivered: {delivery_order}")
