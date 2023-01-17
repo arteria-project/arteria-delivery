@@ -278,7 +278,7 @@ class TestIntegrationDDSShortWait(BaseIntegration):
                         'ngi_project_name': 'AB-1234',
                         'dds': True,
                         'auth_token': '1234',
-                        'skip_mover': False,
+                        'skip_delivery': False,
                         }
 
                 start = time.time()
@@ -329,7 +329,7 @@ class TestIntegrationDDSShortWait(BaseIntegration):
                         'ngi_project_name': 'AB-1234',
                         'dds': True,
                         'auth_token': '1234',
-                        'skip_mover': False,
+                        'skip_delivery': False,
                         }
 
                 delivery_resp = yield self.http_client.fetch(
