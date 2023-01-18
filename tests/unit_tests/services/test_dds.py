@@ -131,7 +131,6 @@ class TestDDSService(AsyncTestCase):
                         '--no-prompt',
                         'project', 'status', 'release',
                         '--project', project_id,
-                        '--no-mail',
                         '--deadline', deadline,
                         ]),
                     ])
@@ -339,12 +338,16 @@ project"""
     def test_release_project(self):
         project_id = 'snpseq00001'
         deadline = '90'
+        email = True
         dds_project = DDSProject(
                 dds_service=self.dds_service,
                 auth_token=self.token_file.name,
                 dds_project_id=project_id)
 
-        yield dds_project.release(deadline=deadline)
+        yield dds_project.release(
+                deadline=deadline,
+                email=email,
+                )
 
         self.mock_dds_runner.run.assert_called_with([
             'dds',
@@ -353,8 +356,33 @@ project"""
             '--no-prompt',
             'project', 'status', 'release',
             '--project', project_id,
-            '--no-mail',
             '--deadline', deadline,
+            ])
+
+    @gen_test
+    def test_release_project_nomail(self):
+        project_id = 'snpseq00001'
+        deadline = '90'
+        email = False
+        dds_project = DDSProject(
+                dds_service=self.dds_service,
+                auth_token=self.token_file.name,
+                dds_project_id=project_id)
+
+        yield dds_project.release(
+                deadline=deadline,
+                email=email,
+                )
+
+        self.mock_dds_runner.run.assert_called_with([
+            'dds',
+            '--token-path', self.token_file.name,
+            '--log-file', '/foo/bar/log',
+            '--no-prompt',
+            'project', 'status', 'release',
+            '--project', project_id,
+            '--deadline', deadline,
+            '--no-mail',
             ])
 
     @gen_test
