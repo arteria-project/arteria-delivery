@@ -254,7 +254,7 @@ class DDSProject:
         return self._ngi_project_name
 
     @gen.coroutine
-    def put(
+    def deliver(
             self,
             staging_id,
             skip_delivery=False,
@@ -263,7 +263,7 @@ class DDSProject:
             email=True,
             ):
         """
-        Upload staged data to DDS
+        Deliver staged data to DDS
 
         Parameters
         ----------

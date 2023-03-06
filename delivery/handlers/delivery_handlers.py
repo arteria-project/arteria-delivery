@@ -50,7 +50,7 @@ class DeliverByStageIdHandler(ArteriaDeliveryBaseHandler):
                 auth_token,
                 delivery_project_id)
 
-        delivery_id = yield dds_project.put(
+        delivery_id = yield dds_project.deliver(
                 staging_id,
                 skip_delivery=skip_delivery,
                 deadline=deadline,

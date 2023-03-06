@@ -97,7 +97,7 @@ class TestDDSService(AsyncTestCase):
                     '.DDSProject.get_ngi_project_name',
                     new_callable=AsyncMock,
                     return_value='AB-1234'):
-                yield dds_project.put(
+                yield dds_project.deliver(
                         staging_id=1,
                         deadline=deadline,
                         )
@@ -161,7 +161,7 @@ class TestDDSService(AsyncTestCase):
                     '.DDSProject.get_ngi_project_name',
                     new_callable=AsyncMock,
                     return_value='AB-1234'):
-                yield dds_project.put(
+                yield dds_project.deliver(
                         staging_id=1,
                         deadline=deadline,
                         release=False,
@@ -220,7 +220,7 @@ class TestDDSService(AsyncTestCase):
                     '.DDSProject.get_ngi_project_name',
                     new_callable=AsyncMock,
                     return_value='AB-1234'):
-                yield dds_project.put(staging_id=1)
+                yield dds_project.deliver(staging_id=1)
 
     @gen_test
     def test_dds_put_raises_on_non_successful_stage_id(self):
@@ -240,7 +240,7 @@ class TestDDSService(AsyncTestCase):
                     '.DDSProject.get_ngi_project_name',
                     new_callable=AsyncMock,
                     return_value='AB-1234'):
-                yield dds_project.put(staging_id=1)
+                yield dds_project.deliver(staging_id=1)
 
     def test_delivery_order_by_id(self):
         delivery_order = DeliveryOrder(
@@ -276,7 +276,7 @@ class TestDDSService(AsyncTestCase):
                 '.DDSProject.get_ngi_project_name',
                 new_callable=AsyncMock,
                 return_value='AB-1234'):
-            yield dds_project.put(staging_id=1, skip_delivery=True)
+            yield dds_project.deliver(staging_id=1, skip_delivery=True)
 
         def _get_delivery_order():
             return self.delivery_order.delivery_status
