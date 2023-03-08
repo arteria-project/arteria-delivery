@@ -2,7 +2,8 @@
 import os
 import enum as base_enum
 
-from sqlalchemy import Column, Integer, BigInteger, String, Enum
+from sqlalchemy import Column, ForeignKey
+from sqlalchemy import Integer, BigInteger, String, Enum, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 
 """
@@ -138,3 +139,59 @@ class DeliveryOrder(SQLAlchemyBase):
                 f"status: {self.delivery_status}, "
                 " }"
                 )
+
+class DDSDelivery(SQLAlchemyBase):
+
+    __tablename__ = "dds_deliveries"
+
+    dds_project_id = Column(String, primary_key=True)
+    ngi_project_name = Column(String)
+
+    date_started = Column(DateTime, nullable=False)
+    date_completed = Column(DateTime)
+    delivery_status = Column(Enum(DeliveryStatus), nullable=False)
+
+    def __repr__(self):
+        return (
+            "DDS Delivery: {"
+            f"dds_project: '{self.dds_project}', "
+            f"ngi_project_name: '{self.ngi_project_name}', "
+            f"date_started: {self.date_started}, "
+            f"date_completed: {self.date_completed}, "
+            f"delivery_status: {self.delivery_status}, "
+            " }"
+        )
+
+class DDSPut(SQLAlchemyBase):
+
+    __tablename__ = "dds_puts"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    dds_project_id = Column(
+        String,
+        ForeignKey("dds_deliveries.dds_project_id"),
+        nullable=False)
+    dds_pid = Column(Integer, nullable=False)
+
+    delivery_source = Column(String, nullable=False)
+    delivery_path = Column(String, nullable=False)
+    destination = Column(String)
+
+    date_started = Column(DateTime, nullable=False)
+    date_completed = Column(DateTime)
+    delivery_status = Column(Enum(DeliveryStatus), nullable=False)
+
+    def __repr__(self):
+        return (
+            "DDS Put: {"
+            f"id: {self.id},"
+            f"dds_project: '{self.dds_project}', "
+            f"dds_pid: {self.dds_pid}, "
+            f"delivery_source: '{self.delivery_source}', "
+            f"delivery_path: '{self.delivery_path}', "
+            f"destination: '{self.destination}', "
+            f"date_started: {self.date_started}, "
+            f"date_completed: {self.date_completed}, "
+            f"delivery_status: {self.delivery_status}, "
+            " }"
+        )
