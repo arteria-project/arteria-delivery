@@ -214,6 +214,11 @@ class DDSProject:
         stdout = yield self._run(cmd)
         self.project_id = cls._parse_dds_project_id(stdout)
 
+        self.dds_service.dds_delivery_repo.register_dds_delivery(
+            self.project_id,
+            ngi_project_name,
+        )
+
         self._ngi_project_name = ngi_project_name
 
         return self
