@@ -12,13 +12,20 @@ class DDSService(object):
             staging_service,
             staging_dir,
             delivery_repo,
+            dds_delivery_repo,
+            dds_put_repo,
             session_factory,
             dds_conf):
         self.external_program_service = external_program_service
         self.dds_external_program_service = self.external_program_service
         self.staging_service = staging_service
         self.staging_dir = staging_dir
+        # `delivery_repo` and `dds_delivery_repo` have similar names here but
+        # `delivery_repo` will be removed once we decommission the old API
+        # version /AC 2023-03-09
         self.delivery_repo = delivery_repo
+        self.dds_delivery_repo = dds_delivery_repo
+        self.dds_put_repo = dds_put_repo
         self.session_factory = session_factory
         self.dds_conf = dds_conf
 

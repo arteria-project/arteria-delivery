@@ -25,6 +25,8 @@ from delivery.repositories.runfolder_repository import FileSystemBasedRunfolderR
     FileSystemBasedUnorganisedRunfolderRepository
 from delivery.repositories.staging_repository import DatabaseBasedStagingRepository
 from delivery.repositories.deliveries_repository import DatabaseBasedDeliveriesRepository
+from delivery.repositories.dds_repository import DatabaseBasedDDSDeliveryRepository, \
+    DatabaseBasedDDSPutRepository
 from delivery.repositories.project_repository import GeneralProjectRepository, UnorganisedRunfolderProjectRepository
 from delivery.repositories.delivery_sources_repository import DatabaseBasedDeliverySourcesRepository
 from delivery.repositories.sample_repository import RunfolderProjectBasedSampleRepository
@@ -159,6 +161,10 @@ def compose_application(config):
 
     delivery_repo = DatabaseBasedDeliveriesRepository(
             session_factory=session_factory)
+    dds_delivery_repo = DatabaseBasedDDSDeliveryRepository(
+            session_factory=session_factory)
+    dds_put_repo = DatabaseBasedDDSPutRepository(
+            session_factory=session_factory)
 
     dds_conf = config['dds_conf']
     dds_service = DDSService(
@@ -166,6 +172,8 @@ def compose_application(config):
             staging_service=staging_service,
             staging_dir=staging_dir,
             delivery_repo=delivery_repo,
+            dds_delivery_repo=dds_delivery_repo,
+            dds_put_repo=dds_put_repo,
             session_factory=session_factory,
             dds_conf=dds_conf)
 
