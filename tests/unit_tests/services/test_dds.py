@@ -95,7 +95,6 @@ class TestDDSService(AsyncTestCase):
             with patch(
                     'delivery.models.project'
                     '.DDSProject.get_ngi_project_name',
-                    new_callable=AsyncMock,
                     return_value='AB-1234'):
                 yield dds_project.deliver(
                         staging_id=1,
@@ -159,7 +158,6 @@ class TestDDSService(AsyncTestCase):
             with patch(
                     'delivery.models.project'
                     '.DDSProject.get_ngi_project_name',
-                    new_callable=AsyncMock,
                     return_value='AB-1234'):
                 yield dds_project.deliver(
                         staging_id=1,
@@ -218,7 +216,6 @@ class TestDDSService(AsyncTestCase):
             with patch(
                     'delivery.models.project'
                     '.DDSProject.get_ngi_project_name',
-                    new_callable=AsyncMock,
                     return_value='AB-1234'):
                 yield dds_project.deliver(staging_id=1)
 
@@ -238,7 +235,6 @@ class TestDDSService(AsyncTestCase):
             with patch(
                     'delivery.models.project'
                     '.DDSProject.get_ngi_project_name',
-                    new_callable=AsyncMock,
                     return_value='AB-1234'):
                 yield dds_project.deliver(staging_id=1)
 
@@ -274,7 +270,6 @@ class TestDDSService(AsyncTestCase):
         with patch(
                 'delivery.models.project'
                 '.DDSProject.get_ngi_project_name',
-                new_callable=AsyncMock,
                 return_value='AB-1234'):
             yield dds_project.deliver(staging_id=1, skip_delivery=True)
 
@@ -408,5 +403,5 @@ project"""
                     dds_project_id=mock_dds_project[0]["Project ID"],
                     )
 
-            ngi_project_name = yield dds_project.get_ngi_project_name()
+            ngi_project_name = dds_project.get_ngi_project_name()
             self.assertEqual(ngi_project_name, "AB-1234")

@@ -223,40 +223,14 @@ class DDSProject:
 
         return self
 
-    @gen.coroutine
     def get_ngi_project_name(self):
         """
         NGI project name (e.g. AB-1234).
-
-        If the attribute is not set, it will fetched from DDS.
         """
-        try:
-            return self._ngi_project_name
-        except AttributeError:
-            cmd = self._base_cmd[:]
-            cmd += [
-                    'ls',
-                    '--json',
-                    ]
 
-            dds_output = yield self._run(cmd)
-            try:
-                dds_project_title = next(
-                        project["Title"]
-                        for project in json.loads(dds_output)
-                        if project["Project ID"] == self.project_id
-                        )
-
-                self._ngi_project_name = re.sub(
-                        r"(\D{2})(\d{4})",
-                        r"\1-\2",
-                        dds_project_title)
-            except StopIteration:
-                err_msg = "Project {self.project_id} not found in DDS."
-                log.error(err_msg)
-                raise ProjectNotFoundException(err_msg)
-
-        return self._ngi_project_name
+        dds_delivery = self.dds_service.dds_delivery_repo \
+            .get_dds_delivery(self.project_id)
+        return dds_delivery.ngi_project_name
 
     @gen.coroutine
     def deliver(
@@ -295,7 +269,7 @@ class DDSProject:
                 "Only deliver by staging_id if it has a successful status!"
                 "Staging order was: {}".format(staging_order))
 
-        ngi_project_name = yield self.get_ngi_project_name()
+        ngi_project_name = self.get_ngi_project_name()
 
         delivery_order = self.dds_service.delivery_repo.create_delivery_order(
             delivery_source=staging_order.get_staging_path(),
