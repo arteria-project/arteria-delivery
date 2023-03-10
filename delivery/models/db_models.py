@@ -1,6 +1,8 @@
 
 import os
+import datetime
 import enum as base_enum
+import psutil
 
 from sqlalchemy import Column, ForeignKey
 from sqlalchemy import Integer, BigInteger, String, Enum, DateTime
@@ -195,3 +197,18 @@ class DDSPut(SQLAlchemyBase):
             f"delivery_status: {self.delivery_status}, "
             " }"
         )
+
+    def is_running(self):
+        try:
+            process = psutil.Process(self.dds_pid)
+            date_created = datetime.datetime.fromtimestamp(
+                process.create_time())
+            return (
+                process.name() == 'dds'
+                and (
+                    abs(date_created - self.date_started)
+                    < datetime.timedelta(minutes=1)
+                )
+            )
+        except psutil.NoSuchProcess:
+            return False
