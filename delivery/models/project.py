@@ -234,6 +234,47 @@ class DDSProject:
         return dds_delivery.ngi_project_name
 
     @gen.coroutine
+    def put(
+            self,
+            source,
+            source_path,
+            destination=None,
+    ):
+        cmd = self._base_cmd[:]
+
+        cmd += [
+            'data', 'put',
+            '--mount-dir', self.dds_service.staging_dir,
+            '--source', source_path,
+            '--project', self.project_id,
+            '--break-on-fail',
+            '--silent',
+        ]
+
+        if destination:
+            cmd += ['--destination', destination]
+
+        execution = self.dds_service.external_program_service.run(cmd)
+
+        dds_put = self.dds_service.dds_put_repo.register_dds_put(
+            self.project_id,
+            execution.pid,
+            source,
+            source_path,
+            destination,
+        )
+
+        try:
+            yield self.dds_service.external_program_service \
+                .wait_for_execution(execution)
+            dds_put.delivery_status = DeliveryStatus.delivery_successful
+        except RuntimeError:
+            dds_put.delivery_status = DeliveryStatus.delivery_failed
+            raise
+        finally:
+            self.dds_service.dds_put_repo.session.commit()
+
+    @gen.coroutine
     def deliver(
             self,
             staging_id,
