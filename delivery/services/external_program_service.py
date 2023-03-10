@@ -2,11 +2,13 @@
 
 from tornado.process import Subprocess
 from tornado import gen
+import logging
 
 from subprocess import PIPE
 
 from delivery.models.execution import ExecutionResult, Execution
 
+log = logging.getLogger(__name__)
 
 class ExternalProgramService(object):
     """
@@ -20,6 +22,7 @@ class ExternalProgramService(object):
         :param cmd: the command to run as a list, i.e. ['ls','-l', '/']
         :return: A instance of Execution
         """
+        log.info(f"Running external command: {' '.join(cmd)}")
         p = Subprocess(cmd,
                        stdout=PIPE,
                        stderr=PIPE,
@@ -38,6 +41,13 @@ class ExternalProgramService(object):
         out = execution.process_obj.stdout.read().decode('UTF-8')
         err = execution.process_obj.stderr.read().decode('UTF-8')
 
+        if status_code != 0:
+            error_msg = (
+                f"Failed to run external command: {err}."
+                f" Program returned status code: {status_code}")
+            log.error(error_msg)
+            raise RuntimeError(error_msg)
+
         return ExecutionResult(out, err, status_code)
 
     @staticmethod
@@ -49,4 +59,3 @@ class ExternalProgramService(object):
         """
         execution = ExternalProgramService.run(cmd)
         return ExternalProgramService.wait_for_execution(execution)
-

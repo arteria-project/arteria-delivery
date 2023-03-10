@@ -211,7 +211,8 @@ class DDSProject:
             for args in ['--researcher', researcher]
             ]
 
-        stdout = yield self._run(cmd)
+        stdout = yield self.dds_service.external_program_service \
+            .run_and_wait(cmd).stdout
         self.project_id = cls._parse_dds_project_id(stdout)
 
         self.dds_service.dds_delivery_repo.register_dds_delivery(
@@ -329,31 +330,7 @@ class DDSProject:
         if not email:
             cmd.append('--no-mail')
 
-        yield self._run(cmd)
-
-    @gen.coroutine
-    def _run(self, cmd):
-        """
-        Run a dds command and wait for result.
-
-        Parameters
-        ----------
-        cmd: str
-            shell command to run.
-        """
-        log.debug(f"Running dds with command: {' '.join(cmd)}")
-        execution = self.dds_service.external_program_service.run(cmd)
-        execution_result = yield self.dds_service.external_program_service \
-            .wait_for_execution(execution)
-
-        if execution_result.status_code != 0:
-            error_msg = (
-                f"Failed to run DDS command: {execution_result.stderr}."
-                f" DDS returned status code: {execution_result.status_code}")
-            log.error(error_msg)
-            raise RuntimeError(error_msg)
-
-        return execution_result.stdout
+        yield self.dds_service.external_program_service.run_and_wait(cmd)
 
     @gen.coroutine
     def _run_delivery(
