@@ -211,9 +211,11 @@ class DDSProject:
             for args in ['--researcher', researcher]
             ]
 
-        stdout = yield self.dds_service.external_program_service \
-            .run_and_wait(cmd).stdout
-        self.project_id = cls._parse_dds_project_id(stdout)
+        execution = self.dds_service.external_program_service \
+            .run(cmd)
+        result = yield self.dds_service.external_program_service \
+            .wait_for_execution(execution)
+        self.project_id = cls._parse_dds_project_id(result.stdout)
 
         self.dds_service.dds_delivery_repo.register_dds_delivery(
             self.project_id,
@@ -371,7 +373,9 @@ class DDSProject:
         if not email:
             cmd.append('--no-mail')
 
-        yield self.dds_service.external_program_service.run_and_wait(cmd)
+        execution = self.dds_service.external_program_service.run(cmd)
+        yield self.dds_service.external_program_service. \
+            wait_for_execution(execution)
 
     @gen.coroutine
     def _run_delivery(

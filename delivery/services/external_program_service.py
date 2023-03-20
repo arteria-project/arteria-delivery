@@ -49,13 +49,3 @@ class ExternalProgramService(object):
             raise RuntimeError(error_msg)
 
         return ExecutionResult(out, err, status_code)
-
-    @staticmethod
-    def run_and_wait(cmd):
-        """
-        Run an external command and wait for it to finish
-        :param cmd: the command to run as a list, i.e. ['ls','-l', '/']
-        :return: an ExecutionResult for the execution
-        """
-        execution = ExternalProgramService.run(cmd)
-        return ExternalProgramService.wait_for_execution(execution)
