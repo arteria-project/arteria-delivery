@@ -23,6 +23,23 @@ class TestIntegrationDDS(BaseIntegration):
             self._create_projects_dir_with_random_data(tmp_dir)
             self._create_checksums_file(tmp_dir)
 
+            project_name = "AB-1234"
+            url = "/".join([self.API_BASE, "dds_project", "create", project_name])
+            payload = {
+                "description": "Dummy project",
+                "pi": "alex@doe.com",
+                "researchers": ["robin@doe.com", "kim@doe.com"],
+                "owners": ["alex@doe.com"],
+                "auth_token": '1234',
+            }
+
+            response = yield self.http_client.fetch(
+                    self.get_url(url), method='POST',
+                    body=json.dumps(payload))
+
+            self.assertEqual(response.code, 202)
+            dds_project_id = json.loads(response.body)["dds_project_id"]
+
             url = "/".join([self.API_BASE, "stage", "runfolder", dir_name])
             response = yield self.http_client.fetch(self.get_url(url), method='POST', body='')
             self.assertEqual(response.code, 202)
@@ -48,8 +65,8 @@ class TestIntegrationDDS(BaseIntegration):
                 self.assertTrue(os.path.exists(f"/tmp/{staging_id}/{project}"))
                 delivery_url = '/'.join([self.API_BASE, 'deliver', 'stage_id', str(staging_id)])
                 delivery_body = {
-                        'delivery_project_id': 'snpseq00025',
-                        'ngi_project_name': 'AB-1234',
+                        'delivery_project_id': dds_project_id,
+                        'ngi_project_name': project_name,
                         'auth_token': '1234',
                         'skip_delivery': True,
                         }
@@ -69,6 +86,22 @@ class TestIntegrationDDS(BaseIntegration):
         # expected to be installed on the system where this runs)
 
         with tempfile.TemporaryDirectory(dir='./tests/resources/projects') as tmp_dir:
+            project_name = "AB-1234"
+            url = "/".join([self.API_BASE, "dds_project", "create", project_name])
+            payload = {
+                "description": "Dummy project",
+                "pi": "alex@doe.com",
+                "researchers": ["robin@doe.com", "kim@doe.com"],
+                "owners": ["alex@doe.com"],
+                "auth_token": '1234',
+            }
+
+            response = yield self.http_client.fetch(
+                    self.get_url(url), method='POST',
+                    body=json.dumps(payload))
+
+            self.assertEqual(response.code, 202)
+            dds_project_id = json.loads(response.body)["dds_project_id"]
 
             dir_name = os.path.basename(tmp_dir)
             url = "/".join([self.API_BASE, "stage", "project", dir_name])
@@ -90,8 +123,8 @@ class TestIntegrationDDS(BaseIntegration):
             for project, staging_id in staging_order_project_and_id.items():
                 delivery_url = '/'.join([self.API_BASE, 'deliver', 'stage_id', str(staging_id)])
                 delivery_body = {
-                        'delivery_project_id': 'snpseq00025',
-                        'ngi_project_name': 'AB-1234',
+                        'delivery_project_id': dds_project_id,
+                        'ngi_project_name': project_name,
                         'skip_delivery': True,
                         'dds': True,
                         'auth_token': '1234',
@@ -258,6 +291,23 @@ class TestIntegrationDDSShortWait(BaseIntegration):
             self._create_projects_dir_with_random_data(tmp_dir)
             self._create_checksums_file(tmp_dir)
 
+            project_name = "AB-1234"
+            url = "/".join([self.API_BASE, "dds_project", "create", project_name])
+            payload = {
+                "description": "Dummy project",
+                "pi": "alex@doe.com",
+                "researchers": ["robin@doe.com", "kim@doe.com"],
+                "owners": ["alex@doe.com"],
+                "auth_token": '1234',
+            }
+
+            response = yield self.http_client.fetch(
+                    self.get_url(url), method='POST',
+                    body=json.dumps(payload))
+
+            self.assertEqual(response.code, 202)
+            dds_project_id = json.loads(response.body)["dds_project_id"]
+
             url = "/".join([self.API_BASE, "stage", "runfolder", dir_name])
             response = yield self.http_client.fetch(
                     self.get_url(url),
@@ -272,8 +322,8 @@ class TestIntegrationDDSShortWait(BaseIntegration):
                 delivery_url = '/'.join([
                     self.API_BASE, 'deliver', 'stage_id', str(staging_id)])
                 delivery_body = {
-                        'delivery_project_id': 'snpseq00025',
-                        'ngi_project_name': 'AB-1234',
+                        'delivery_project_id': dds_project_id,
+                        'ngi_project_name': project_name,
                         'dds': True,
                         'auth_token': '1234',
                         'skip_delivery': False,
@@ -309,6 +359,23 @@ class TestIntegrationDDSShortWait(BaseIntegration):
             self._create_projects_dir_with_random_data(tmp_dir)
             self._create_checksums_file(tmp_dir)
 
+            project_name = "AB-1234"
+            url = "/".join([self.API_BASE, "dds_project", "create", project_name])
+            payload = {
+                "description": "Dummy project",
+                "pi": "alex@doe.com",
+                "researchers": ["robin@doe.com", "kim@doe.com"],
+                "owners": ["alex@doe.com"],
+                "auth_token": '1234',
+            }
+
+            response = yield self.http_client.fetch(
+                    self.get_url(url), method='POST',
+                    body=json.dumps(payload))
+
+            self.assertEqual(response.code, 202)
+            dds_project_id = json.loads(response.body)["dds_project_id"]
+
             url = "/".join([self.API_BASE, "stage", "runfolder", dir_name])
             response = yield self.http_client.fetch(
                     self.get_url(url),
@@ -323,8 +390,8 @@ class TestIntegrationDDSShortWait(BaseIntegration):
                 delivery_url = '/'.join([
                     self.API_BASE, 'deliver', 'stage_id', str(staging_id)])
                 delivery_body = {
-                        'delivery_project_id': 'snpseq00025',
-                        'ngi_project_name': 'AB-1234',
+                        'delivery_project_id': dds_project_id,
+                        'ngi_project_name': project_name,
                         'dds': True,
                         'auth_token': '1234',
                         'skip_delivery': False,
@@ -366,6 +433,23 @@ class TestIntegrationDDSLongWait(BaseIntegration):
                 dir='./tests/resources/runfolders/',
                 prefix='160930_ST-E00216_0111_BH37CWALXX_') as tmp_dir:
 
+            project_name = "CD-1234"
+            url = "/".join([self.API_BASE, "dds_project", "create", project_name])
+            payload = {
+                "description": "Dummy project",
+                "pi": "alex@doe.com",
+                "researchers": ["robin@doe.com", "kim@doe.com"],
+                "owners": ["alex@doe.com"],
+                "auth_token": '1234',
+            }
+
+            response = yield self.http_client.fetch(
+                    self.get_url(url), method='POST',
+                    body=json.dumps(payload))
+
+            self.assertEqual(response.code, 202)
+            dds_project_id = json.loads(response.body)["dds_project_id"]
+
             dir_name = os.path.basename(tmp_dir)
             self._create_projects_dir_with_random_data(tmp_dir)
             self._create_checksums_file(tmp_dir)
@@ -383,8 +467,8 @@ class TestIntegrationDDSLongWait(BaseIntegration):
                 delivery_url = '/'.join([
                     self.API_BASE, 'deliver', 'stage_id', str(staging_id)])
                 delivery_body = {
-                        'delivery_project_id': 'snpseq00025',
-                        'ngi_project_name': 'AB-1234',
+                        'delivery_project_id': dds_project_id,
+                        'ngi_project_name': project_name,
                         'dds': True,
                         'auth_token': '1234',
                         'skip_delivery': False,
