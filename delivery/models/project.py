@@ -277,6 +277,36 @@ class DDSProject:
             self.dds_service.dds_put_repo.session.commit()
 
     @gen.coroutine
+    def release(self, deadline=None, email=True):
+        """
+        Release the project in DDS
+
+        Parameters
+        ----------
+        deadline: int
+            project deadline in days.
+        """
+        cmd = self._base_cmd[:]
+
+        cmd += [
+            'project', 'status', 'release',
+            '--project', self.project_id,
+        ]
+
+        if deadline:
+            cmd += [
+                '--deadline', str(deadline),
+                ]
+
+        if not email:
+            cmd.append('--no-mail')
+
+        execution = self.dds_service.external_program_service.run(cmd)
+        yield self.dds_service.external_program_service. \
+            wait_for_execution(execution)
+
+# The code below will be removed once the new delivery flow is in place
+    @gen.coroutine
     def deliver(
             self,
             staging_id,
@@ -347,35 +377,6 @@ class DDSProject:
                     email=email)
 
         return delivery_order.id
-
-    @gen.coroutine
-    def release(self, deadline=None, email=True):
-        """
-        Release the project in DDS
-
-        Parameters
-        ----------
-        deadline: int
-            project deadline in days.
-        """
-        cmd = self._base_cmd[:]
-
-        cmd += [
-                'project', 'status', 'release',
-                '--project', self.project_id,
-                ]
-
-        if deadline:
-            cmd += [
-                '--deadline', str(deadline),
-                ]
-
-        if not email:
-            cmd.append('--no-mail')
-
-        execution = self.dds_service.external_program_service.run(cmd)
-        yield self.dds_service.external_program_service. \
-            wait_for_execution(execution)
 
     @gen.coroutine
     def _run_delivery(
