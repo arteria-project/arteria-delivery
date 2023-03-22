@@ -4,6 +4,9 @@ from delivery.models.db_models import DDSDelivery, DDSPut, DeliveryStatus
 
 
 class DatabaseBasedDDSRepository:
+    """
+    Base class for DDSDelivery and DDSPut
+    """
     def __init__(self, session_factory):
         """
         Instantiate a new DatabaseBasedDDSRepository
@@ -105,3 +108,17 @@ class DatabaseBasedDDSPutRepository(DatabaseBasedDDSRepository):
 
     def get_dds_put(self, row_id):
         return self._get_row(row_id)
+
+    def was_delivered_before(self, ngi_project_name, source):
+        return self.session.query(DDSPut) \
+            .join(DDSDelivery) \
+            .filter(DDSDelivery.ngi_project_name == ngi_project_name) \
+            .filter(DDSPut.delivery_source == source) \
+            .first() is not None
+
+    def get_dds_put_by_status(self, dds_project_id, delivery_status):
+        return self.session.query(DDSPut) \
+            .join(DDSDelivery) \
+            .filter(DDSDelivery.dds_project_id == dds_project_id) \
+            .filter(DDSPut.delivery_status == delivery_status) \
+            .all()
