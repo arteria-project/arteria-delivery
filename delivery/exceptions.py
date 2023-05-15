@@ -59,13 +59,6 @@ class ProjectAlreadyDeliveredException(Exception):
     pass
 
 
-class ProjectAlreadyOrganisedException(Exception):
-    """
-    Should be raised when a project has already been organised.
-    """
-    pass
-
-
 class FileNameParsingException(Exception):
     pass
 

@@ -1,9 +1,8 @@
 
 import logging
 import os
+import pathlib
 import time
-
-from delivery.exceptions import ProjectAlreadyOrganisedException
 
 from delivery.models.project import RunfolderProject
 from delivery.models.runfolder import Runfolder, RunfolderFile
@@ -39,7 +38,7 @@ class OrganiseService(object):
         :param lanes: if not None, only samples on any of the specified lanes will be organised
         :param projects: if not None, only projects in this list will be organised
         :param force: if True, a previously organised project will be renamed with a unique suffix
-        :raises ProjectAlreadyOrganisedException: if a project has already been organised and force is False
+        :raises PermissionError: if a project has already been organised and force is False
         :return: a Runfolder instance representing the runfolder after organisation
         """
         # retrieve a runfolder object and project objects to be organised
@@ -68,7 +67,7 @@ class OrganiseService(object):
         if self.file_system_service.exists(organised_project_path):
             msg = "Organised project path '{}' already exists".format(organised_project_path)
             if not force:
-                raise ProjectAlreadyOrganisedException(msg)
+                raise PermissionError(msg)
             organised_projects_backup_path = "{}.bak".format(organised_projects_path)
             backup_path = os.path.join(
                 organised_projects_backup_path,
@@ -82,14 +81,14 @@ class OrganiseService(object):
     def organise_project(self, runfolder, project, organised_projects_path, lanes):
         """
         Organise a project on a runfolder into its own directory and into a standard structure. If the project has
-        already been organised, a ProjectAlreadyOrganisedException will be raised, unless force is True. If force is
+        already been organised, a PermissionError will be raised, unless force is True. If force is
         True, the existing project path will be renamed with a unique suffix.
 
         :param runfolder: a Runfolder instance representing the runfolder on which the project belongs
         :param project: a Project instance representing the project to be organised
         :param lanes: if not None, only samples on any of the specified lanes will be organised
         :param force: if True, a previously organised project will be renamed with a unique suffix
-        :raises ProjectAlreadyOrganisedException: if project has already been organised and force is False
+        :raises PermissionError: if project has already been organised and force is False
         :return: a Project instance representing the project after organisation
         """
         # symlink the samples
@@ -207,3 +206,116 @@ class OrganiseService(object):
             read_no=sample_file.read_no,
             is_index=sample_file.is_index,
             checksum=sample_file.checksum)
+
+    def parse_yaml_config(self, config_yaml_file, top_path):
+        return [
+            {
+                "source": pathlib.Path("/path", "to", "source"),
+                "destination": pathlib.Path("/path", "to", "dest"),
+                "options": {
+                    "filter": [],
+                    "required": True,
+                    "symlink": True}
+            }
+        ]
+
+    def _determine_organise_operation(self, link_type=None):
+        """
+        Determine the organisation operation from the config. If link_type is None, the default
+        will be to copy. Raises a RuntimeError if link_type is neither None or one of "softlink"
+        or "copy".
+        :param link_type: None or one of "softlink" or "copy"
+        :return: the function reference for the organisation operation to use
+        :raise: RuntimeError if link_type is not recognized
+        """
+        ops = {
+            "softlink": self.file_system_service.symlink,
+            "copy": self.file_system_service.copy
+        }
+        try:
+            return ops[link_type or "copy"]
+        except KeyError:
+            raise RuntimeError(
+                f"{link_type} is not a recognized operation")
+
+    def _configure_organisation_entry(self, entry):
+
+        try:
+            src_path = pathlib.Path(entry["source"])
+            dst_path = pathlib.Path(entry["destination"])
+            options = entry["options"]
+        except KeyError as k:
+            raise RuntimeError(f"config entry is missing required key: {str(k)}")
+
+        # check explicitly if source exists since hard linking would throw an exception but
+        # soft links will not
+        required = options.get("required", False)
+        if not src_path.exists():
+            if required:
+                raise FileNotFoundError(f"{src_path} does not exist")
+            return None
+
+        # ensure that the destination path does not already exist
+        if dst_path.exists():
+            raise PermissionError(f"{dst_path} already exists")
+
+        # determine what operation should be used, i.e. hardlink (default), softlink or copy
+        organise_op = self._determine_organise_operation(
+            link_type=options.get("link_type"))
+
+        return organise_op, src_path, dst_path
+
+    def organise_with_config(self, config_yaml_file, top_path):
+        """
+        Organise files for delivery according to a supplied config file in YAML format.
+
+        This will parse the config and symlink files accordingly.
+
+        :param config_yaml_file:
+        :param top_path:
+        :return: a list of paths to organised files
+        :raise: FileNotFoundError, PermissionError, RuntimeError
+        """
+
+        # use the config parser to resolve into source - destination entries
+        parsed_config_dict = self.parse_yaml_config(config_yaml_file, top_path)
+        log.debug(f"parsed yaml config and received {len(parsed_config_dict)} entries")
+
+        # do a first round to check status of source and destination, basically in order to avoid
+        # creating half-finished organised structures. Since non-existing, non-required files
+        # return None, filter those out
+        organised_paths = []
+        try:
+            operations = list(
+                filter(
+                    lambda op: op is not None,
+                    map(
+                        lambda entry: self._configure_organisation_entry(entry),
+                        parsed_config_dict)))
+            for operation in operations:
+                operation[0](operation[1], operation[2])
+                organised_paths.append(operation[2])
+        except (RuntimeError,
+                FileNotFoundError,
+                PermissionError) as ex:
+            log.debug(str(ex))
+            raise
+        except Exception as ex:
+            log.debug(ex)
+            raise RuntimeError(ex)
+
+        return organised_paths
+
+    def get_paths_matching_glob_path(self, glob_path, root_dir=None):
+        """
+        Search the file system using a path with (or without) globs and return a list yielding
+        the matching paths as strings. If glob_path is relative, it will be evaluated relative to
+        root_dir (or os.getcwd() if root_dir is None).
+
+        :param glob_path: the glob path to match, can be absolute or relative in combination with
+        root_dir
+        :param root_dir: (optional) if the glob_path is relative, it will be evaluated relative to
+        this root_dir
+        :return: an iterator yielding the matching paths as strings
+        """
+        return self.file_system_service.glob(glob_path, root_dir=root_dir)
