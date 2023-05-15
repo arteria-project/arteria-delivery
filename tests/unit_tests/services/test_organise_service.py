@@ -1,8 +1,12 @@
+import pathlib
+import tempfile
+
 import mock
 import os
 import unittest
 
-from delivery.exceptions import ProjectAlreadyOrganisedException
+from delivery.exceptions import ProjectAlreadyOrganisedException, \
+    AmbiguousOrganisationOperationException, RequiredFileNotFoundException, DestinationAlreadyExistsException
 from delivery.models.runfolder import RunfolderFile
 from delivery.models.sample import Sample
 from delivery.repositories.project_repository import GeneralProjectRepository
@@ -217,3 +221,102 @@ class TestOrganiseService(unittest.TestCase):
             mock.call(
                 os.path.join("..", "..", "..", "foo", "report-dir", "another-report-file"),
                 os.path.join(organised_project_path, "report-dir", "another-report-file"))])
+
+    def test__determine_organise_operation(self):
+        ops = ["softlink", "hardlink", "copy"]
+        self.file_system_service.symlink.return_value = ops[0]
+        self.file_system_service.hardlink.return_value = ops[1]
+        self.file_system_service.copy.return_value = ops[2]
+
+        for op in ops:
+            args = list(map(lambda o: op == o, ops))
+            fn = self.organise_service._determine_organise_operation(*args)
+            self.assertEqual(op, fn())
+
+        # assert hardlink is the default
+        self.assertEqual(
+            ops[1],
+            self.organise_service._determine_organise_operation(False, False, False)())
+
+        # assert ambiguous operation throws exception
+        with self.assertRaises(AmbiguousOrganisationOperationException):
+            self.organise_service._determine_organise_operation(True, False, True)
+
+    def test__configure_organisation_entry(self):
+        fn_name = "softlink"
+        self.file_system_service.symlink.return_value = fn_name
+
+        with tempfile.TemporaryDirectory() as dir:
+            entry = {
+                "source": pathlib.Path(dir, "source"),
+                "destination": pathlib.Path(dir, "dest"),
+                "options": {
+                    "required": True,
+                    "softlink": True
+                }
+            }
+            # a missing required file should raise an exception
+            with self.assertRaises(RequiredFileNotFoundException):
+                self.organise_service._configure_organisation_entry(entry)
+
+            # a missing non-required file should return None
+            entry["options"]["required"] = False
+            self.assertIsNone(self.organise_service._configure_organisation_entry(entry))
+
+            entry["source"].touch()
+            fn, src, dst = self.organise_service._configure_organisation_entry(entry)
+            self.assertEqual(fn_name, fn())
+            self.assertEqual(entry["source"], src)
+            self.assertEqual(entry["destination"], dst)
+
+            # an existing destination file should raise an exception
+            entry["destination"].touch()
+            with self.assertRaises(DestinationAlreadyExistsException):
+                self.organise_service._configure_organisation_entry(entry)
+
+    def test_organise_with_config(self):
+
+        with tempfile.TemporaryDirectory() as dir, mock.patch.object(
+                self.organise_service, "parse_yaml_config") as parse_config:
+            config = [
+                {
+                    "source": pathlib.Path(dir, "existing_source"),
+                    "destination": pathlib.Path(dir, "existing_dest"),
+                    "options": {}
+                },
+                {
+                    "source": pathlib.Path(dir, "missing_source"),
+                    "destination": pathlib.Path(dir, "missing_dest"),
+                    "options": {
+                        "required": False
+                    }
+                }
+            ]
+            parse_config.return_value = config
+            config[0]["source"].touch()
+            organised_paths = self.organise_service.organise_with_config(
+                "this-would-be-a-yaml-file")
+
+            self.assertEqual([config[0]["destination"]], organised_paths)
+            self.organise_service.file_system_service.hardlink.assert_called_once()
+
+            with self.assertRaises(RequiredFileNotFoundException):
+                config[1]["options"]["required"] = True
+                self.organise_service.organise_with_config("this-would-be-a-yaml-file")
+
+            with self.assertRaises(AmbiguousOrganisationOperationException):
+                config[0]["options"]["copy"] = True
+                config[0]["options"]["softlink"] = True
+                self.organise_service.organise_with_config("this-would-be-a-yaml-file")
+
+            with self.assertRaises(DestinationAlreadyExistsException):
+                config[0]["destination"].touch()
+                self.organise_service.organise_with_config("this-would-be-a-yaml-file")
+
+            with self.assertRaises(OSError):
+                self.organise_service.file_system_service.copy.side_effect = OSError(
+                    "just-a-mocked-exception")
+                config[0]["destination"].unlink()
+                config[0]["options"]["softlink"] = False
+                config[1]["options"]["required"] = False
+                self.organise_service.organise_with_config("this-would-be-a-yaml-file")

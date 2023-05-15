@@ -281,7 +281,7 @@ class OrganiseService(object):
         This will parse the config and symlink files accordingly.
 
         :param config_yaml_file:
-        :return: a list of paths to symlinked files
+        :return: a list of paths to organised files
         :raise: RequiredFileNotFoundException, DestinationAlreadyExistsException,
         AmbiguousOrganisationOperationException
         """
@@ -295,9 +295,12 @@ class OrganiseService(object):
         # return None, filter those out
         operations = None
         try:
-            operations = filter(
-                lambda entry: self._configure_organisation_entry(entry),
-                parsed_config_dict)
+            operations = list(
+                filter(
+                    lambda op: op is not None,
+                    map(
+                        lambda entry: self._configure_organisation_entry(entry),
+                        parsed_config_dict)))
         except (
                 AmbiguousOrganisationOperationException,
                 RequiredFileNotFoundException,
@@ -305,9 +308,13 @@ class OrganiseService(object):
             log.debug(str(ex))
             raise
 
+        organised_paths = []
         try:
             for operation in operations:
                 operation[0](operation[1], operation[2])
+                organised_paths.append(operation[2])
         except Exception as ex:
             log.debug(ex)
             raise
+
+        return organised_paths
