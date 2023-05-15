@@ -1,6 +1,8 @@
 
-import os
 import logging
+import os
+import pathlib
+import shutil
 
 log = logging.getLogger(__name__)
 
@@ -81,6 +83,14 @@ class FileSystemService(object):
         """
         return os.path.abspath(path)
 
+    def create_parent_dirs(self, child_path):
+        """
+        Create the parent directory structure for a child path
+        :param child_path: path to child
+        :return: None
+        """
+        self.makedirs(self.dirname(child_path), exist_ok=True)
+
     def symlink(self, source, link_name):
         """
         Shadows os.symlink
@@ -88,8 +98,30 @@ class FileSystemService(object):
         :param link_name: the name of the link to create
         :return: None
         """
-        self.makedirs(self.dirname(link_name), exist_ok=True)
+        self.create_parent_dirs(link_name)
+        # replace with pathlib.Path(link_name).symlink_to(source) ?
         return os.symlink(source, link_name)
+
+    def hardlink(self, source, link_name):
+        """
+        Shadows os.symlink
+        :param source: of link
+        :param link_name: the name of the link to create
+        :return: None
+        """
+        self.create_parent_dirs(link_name)
+        return pathlib.Path(source).link_to(link_name)
+
+    def copy(self, source, dest):
+        """
+        Shadows shutil.copyfile
+        :param source:
+        :param dest:
+        :return: None
+        """
+        self.create_parent_dirs(dest)
+        return shutil.copyfile(source, dest)
+
 
     @staticmethod
     def mkdir(path):

@@ -1,9 +1,13 @@
 
 import logging
 import os
+import pathlib
 import time
 
-from delivery.exceptions import ProjectAlreadyOrganisedException
+from delivery.exceptions import AmbiguousOrganisationOperationException, \
+    DestinationAlreadyExistsException, \
+    ProjectAlreadyOrganisedException, \
+    RequiredFileNotFoundException
 
 from delivery.models.project import RunfolderProject
 from delivery.models.runfolder import Runfolder, RunfolderFile
@@ -207,3 +211,103 @@ class OrganiseService(object):
             read_no=sample_file.read_no,
             is_index=sample_file.is_index,
             checksum=sample_file.checksum)
+
+    def parse_yaml_config(self, config_yaml_file):
+        return [
+            {
+                "source": pathlib.Path("/path", "to", "source"),
+                "destination": pathlib.Path("/path", "to", "dest"),
+                "options": {
+                    "filter": [],
+                    "required": True,
+                    "symlink": True}
+            }
+        ]
+
+    def _determine_organise_operation(self, softlink, hardlink, copy):
+        """
+        Determine the organisation operation from the config. If all arguments are False, use the
+        default which will be hardlink. Only one of the operations can be true simultaneously.
+        Otherwise, raise an Exception.
+        :param softlink:
+        :param hardlink:
+        :param copy:
+        :return: the function reference for the organisation operation to use
+        :raise: AmbiguousOrganisationOperationException
+        """
+        if sum([softlink, hardlink, copy]) > 1:
+            opts = dict(zip(["softlink", "hardlink", "copy"], [softlink, hardlink, copy]))
+            raise AmbiguousOrganisationOperationException(
+                f"{' and '.join(filter(lambda x: opts[x], opts.keys()))} cannot both be True")
+
+        if softlink:
+            return self.file_system_service.symlink
+        if copy:
+            return self.file_system_service.copy
+
+        return self.file_system_service.hardlink
+
+    def _configure_organisation_entry(self, entry):
+
+        src_path = entry["source"]
+        dst_path = entry["destination"]
+        options = entry["options"]
+
+        # check explicitly if source exists since hard linking would throw an exception but
+        # soft links will not
+        required = options.get("required", False)
+        if not src_path.exists():
+            if required:
+                raise RequiredFileNotFoundException(f"{src_path} does not exist")
+            return None
+
+        # ensure that the destination path does not already exist
+        if dst_path.exists():
+            raise DestinationAlreadyExistsException(f"{dst_path} already exists")
+
+        # determine what operation should be used, i.e. hardlink (default), softlink or copy
+        organise_op = self._determine_organise_operation(
+            options.get("softlink", False),
+            options.get("hardlink", False),
+            options.get("copy", False)
+        )
+
+        return organise_op, src_path, dst_path
+
+    def organise_with_config(self, config_yaml_file):
+        """
+        Organise files for delivery according to a supplied config file in YAML format.
+
+        This will parse the config and symlink files accordingly.
+
+        :param config_yaml_file:
+        :return: a list of paths to symlinked files
+        :raise: RequiredFileNotFoundException, DestinationAlreadyExistsException,
+        AmbiguousOrganisationOperationException
+        """
+
+        # use the config parser to resolve into source - destination entries
+        parsed_config_dict = self.parse_yaml_config(config_yaml_file)
+        log.debug(f"parsed yaml config and received {len(parsed_config_dict)} entries")
+
+        # do a first round to check status of source and destination, basically in order to avoid
+        # creating half-finished organised structures. Since non-existing, non-required files
+        # return None, filter those out
+        operations = None
+        try:
+            operations = filter(
+                lambda entry: self._configure_organisation_entry(entry),
+                parsed_config_dict)
+        except (
+                AmbiguousOrganisationOperationException,
+                RequiredFileNotFoundException,
+                DestinationAlreadyExistsException) as ex:
+            log.debug(str(ex))
+            raise
+
+        try:
+            for operation in operations:
+                operation[0](operation[1], operation[2])
+        except Exception as ex:
+            log.debug(ex)
+            raise
