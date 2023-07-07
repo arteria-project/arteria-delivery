@@ -6,3 +6,4 @@ alembic==1.7.7
 enum34==1.1.10
 arteria==1.1.4
 dds-cli
+PyYAML==6.0.1

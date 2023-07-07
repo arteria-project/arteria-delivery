@@ -1,10 +1,12 @@
 
 import logging
+import pathlib
+import yaml
 
 from arteria.web.handlers import BaseRestHandler
 from delivery.exceptions import ProjectsDirNotfoundException, ChecksumFileNotFoundException, FileNameParsingException, \
     SamplesheetNotFoundException, ProjectReportNotFoundException, ProjectAlreadyOrganisedException
-from delivery.handlers import OK, NOT_FOUND, INTERNAL_SERVER_ERROR, FORBIDDEN
+from delivery.handlers import OK, NOT_FOUND, INTERNAL_SERVER_ERROR, FORBIDDEN, exception_handler
 
 log = logging.getLogger(__name__)
 
@@ -81,3 +83,90 @@ class OrganiseRunfolderHandler(BaseOrganiseHandler):
         except FileNameParsingException as e:
             log.error(str(e), exc_info=e)
             self.set_status(INTERNAL_SERVER_ERROR, reason=str(e))
+
+
+class OrganiseProjectAnalysisHandler(BaseOrganiseHandler):
+    """
+    Handler class for organizing a project after analysis in preparation for
+    staging and delivery.
+    """
+
+    def initialize(self, **kwargs):
+        self.config = kwargs["config"]
+        self.organise_service = kwargs["organise_service"]
+
+    @exception_handler
+    def post(self, analysis_pipeline, project):
+        organise_config_dir = pathlib.Path(self.config["organise_config_dir"])
+        organise_config_path = organise_config_dir / f"{analysis_pipeline}.md"
+
+        project_path = pathlib.Path(self.config["general_project_directory"]) / project
+
+        # TODO once we have not found exceptions, use these here
+        if not organise_config_path.is_file():
+            raise FileNotFoundError(
+                f"Config file not found at {organise_config_path}")
+        if not project_path.is_dir():
+            raise FileNotFoundError(
+                f"Project {project} not found at {project_path}")
+
+        self.organise_service.organise_with_config(
+            str(organise_config_path), str(project_path))
+
+
+class OrganiseProjectHandler(BaseOrganiseHandler):
+    """
+    Handler class for organizing a project from a custom config file.
+    """
+
+    def initialize(self, **kwargs):
+        self.config = kwargs["config"]
+        self.organise_service = kwargs["organise_service"]
+
+    @exception_handler
+    def post(self, project):
+        required_members = ["config"]
+        request_data = self.body_as_object(required_members=required_members)
+        organise_config_path = pathlib.Path(request_data["config"])
+        project_path = pathlib.Path(self.config["general_project_directory"]) / project
+
+        if not organise_config_path.is_file():
+            raise FileNotFoundError(
+                f"Config file not found at {organise_config_path}")
+        if not project_path.is_dir():
+            raise FileNotFoundError(
+                f"Project {project} not found at {project_path}")
+
+        self.organise_service.organise_with_config(
+            str(organise_config_path), str(project_path))
+
+class OrganiseRunfolderConfigHandler(BaseOrganiseHandler):
+    """
+    Handler class for organizing a runfolder from a config file.
+    """
+
+    def initialize(self, **kwargs):
+        self.config = kwargs["config"]
+        self.organise_service = kwargs["organise_service"]
+
+    @exception_handler
+    def post(self, runfolder):
+        request_data = self.body_as_object()
+
+        try:
+            organise_config_path = pathlib.Path(request_data["config"])
+        except KeyError:
+            organise_config_dir = pathlib.Path(self.config["organise_config_dir"])
+            organise_config_path = organise_config_dir / "runfolder.yml"
+
+        runfolder_path = pathlib.Path(self.config["runfolder_directory"]) / runfolder
+
+        if not organise_config_path.is_file():
+            raise FileNotFoundError(
+                f"Config file not found at {organise_config_path}")
+        if not runfolder_path.is_dir():
+            raise FileNotFoundError(
+                f"Runfolder {runfolder} not found at {runfolder_path}")
+
+        self.organise_service.organise_with_config(
+            str(organise_config_path), str(runfolder_path))
