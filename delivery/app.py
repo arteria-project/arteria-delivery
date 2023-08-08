@@ -16,7 +16,8 @@ from delivery.handlers.runfolder_handlers import RunfolderHandler
 from delivery.handlers.project_handlers import ProjectHandler, ProjectsForRunfolderHandler, \
     BestPracticeProjectSampleHandler
 from delivery.handlers.dds_handlers import DDSCreateProjectHandler
-from delivery.handlers.delivery_handlers import DeliverByStageIdHandler, DeliveryStatusHandler
+from delivery.handlers.delivery_handlers import DeliverByStageIdHandler, \
+    DeliveryStatusHandler, DeliverProjectHandler
 from delivery.handlers.staging_handlers import StagingRunfolderHandler, StagingHandler,\
     StageGeneralDirectoryHandler, StagingProjectRunfoldersHandler
 from delivery.handlers.organise_handlers import OrganiseRunfolderHandler
@@ -76,6 +77,8 @@ def routes(**kwargs):
 
         url(r"/api/1.0/deliver/status/(.+)", DeliveryStatusHandler,
             name="delivery_status", kwargs=kwargs),
+        url(r"/api/1.0/deliver/project/(.+)", DeliverProjectHandler,
+            name="deliver_project", kwargs=kwargs),
 
         url(r"/api/1.0/dds_project/create/(.+)", DDSCreateProjectHandler,
             name="create_dds_project", kwargs=kwargs),
