@@ -235,6 +235,26 @@ class DDSProject:
             .get_dds_delivery(self.project_id)
         return dds_delivery.ngi_project_name
 
+    def get_db_entry(self):
+        """
+        Returns project entry from the delivery database, or None if project is
+        not found.
+
+        Returns
+        -------
+        db_models.DDSDelivery
+        """
+        return self.dds_service.dds_delivery_repo \
+            .get_dds_delivery(self.project_id)
+
+    def has_ongoing_puts(self):
+        """
+        Returns if there are any ongoing uploads with this project.
+        """
+        return bool(self.dds_service.dds_put_repo.get_dds_put_by_status(
+            self.project_id,
+            DeliveryStatus.delivery_in_progress))
+
     @gen.coroutine
     def put(
             self,
@@ -242,6 +262,9 @@ class DDSProject:
             source_path,
             destination=None,
     ):
+        assert not self.has_ongoing_puts(), \
+            "Only one upload is permitted at a time"
+
         cmd = self._base_cmd[:]
 
         cmd += [
@@ -286,6 +309,9 @@ class DDSProject:
         deadline: int
             project deadline in days.
         """
+        assert not self.has_ongoing_puts(), \
+            "Cannot release project while uploads are ongoing"
+
         cmd = self._base_cmd[:]
 
         cmd += [
