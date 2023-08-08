@@ -2,6 +2,7 @@
 import os
 import json
 import logging
+import re
 import tempfile
 
 from tornado.gen import coroutine
@@ -162,16 +163,37 @@ class DeliveryStatusHandler(ArteriaDeliveryBaseHandler):
 
     @coroutine
     def get(self, delivery_order_id):
-        delivery_order = self.delivery_service\
-            .get_delivery_order_by_id(delivery_order_id)
+        """
+        Returns project status.
+        """
 
-        delivery_order = yield self.delivery_service.update_delivery_status(
+        pattern_dds_project = re.compile(r"snpseq\d+")
+
+        if pattern_dds_project.fullmatch(delivery_order_id):
+            delivery_project = DDSProject(
+                self.delivery_service,
+                "",
                 delivery_order_id)
 
-        body = {
-                'id': delivery_order.id,
-                'status': delivery_order.delivery_status.name,
+            try:
+                body = {
+                    'id': delivery_order_id,
+                    'status': delivery_project.get_db_entry().delivery_status.name,
                 }
+            except AttributeError:
+                self.set_status(NOT_FOUND)
+                return
+        else:
+            delivery_order = self.delivery_service\
+                .get_delivery_order_by_id(delivery_order_id)
+
+            delivery_order = yield self.delivery_service.update_delivery_status(
+                    delivery_order_id)
+
+            body = {
+                    'id': delivery_order.id,
+                    'status': delivery_order.delivery_status.name,
+                    }
 
         self.write_json(body)
         self.set_status(OK)
