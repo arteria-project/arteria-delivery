@@ -40,6 +40,7 @@ class TestDDSService(AsyncTestCase):
 
         self.mock_dds_delivery_repo = MagicMock()
         self.mock_dds_put_repo = MagicMock()
+        self.mock_dds_put_repo.get_dds_put_by_status.return_value = None
 
         self.delivery_order = DeliveryOrder(
                 id=1,

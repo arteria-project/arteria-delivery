@@ -1,4 +1,5 @@
 import json
+import pathlib
 import time
 import tempfile
 
@@ -414,6 +415,146 @@ class TestIntegrationDDSShortWait(BaseIntegration):
                     elif (json.loads(status_response.body)["status"]
                             == DeliveryStatus.delivery_failed.name):
                         raise Exception("Delivery failed")
+
+    @gen_test
+    def test_can_deliver_project_dir_stage_free(self):
+        with tempfile.TemporaryDirectory(dir='./tests/resources/projects') as tmp_dir:
+            project_name = pathlib.Path(tmp_dir).name
+            url = "/".join([self.API_BASE, "deliver", "project", project_name])
+            payload = {
+                "description": "Dummy project",
+                "pi": "alex@doe.com",
+                "researchers": ["robin@doe.com", "kim@doe.com"],
+                "owners": ["alex@doe.com"],
+                "auth_token": '1234',
+            }
+
+            response = yield self.http_client.fetch(
+                    self.get_url(url), method='POST',
+                    body=json.dumps(payload))
+
+            self.assertEqual(response.code, 202)
+            response_body = json.loads(response.body)
+            status_link = response_body["status_link"]
+
+            while True:
+                status_response = yield self.http_client.fetch(
+                        status_link)
+                self.assertEqual(status_response.code, 200)
+                if (json.loads(status_response.body)["status"]
+                        == DeliveryStatus.delivery_successful.name):
+                    break
+                elif (json.loads(status_response.body)["status"]
+                        == DeliveryStatus.delivery_failed.name):
+                    raise Exception("Delivery failed")
+                time.sleep(1)
+
+    @gen_test
+    def test_cannot_deliver_project_twice(self):
+        with tempfile.TemporaryDirectory(dir='./tests/resources/projects') as tmp_dir:
+            project_name = pathlib.Path(tmp_dir).name
+            url = "/".join([self.API_BASE, "deliver", "project", project_name])
+            payload = {
+                "description": "Dummy project",
+                "pi": "alex@doe.com",
+                "researchers": ["robin@doe.com", "kim@doe.com"],
+                "owners": ["alex@doe.com"],
+                "auth_token": '1234',
+            }
+
+            response = yield self.http_client.fetch(
+                    self.get_url(url), method='POST',
+                    body=json.dumps(payload))
+
+            self.assertEqual(response.code, 202)
+            response_body = json.loads(response.body)
+            status_link = response_body["status_link"]
+
+            while True:
+                status_response = yield self.http_client.fetch(
+                        status_link)
+                self.assertEqual(status_response.code, 200)
+                if (json.loads(status_response.body)["status"]
+                        == DeliveryStatus.delivery_successful.name):
+                    break
+                elif (json.loads(status_response.body)["status"]
+                        == DeliveryStatus.delivery_failed.name):
+                    raise Exception("Delivery failed")
+                time.sleep(1)
+
+            response = yield self.http_client.fetch(
+                self.get_url(url), method='POST',
+                body=json.dumps(payload),
+                raise_error=False,
+            )
+            self.assertEqual(response.code, 403)
+
+    @gen_test
+    def test_can_deliver_project_twice_with_force(self):
+        with tempfile.TemporaryDirectory(dir='./tests/resources/projects') as tmp_dir:
+            project_name = pathlib.Path(tmp_dir).name
+            url = "/".join([self.API_BASE, "deliver", "project", project_name])
+            payload = {
+                "description": "Dummy project",
+                "pi": "alex@doe.com",
+                "researchers": ["robin@doe.com", "kim@doe.com"],
+                "owners": ["alex@doe.com"],
+                "auth_token": '1234',
+            }
+
+            response = yield self.http_client.fetch(
+                    self.get_url(url), method='POST',
+                    body=json.dumps(payload))
+
+            self.assertEqual(response.code, 202)
+            response_body = json.loads(response.body)
+            status_link = response_body["status_link"]
+
+            while True:
+                status_response = yield self.http_client.fetch(
+                        status_link)
+                self.assertEqual(status_response.code, 200)
+                if (json.loads(status_response.body)["status"]
+                        == DeliveryStatus.delivery_successful.name):
+                    break
+                elif (json.loads(status_response.body)["status"]
+                        == DeliveryStatus.delivery_failed.name):
+                    raise Exception("Delivery failed")
+                time.sleep(1)
+
+            payload = {
+                "description": "Dummy project",
+                "pi": "alex@doe.com",
+                "researchers": ["robin@doe.com", "kim@doe.com"],
+                "owners": ["alex@doe.com"],
+                "auth_token": '1234',
+                "force_delivery": True,
+            }
+            response = yield self.http_client.fetch(
+                    self.get_url(url), method='POST',
+                    body=json.dumps(payload))
+            self.assertEqual(response.code, 202)
+
+            while True:
+                status_response = yield self.http_client.fetch(
+                        status_link)
+                self.assertEqual(status_response.code, 200)
+                if (json.loads(status_response.body)["status"]
+                        == DeliveryStatus.delivery_successful.name):
+                    break
+                elif (json.loads(status_response.body)["status"]
+                        == DeliveryStatus.delivery_failed.name):
+                    raise Exception("Delivery failed")
+                time.sleep(1)
+
+    @gen_test
+    def test_getting_unknown_status_returns_not_found(self):
+        url = "/".join([self.API_BASE, "deliver", "status", "snpseq00000"])
+        response = yield self.http_client.fetch(
+            self.get_url(url),
+            raise_error=False,
+        )
+        self.assertEqual(response.code, 404)
 
 
 class TestIntegrationDDSLongWait(BaseIntegration):
