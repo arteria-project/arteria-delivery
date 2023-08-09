@@ -2,6 +2,7 @@
 import os
 import json
 import logging
+import pathlib
 import re
 import tempfile
 
@@ -82,9 +83,15 @@ class DeliverProjectHandler(ArteriaDeliveryBaseHandler):
 
         force_delivery = request_data.get("force_delivery", False)
 
+        project_path = self.general_project_repo.get_project(
+            project_metadata.get("project_alias", project_name)).path
+        source = pathlib.Path(project_path).name
+
         if (
                 self.dds_service.dds_put_repo
-                .was_delivered_before(project_name, project_name)
+                .was_delivered_before(
+                    project_name,
+                    source)
                 and not force_delivery
         ):
             self.set_status(
@@ -93,9 +100,6 @@ class DeliverProjectHandler(ArteriaDeliveryBaseHandler):
                 "Use the force to bypass and deliver anyway."
             )
             return
-
-        project_path = self.general_project_repo.get_project(
-            project_metadata.get("project_alias", project_name)).path
 
         dds_project = await DDSProject.new(
             project_name,
@@ -119,7 +123,7 @@ class DeliverProjectHandler(ArteriaDeliveryBaseHandler):
         })
         self.finish()
 
-        await dds_project.put(project_name, project_path)
+        await dds_project.put(source, project_path)
         log.info(f"Uploaded {project_path} to {dds_project.project_id}")
 
         if request_data.get("release"):
