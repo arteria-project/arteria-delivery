@@ -26,6 +26,39 @@ class DeliverProjectHandler(ArteriaDeliveryBaseHandler):
         super().initialize(kwargs)
 
     async def post(self, project_name):
+        """
+        Deliver a project (represented by a directory under the
+        `general_project_directory` path defined in the configuration). This
+        will create a new project in DDS, upload the data and release the
+        project.
+
+        The payload can include the following fields:
+        auth_token: str (required)
+            token to authenticate in DDS, can be either the token string itself
+            or a path to the token file.
+        pi: str (required)
+            email address the the principal investigator of the project
+        description: str (required)
+            description of the project
+        owners: [str]
+            email addresses of the people who are to be set as owners of the
+            project.
+        researchers: [str]
+            email addresses of the people who are to be set as researchers in
+            the project.
+        project_alias: str
+            name of the directory containing the project in case it is
+            different from the project name
+        force_delivery: bool
+            enforce delivery, regardless if the data has been delivered before
+            or not.
+        deadline: int
+            number of days when the user will be able to download the data
+            (otherwise the value defined in the DDS aggreement will be used).
+        email: bool
+            whether or not an email should be sent to the user when the project
+            is *released* (default is true).
+        """
         required_members = [
             "auth_token",
             "pi",

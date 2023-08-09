@@ -164,6 +164,7 @@ class DDSDelivery(SQLAlchemyBase):
             " }"
         )
 
+
 class DDSPut(SQLAlchemyBase):
 
     __tablename__ = "dds_puts"

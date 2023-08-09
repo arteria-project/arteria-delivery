@@ -1,3 +1,4 @@
+import datetime
 import os
 import re
 import json
@@ -262,6 +263,21 @@ class DDSProject:
             source_path,
             destination=None,
     ):
+        """
+        Upload source to the DDS project.
+
+        Parameters
+        ----------
+        source: str
+            unique identifier to the folder being uploaded (e.g. project name
+            or runfolder name). This is used to avoid delivering the same item
+            twice.
+        source_path: str
+            path to the data to upload
+        destination: str
+            path where to upload the data (will be uploaded to the project's
+            root by default)
+        """
         assert not self.has_ongoing_puts(), \
             "Only one upload is permitted at a time"
 
@@ -293,6 +309,7 @@ class DDSProject:
             yield self.dds_service.external_program_service \
                 .wait_for_execution(execution)
             dds_put.delivery_status = DeliveryStatus.delivery_successful
+            dds_put.date_completed = datetime.datetime.now()
         except RuntimeError:
             dds_put.delivery_status = DeliveryStatus.delivery_failed
             raise
@@ -338,10 +355,7 @@ class DDSProject:
         assert not self.has_ongoing_puts(), \
             "Cannot complete project while uploads are ongoing"
 
-        dds_delivery = self.dds_service.dds_delivery_repo \
-            .get_dds_delivery(self.project_id)
-        dds_delivery.delivery_status = DeliveryStatus.delivery_successful
-        self.dds_service.dds_delivery_repo.session.commit()
+        self.dds_service.dds_delivery_repo.set_to_completed(self.project_id)
 
 # The code below will be removed once the new delivery flow is in place
     @gen.coroutine
