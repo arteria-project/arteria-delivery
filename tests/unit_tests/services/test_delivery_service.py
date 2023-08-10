@@ -37,7 +37,7 @@ class TestDeliveryService(unittest.TestCase):
 
     def _compose_delivery_service(
             self,
-            dds_delivery_service=mock.create_autospec(DDSService),
+            dds_delivery_service=mock.MagicMock(),
             staging_service=mock.create_autospec(StagingService),
             delivery_sources_repo=mock.create_autospec(
                 DatabaseBasedDeliverySourcesRepository),
@@ -52,6 +52,8 @@ class TestDeliveryService(unittest.TestCase):
         general_project_repo = general_project_repo
         runfolder_service = runfolder_service
         self.project_links_dir = project_links_dir
+
+        dds_delivery_service.dds_put_repo.was_delivered_before.return_value = False
 
         self.delivery_service = DeliveryService(
                 dds_service=dds_delivery_service,

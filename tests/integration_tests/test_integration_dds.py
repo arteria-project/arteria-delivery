@@ -4,6 +4,7 @@ import time
 import tempfile
 
 from tornado.testing import *
+from tornado import gen
 
 from delivery.models.db_models import StagingStatus, DeliveryStatus
 
@@ -308,99 +309,6 @@ class TestIntegrationDDS(BaseIntegration):
                         == DeliveryStatus.delivery_failed.name):
                     raise Exception("Delivery failed")
                 time.sleep(1)
-    @gen_test
-    def test_cannot_deliver_project_twice(self):
-        with tempfile.TemporaryDirectory(dir='./tests/resources/projects') as tmp_dir:
-            project_name = "AB-1238"
-            url = "/".join([self.API_BASE, "deliver", "project", project_name])
-            payload = {
-                "description": "Dummy project",
-                "pi": "alex@doe.com",
-                "researchers": ["robin@doe.com", "kim@doe.com"],
-                "owners": ["alex@doe.com"],
-                "auth_token": '1234',
-                "project_alias": pathlib.Path(tmp_dir).name,
-            }
-
-            response = yield self.http_client.fetch(
-                    self.get_url(url), method='POST',
-                    body=json.dumps(payload))
-
-            self.assertEqual(response.code, 202)
-            response_body = json.loads(response.body)
-            status_link = response_body["status_link"]
-
-            while True:
-                status_response = yield self.http_client.fetch(
-                        status_link)
-                self.assertEqual(status_response.code, 200)
-                if (json.loads(status_response.body)["status"]
-                        == DeliveryStatus.delivery_successful.name):
-                    break
-                elif (json.loads(status_response.body)["status"]
-                        == DeliveryStatus.delivery_failed.name):
-                    raise Exception("Delivery failed")
-                time.sleep(1)
-
-            response = yield self.http_client.fetch(
-                self.get_url(url), method='POST',
-                body=json.dumps(payload),
-                raise_error=False,
-            )
-            self.assertEqual(response.code, 403)
-
-    @gen_test
-    def test_can_deliver_project_twice_with_force(self):
-        with tempfile.TemporaryDirectory(dir='./tests/resources/projects') as tmp_dir:
-            project_name = "AB-1229"
-            url = "/".join([self.API_BASE, "deliver", "project", project_name])
-            payload = {
-                "description": "Dummy project",
-                "pi": "alex@doe.com",
-                "researchers": ["robin@doe.com", "kim@doe.com"],
-                "owners": ["alex@doe.com"],
-                "auth_token": '1234',
-                "project_alias": pathlib.Path(tmp_dir).name,
-            }
-
-            response = yield self.http_client.fetch(
-                    self.get_url(url), method='POST',
-                    body=json.dumps(payload))
-
-            self.assertEqual(response.code, 202)
-            response_body = json.loads(response.body)
-            status_link = response_body["status_link"]
-
-            while True:
-                status_response = yield self.http_client.fetch(
-                        status_link)
-                self.assertEqual(status_response.code, 200)
-                if (json.loads(status_response.body)["status"]
-                        == DeliveryStatus.delivery_successful.name):
-                    break
-                elif (json.loads(status_response.body)["status"]
-                        == DeliveryStatus.delivery_failed.name):
-                    raise Exception("Delivery failed")
-                time.sleep(1)
-
-            payload["force_delivery"] = True
-
-            response = yield self.http_client.fetch(
-                    self.get_url(url), method='POST',
-                    body=json.dumps(payload))
-            self.assertEqual(response.code, 202)
-
-            while True:
-                status_response = yield self.http_client.fetch(
-                        status_link)
-                self.assertEqual(status_response.code, 200)
-                if (json.loads(status_response.body)["status"]
-                        == DeliveryStatus.delivery_successful.name):
-                    break
-                elif (json.loads(status_response.body)["status"]
-                        == DeliveryStatus.delivery_failed.name):
-                    raise Exception("Delivery failed")
-                time.sleep(1)
 
     @gen_test
     def test_can_deliver_project_dir_stage_free_no_alias(self):
@@ -435,98 +343,112 @@ class TestIntegrationDDS(BaseIntegration):
                     raise Exception("Delivery failed")
                 time.sleep(1)
 
-    @gen_test
-    def test_cannot_deliver_project_twice_no_alias(self):
-        with tempfile.TemporaryDirectory(dir='./tests/resources/projects') as tmp_dir:
-            project_name = pathlib.Path(tmp_dir).name
-            url = "/".join([self.API_BASE, "deliver", "project", project_name])
+    @gen_test(timeout=20)
+    def test_double_project_delivery_protection(self):
+        @gen.coroutine
+        def deliver_project_old_route(project_name, project_path, force=False):
+
+            dir_name = project_path.name
+
+            payload = {"force_delivery": force}
+            if project_name:
+                url = "/".join(
+                        [self.API_BASE, "stage", "project", project_name])
+                payload["project_alias"] = project_path.name
+            else:
+                url = "/".join([self.API_BASE, "stage", "project", dir_name])
+
+            response = yield self.http_client.fetch(
+                    self.get_url(url), method='POST',
+                    body=json.dumps(payload),
+                    raise_error=False)
+
+            # Wait for staging to complete before returning
+            if response.code == 202:
+                response_json = json.loads(response.body)
+                staging_status_links = response_json.get("staging_order_links")
+
+                for project, link in staging_status_links.items():
+                    status_response = yield self.http_client.fetch(link)
+                    self.assertEqual(
+                        json.loads(status_response.body)["status"],
+                        StagingStatus.staging_successful.name
+                    )
+
+            return response
+
+        @gen.coroutine
+        def deliver_project_new_route(project_name, project_path, force=False):
             payload = {
                 "description": "Dummy project",
                 "pi": "alex@doe.com",
                 "researchers": ["robin@doe.com", "kim@doe.com"],
                 "owners": ["alex@doe.com"],
                 "auth_token": '1234',
+                "force_delivery": force,
             }
 
-            response = yield self.http_client.fetch(
-                    self.get_url(url), method='POST',
-                    body=json.dumps(payload))
-
-            self.assertEqual(response.code, 202)
-            response_body = json.loads(response.body)
-            status_link = response_body["status_link"]
-
-            while True:
-                status_response = yield self.http_client.fetch(
-                        status_link)
-                self.assertEqual(status_response.code, 200)
-                if (json.loads(status_response.body)["status"]
-                        == DeliveryStatus.delivery_successful.name):
-                    break
-                elif (json.loads(status_response.body)["status"]
-                        == DeliveryStatus.delivery_failed.name):
-                    raise Exception("Delivery failed")
-                time.sleep(1)
-
-            response = yield self.http_client.fetch(
-                self.get_url(url), method='POST',
-                body=json.dumps(payload),
-                raise_error=False,
-            )
-            self.assertEqual(response.code, 403)
-
-    @gen_test
-    def test_can_deliver_project_twice_with_force_no_alias(self):
-        with tempfile.TemporaryDirectory(dir='./tests/resources/projects') as tmp_dir:
-            project_name = pathlib.Path(tmp_dir).name
-            url = "/".join([self.API_BASE, "deliver", "project", project_name])
-            payload = {
-                "description": "Dummy project",
-                "pi": "alex@doe.com",
-                "researchers": ["robin@doe.com", "kim@doe.com"],
-                "owners": ["alex@doe.com"],
-                "auth_token": '1234',
-            }
+            if project_name:
+                url = "/".join(
+                    [self.API_BASE, "deliver", "project", project_name])
+                payload["project_alias"] = project_path.name
+            else:
+                url = "/".join(
+                    [self.API_BASE, "deliver", "project", project_path.name])
 
             response = yield self.http_client.fetch(
                     self.get_url(url), method='POST',
-                    body=json.dumps(payload))
+                    body=json.dumps(payload),
+                    raise_error=False,
+                    )
 
-            self.assertEqual(response.code, 202)
-            response_body = json.loads(response.body)
-            status_link = response_body["status_link"]
+            # Wait for staging to complete before returning
+            if response.code == 202:
+                response_body = json.loads(response.body)
+                status_link = response_body["status_link"]
 
-            while True:
-                status_response = yield self.http_client.fetch(
-                        status_link)
-                self.assertEqual(status_response.code, 200)
-                if (json.loads(status_response.body)["status"]
-                        == DeliveryStatus.delivery_successful.name):
-                    break
-                elif (json.loads(status_response.body)["status"]
-                        == DeliveryStatus.delivery_failed.name):
-                    raise Exception("Delivery failed")
-                time.sleep(1)
+                while True:
+                    status_response = yield self.http_client.fetch(
+                            status_link)
+                    self.assertEqual(status_response.code, 200)
+                    if (json.loads(status_response.body)["status"]
+                            == DeliveryStatus.delivery_successful.name):
+                        break
+                    elif (json.loads(status_response.body)["status"]
+                            == DeliveryStatus.delivery_failed.name):
+                        raise Exception("Delivery failed")
+                    time.sleep(1)
 
-            payload["force_delivery"] = True
+            return response
 
-            response = yield self.http_client.fetch(
-                    self.get_url(url), method='POST',
-                    body=json.dumps(payload))
-            self.assertEqual(response.code, 202)
+        delivery_methods = [
+            deliver_project_old_route,
+            deliver_project_new_route,
+        ]
 
-            while True:
-                status_response = yield self.http_client.fetch(
-                        status_link)
-                self.assertEqual(status_response.code, 200)
-                if (json.loads(status_response.body)["status"]
-                        == DeliveryStatus.delivery_successful.name):
-                    break
-                elif (json.loads(status_response.body)["status"]
-                        == DeliveryStatus.delivery_failed.name):
-                    raise Exception("Delivery failed")
-                time.sleep(1)
+        for (i, (first_delivery, second_delivery, project_name)) in enumerate([
+            (first_delivery, second_delivery, project_name)
+            for first_delivery in delivery_methods
+            for second_delivery in delivery_methods
+            for project_name in ["AB-{:04d}", None]
+        ]):
+            with tempfile.TemporaryDirectory(
+                    dir='./tests/resources/projects') as tmp_dir:
+                if project_name:
+                    project_name = project_name.format(i)
+                project_path = pathlib.Path(tmp_dir)
 
+                response = yield first_delivery(
+                        project_name, project_path)
+                self.assertEqual(response.code, 202)
+
+                response = yield second_delivery(
+                        project_name, project_path)
+                self.assertEqual(response.code, 403)
+
+                response = yield second_delivery(
+                        project_name, project_path, force=True)
+                self.assertEqual(response.code, 202)
 
     @gen_test
     def test_getting_unknown_status_returns_not_found(self):

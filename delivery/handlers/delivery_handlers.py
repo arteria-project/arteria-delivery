@@ -11,6 +11,7 @@ from tornado.gen import coroutine
 from delivery.handlers import *
 from delivery.handlers.utility_handlers import ArteriaDeliveryBaseHandler
 from delivery.models.project import DDSProject
+from delivery.models.db_models import DeliverySource
 
 log = logging.getLogger(__name__)
 
@@ -24,6 +25,7 @@ class DeliverProjectHandler(ArteriaDeliveryBaseHandler):
     def initialize(self, **kwargs):
         self.dds_service = kwargs["dds_service"]
         self.general_project_repo = kwargs["general_project_repo"]
+        self.delivery_sources_repo = kwargs["delivery_service"].delivery_sources_repo
         super().initialize(kwargs)
 
     async def post(self, project_name):
@@ -87,11 +89,16 @@ class DeliverProjectHandler(ArteriaDeliveryBaseHandler):
             project_metadata.get("project_alias", project_name)).path
         source = pathlib.Path(project_path).name
 
+        was_delivered_new_route = self.dds_service.dds_put_repo \
+            .was_delivered_before(project_name, source)
+        was_delivered_old_route = self.delivery_sources_repo \
+            .source_exists(DeliverySource(
+                project_name=project_name,
+                source_name=source,
+                path=project_path)
+            )
         if (
-                self.dds_service.dds_put_repo
-                .was_delivered_before(
-                    project_name,
-                    source)
+                (was_delivered_new_route or was_delivered_old_route)
                 and not force_delivery
         ):
             self.set_status(
