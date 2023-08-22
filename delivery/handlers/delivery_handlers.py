@@ -18,7 +18,7 @@ log = logging.getLogger(__name__)
 
 class DeliverProjectHandler(ArteriaDeliveryBaseHandler):
     """
-    Handler for delivering a project a project (i.e. a directory placed in the
+    Handler for delivering a project (i.e. a directory placed in the
     directory defined by the arteria delivery service
     `general_project_directory` configuration).
     """
