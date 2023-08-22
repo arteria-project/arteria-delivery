@@ -46,7 +46,11 @@ class DDSCreateProjectHandler(DDSProjectBaseHandler):
             response = requests.request("POST", url, json=payload)
         """
 
-        required_members = ["auth_token"]
+        required_members = [
+                "auth_token",
+                "pi",
+                "description",
+                ]
         project_metadata = self.body_as_object(
                 required_members=required_members)
 

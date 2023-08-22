@@ -93,9 +93,8 @@ class BaseIntegration(AsyncHTTPTestCase):
                 log.debug(f"Mock is called with {cmd}")
                 shell = False
                 if cmd[0].endswith('dds'):
-                    new_cmd = ['sleep', str(self.mock_duration)]
-
                     if 'project' in cmd:
+                        new_cmd = ['sleep', str(0.01)]
                         dds_output = f"""Current user: bio
         Project created with id: {project_id}
         User forskare was associated with Project {project_id} as Owner=True. An e-mail notification has not been sent.
@@ -119,6 +118,7 @@ class BaseIntegration(AsyncHTTPTestCase):
                         new_cmd = " ".join(new_cmd)
                         shell = True
                     elif 'put' in cmd:
+                        new_cmd = ['sleep', str(self.mock_duration)]
                         source_file = cmd[cmd.index("--source") + 1]
                         auth_token = cmd[cmd.index("--token-path") + 1]
                         new_cmd += ['&&', 'test', '-e', source_file]

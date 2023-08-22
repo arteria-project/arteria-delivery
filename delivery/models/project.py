@@ -1,3 +1,4 @@
+import datetime
 import os
 import re
 import json
@@ -211,50 +212,154 @@ class DDSProject:
             for args in ['--researcher', researcher]
             ]
 
-        stdout = yield self._run(cmd)
-        self.project_id = cls._parse_dds_project_id(stdout)
+        execution = self.dds_service.external_program_service \
+            .run(cmd)
+        result = yield self.dds_service.external_program_service \
+            .wait_for_execution(execution)
+        self.project_id = cls._parse_dds_project_id(result.stdout)
+
+        self.dds_service.dds_delivery_repo.register_dds_delivery(
+            self.project_id,
+            ngi_project_name,
+        )
 
         self._ngi_project_name = ngi_project_name
 
         return self
 
-    @gen.coroutine
     def get_ngi_project_name(self):
         """
         NGI project name (e.g. AB-1234).
-
-        If the attribute is not set, it will fetched from DDS.
         """
-        try:
-            return self._ngi_project_name
-        except AttributeError:
-            cmd = self._base_cmd[:]
-            cmd += [
-                    'ls',
-                    '--json',
-                    ]
 
-            dds_output = yield self._run(cmd)
-            try:
-                dds_project_title = next(
-                        project["Title"]
-                        for project in json.loads(dds_output)
-                        if project["Project ID"] == self.project_id
-                        )
+        dds_delivery = self.dds_service.dds_delivery_repo \
+            .get_dds_delivery(self.project_id)
+        return dds_delivery.ngi_project_name
 
-                self._ngi_project_name = re.sub(
-                        r"(\D{2})(\d{4})",
-                        r"\1-\2",
-                        dds_project_title)
-            except StopIteration:
-                err_msg = "Project {self.project_id} not found in DDS."
-                log.error(err_msg)
-                raise ProjectNotFoundException(err_msg)
+    def get_db_entry(self):
+        """
+        Returns project entry from the delivery database, or None if project is
+        not found.
 
-        return self._ngi_project_name
+        Returns
+        -------
+        db_models.DDSDelivery
+        """
+        return self.dds_service.dds_delivery_repo \
+            .get_dds_delivery(self.project_id)
+
+    def has_ongoing_puts(self):
+        """
+        Returns if there are any ongoing uploads with this project.
+        """
+        return bool(self.dds_service.dds_put_repo.get_dds_put_by_status(
+            self.project_id,
+            DeliveryStatus.delivery_in_progress))
 
     @gen.coroutine
     def put(
+            self,
+            source,
+            source_path,
+            destination=None,
+    ):
+        """
+        Upload source to the DDS project.
+
+        Parameters
+        ----------
+        source: str
+            unique identifier to the folder being uploaded (e.g. project name
+            or runfolder name). This is used to avoid delivering the same item
+            twice.
+        source_path: str
+            path to the data to upload
+        destination: str
+            path where to upload the data (will be uploaded to the project's
+            root by default)
+        """
+        assert not self.has_ongoing_puts(), \
+            "Only one upload is permitted at a time"
+
+        cmd = self._base_cmd[:]
+
+        cmd += [
+            'data', 'put',
+            '--mount-dir', self.dds_service.staging_dir,
+            '--source', source_path,
+            '--project', self.project_id,
+            '--break-on-fail',
+            '--silent',
+        ]
+
+        if destination:
+            cmd += ['--destination', destination]
+
+        execution = self.dds_service.external_program_service.run(cmd)
+
+        dds_put = self.dds_service.dds_put_repo.register_dds_put(
+            self.project_id,
+            execution.pid,
+            source,
+            source_path,
+            destination,
+        )
+
+        try:
+            yield self.dds_service.external_program_service \
+                .wait_for_execution(execution)
+            dds_put.status = DeliveryStatus.delivery_successful
+            dds_put.date_completed = datetime.datetime.now()
+        except RuntimeError:
+            dds_put.status = DeliveryStatus.delivery_failed
+            raise
+        finally:
+            self.dds_service.dds_put_repo.session.commit()
+
+    @gen.coroutine
+    def release(self, deadline=None, email=True):
+        """
+        Release the project in DDS
+
+        Parameters
+        ----------
+        deadline: int
+            project deadline in days.
+        """
+        assert not self.has_ongoing_puts(), \
+            "Cannot release project while uploads are ongoing"
+
+        cmd = self._base_cmd[:]
+
+        cmd += [
+            'project', 'status', 'release',
+            '--project', self.project_id,
+        ]
+
+        if deadline:
+            cmd += [
+                '--deadline', str(deadline),
+                ]
+
+        if not email:
+            cmd.append('--no-mail')
+
+        execution = self.dds_service.external_program_service.run(cmd)
+        yield self.dds_service.external_program_service. \
+            wait_for_execution(execution)
+
+    def complete(self):
+        """
+        Set project status to completed in the database
+        """
+        assert not self.has_ongoing_puts(), \
+            "Cannot complete project while uploads are ongoing"
+
+        self.dds_service.dds_delivery_repo.set_to_completed(self.project_id)
+
+# The code below will be removed once the new delivery flow is in place
+    @gen.coroutine
+    def deliver(
             self,
             staging_id,
             skip_delivery=False,
@@ -263,7 +368,7 @@ class DDSProject:
             email=True,
             ):
         """
-        Upload staged data to DDS
+        Deliver staged data to DDS
 
         Parameters
         ----------
@@ -290,7 +395,7 @@ class DDSProject:
                 "Only deliver by staging_id if it has a successful status!"
                 "Staging order was: {}".format(staging_order))
 
-        ngi_project_name = yield self.get_ngi_project_name()
+        ngi_project_name = self.get_ngi_project_name()
 
         delivery_order = self.dds_service.delivery_repo.create_delivery_order(
             delivery_source=staging_order.get_staging_path(),
@@ -324,57 +429,6 @@ class DDSProject:
                     email=email)
 
         return delivery_order.id
-
-    @gen.coroutine
-    def release(self, deadline=None, email=True):
-        """
-        Release the project in DDS
-
-        Parameters
-        ----------
-        deadline: int
-            project deadline in days.
-        """
-        cmd = self._base_cmd[:]
-
-        cmd += [
-                'project', 'status', 'release',
-                '--project', self.project_id,
-                ]
-
-        if deadline:
-            cmd += [
-                '--deadline', str(deadline),
-                ]
-
-        if not email:
-            cmd.append('--no-mail')
-
-        yield self._run(cmd)
-
-    @gen.coroutine
-    def _run(self, cmd):
-        """
-        Run a dds command and wait for result.
-
-        Parameters
-        ----------
-        cmd: str
-            shell command to run.
-        """
-        log.debug(f"Running dds with command: {' '.join(cmd)}")
-        execution = self.dds_service.external_program_service.run(cmd)
-        execution_result = yield self.dds_service.external_program_service \
-            .wait_for_execution(execution)
-
-        if execution_result.status_code != 0:
-            error_msg = (
-                f"Failed to run DDS command: {execution_result.stderr}."
-                f" DDS returned status code: {execution_result.status_code}")
-            log.error(error_msg)
-            raise RuntimeError(error_msg)
-
-        return execution_result.stdout
 
     @gen.coroutine
     def _run_delivery(

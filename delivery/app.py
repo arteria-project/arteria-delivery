@@ -16,7 +16,8 @@ from delivery.handlers.runfolder_handlers import RunfolderHandler
 from delivery.handlers.project_handlers import ProjectHandler, ProjectsForRunfolderHandler, \
     BestPracticeProjectSampleHandler
 from delivery.handlers.dds_handlers import DDSCreateProjectHandler
-from delivery.handlers.delivery_handlers import DeliverByStageIdHandler, DeliveryStatusHandler
+from delivery.handlers.delivery_handlers import DeliverByStageIdHandler, \
+    DeliveryStatusHandler, DeliverProjectHandler
 from delivery.handlers.staging_handlers import StagingRunfolderHandler, StagingHandler,\
     StageGeneralDirectoryHandler, StagingProjectRunfoldersHandler
 from delivery.handlers.organise_handlers import OrganiseRunfolderHandler
@@ -25,6 +26,8 @@ from delivery.repositories.runfolder_repository import FileSystemBasedRunfolderR
     FileSystemBasedUnorganisedRunfolderRepository
 from delivery.repositories.staging_repository import DatabaseBasedStagingRepository
 from delivery.repositories.deliveries_repository import DatabaseBasedDeliveriesRepository
+from delivery.repositories.dds_repository import DatabaseBasedDDSDeliveryRepository, \
+    DatabaseBasedDDSPutRepository
 from delivery.repositories.project_repository import GeneralProjectRepository, UnorganisedRunfolderProjectRepository
 from delivery.repositories.delivery_sources_repository import DatabaseBasedDeliverySourcesRepository
 from delivery.repositories.sample_repository import RunfolderProjectBasedSampleRepository
@@ -74,6 +77,8 @@ def routes(**kwargs):
 
         url(r"/api/1.0/deliver/status/(.+)", DeliveryStatusHandler,
             name="delivery_status", kwargs=kwargs),
+        url(r"/api/1.0/deliver/project/(.+)", DeliverProjectHandler,
+            name="deliver_project", kwargs=kwargs),
 
         url(r"/api/1.0/dds_project/create/(.+)", DDSCreateProjectHandler,
             name="create_dds_project", kwargs=kwargs),
@@ -159,6 +164,10 @@ def compose_application(config):
 
     delivery_repo = DatabaseBasedDeliveriesRepository(
             session_factory=session_factory)
+    dds_delivery_repo = DatabaseBasedDDSDeliveryRepository(
+            session_factory=session_factory)
+    dds_put_repo = DatabaseBasedDDSPutRepository(
+            session_factory=session_factory)
 
     dds_conf = config['dds_conf']
     dds_service = DDSService(
@@ -166,6 +175,8 @@ def compose_application(config):
             staging_service=staging_service,
             staging_dir=staging_dir,
             delivery_repo=delivery_repo,
+            dds_delivery_repo=dds_delivery_repo,
+            dds_put_repo=dds_put_repo,
             session_factory=session_factory,
             dds_conf=dds_conf)
 

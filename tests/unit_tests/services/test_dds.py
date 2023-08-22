@@ -38,6 +38,10 @@ class TestDDSService(AsyncTestCase):
         self.mock_staging_service = MagicMock()
         self.mock_delivery_repo = MagicMock()
 
+        self.mock_dds_delivery_repo = MagicMock()
+        self.mock_dds_put_repo = MagicMock()
+        self.mock_dds_put_repo.get_dds_put_by_status.return_value = None
+
         self.delivery_order = DeliveryOrder(
                 id=1,
                 delivery_source="/staging/dir/bar",
@@ -56,6 +60,8 @@ class TestDDSService(AsyncTestCase):
                 staging_service=self.mock_staging_service,
                 staging_dir='/foo/bar/staging_dir',
                 delivery_repo=self.mock_delivery_repo,
+                dds_delivery_repo=self.mock_dds_delivery_repo,
+                dds_put_repo=self.mock_dds_put_repo,
                 session_factory=self.mock_session_factory,
                 dds_conf=self.mock_dds_config,
                 )
@@ -95,9 +101,8 @@ class TestDDSService(AsyncTestCase):
             with patch(
                     'delivery.models.project'
                     '.DDSProject.get_ngi_project_name',
-                    new_callable=AsyncMock,
                     return_value='AB-1234'):
-                yield dds_project.put(
+                yield dds_project.deliver(
                         staging_id=1,
                         deadline=deadline,
                         )
@@ -159,9 +164,8 @@ class TestDDSService(AsyncTestCase):
             with patch(
                     'delivery.models.project'
                     '.DDSProject.get_ngi_project_name',
-                    new_callable=AsyncMock,
                     return_value='AB-1234'):
-                yield dds_project.put(
+                yield dds_project.deliver(
                         staging_id=1,
                         deadline=deadline,
                         release=False,
@@ -218,9 +222,8 @@ class TestDDSService(AsyncTestCase):
             with patch(
                     'delivery.models.project'
                     '.DDSProject.get_ngi_project_name',
-                    new_callable=AsyncMock,
                     return_value='AB-1234'):
-                yield dds_project.put(staging_id=1)
+                yield dds_project.deliver(staging_id=1)
 
     @gen_test
     def test_dds_put_raises_on_non_successful_stage_id(self):
@@ -238,9 +241,8 @@ class TestDDSService(AsyncTestCase):
             with patch(
                     'delivery.models.project'
                     '.DDSProject.get_ngi_project_name',
-                    new_callable=AsyncMock,
                     return_value='AB-1234'):
-                yield dds_project.put(staging_id=1)
+                yield dds_project.deliver(staging_id=1)
 
     def test_delivery_order_by_id(self):
         delivery_order = DeliveryOrder(
@@ -274,9 +276,8 @@ class TestDDSService(AsyncTestCase):
         with patch(
                 'delivery.models.project'
                 '.DDSProject.get_ngi_project_name',
-                new_callable=AsyncMock,
                 return_value='AB-1234'):
-            yield dds_project.put(staging_id=1, skip_delivery=True)
+            yield dds_project.deliver(staging_id=1, skip_delivery=True)
 
         def _get_delivery_order():
             return self.delivery_order.delivery_status
@@ -384,29 +385,3 @@ project"""
             '--deadline', deadline,
             '--no-mail',
             ])
-
-    @gen_test
-    def test_get_dds_project_title(self):
-        mock_dds_project = [{
-                "Access": True,
-                "Last updated": "Fri, 01 Jul 2022 14:31:13 CEST",
-                "PI": "pi@email.com",
-                "Project ID": "snpseq00025",
-                "Size": 25856185058,
-                "Status": "In Progress",
-                "Title": "AB1234"
-                }]
-
-        with patch(
-                'delivery.models.project.DDSProject._run',
-                new_callable=AsyncMock,
-                return_value=json.dumps(mock_dds_project),
-                ):
-            dds_project = DDSProject(
-                    dds_service=self.dds_service,
-                    auth_token=self.token_file.name,
-                    dds_project_id=mock_dds_project[0]["Project ID"],
-                    )
-
-            ngi_project_name = yield dds_project.get_ngi_project_name()
-            self.assertEqual(ngi_project_name, "AB-1234")

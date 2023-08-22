@@ -31,10 +31,12 @@ class DeliveryService(object):
 
     def _validate_source_and_add_to_repo(self, source, force_delivery, path):
         source_exists = self.delivery_sources_repo.source_exists(source)
+        source_exists_new_db = self.dds_service.dds_put_repo \
+            .was_delivered_before(source.project_name, source.source_name)
 
         # If such a Delivery source exists, only proceed if
         # override is activated
-        if source_exists and not force_delivery:
+        if (source_exists or source_exists_new_db) and not force_delivery:
             raise ProjectAlreadyDeliveredException(
                 "Project source {} has already been delivered.".format(source))
         elif source_exists and force_delivery:
