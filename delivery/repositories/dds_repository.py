@@ -125,6 +125,9 @@ class DatabaseBasedDDSDeliveryRepository(DatabaseBasedDDSRepository):
 
 
 class DatabaseBasedDDSPutRepository(DatabaseBasedDDSRepository):
+    """
+    Class to manipulate the DDSPut database.
+    """
     def _get_row(self, primary_key):
         return self.session.get(DDSPut, primary_key)
 
