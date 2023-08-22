@@ -22,7 +22,7 @@ def upgrade():
         sa.Column('ngi_project_name', sa.String),
         sa.Column('date_started', sa.DateTime, nullable=False),
         sa.Column('date_completed', sa.DateTime),
-        sa.Column('delivery_status', sa.Enum(
+        sa.Column('status', sa.Enum(
             'pending',
             'delivery_in_progress',
             'delivery_successful',
@@ -46,7 +46,7 @@ def upgrade():
         sa.Column('destination', sa.String),
         sa.Column('date_started', sa.DateTime, nullable=False),
         sa.Column('date_completed', sa.DateTime),
-        sa.Column('delivery_status', sa.Enum(
+        sa.Column('status', sa.Enum(
             'pending',
             'delivery_in_progress',
             'delivery_successful',

@@ -35,7 +35,7 @@ class DatabaseBasedDDSRepository:
 
         row = self._get_row(primary_key)
 
-        row.delivery_status = DeliveryStatus.delivery_successful
+        row.status = DeliveryStatus.delivery_successful
         row.date_completed = date_completed
 
         self.session.commit()
@@ -52,7 +52,7 @@ class DatabaseBasedDDSRepository:
             new delivery status
         """
         row = self._get_row(primary_key)
-        row.delivery_status = new_status
+        row.status = new_status
         self.session.commit()
 
 
@@ -68,7 +68,7 @@ class DatabaseBasedDDSDeliveryRepository(DatabaseBasedDDSRepository):
             dds_project_id,
             ngi_project_name,
             date_started=None,
-            delivery_status=None,
+            status=None,
     ):
         """
         Add a new delivery to the database. By default, starting date will be
@@ -83,7 +83,7 @@ class DatabaseBasedDDSDeliveryRepository(DatabaseBasedDDSRepository):
             name of the project (typically project name in Clarity)
         date_started: datetime
             date when the delivery was started
-        delivery_status: DeliveryStatus
+        status: DeliveryStatus
             Initial delivery status
 
         Returns
@@ -93,14 +93,14 @@ class DatabaseBasedDDSDeliveryRepository(DatabaseBasedDDSRepository):
         if not date_started:
             date_started = datetime.datetime.now()
 
-        if not delivery_status:
-            delivery_status = DeliveryStatus.delivery_in_progress
+        if not status:
+            status = DeliveryStatus.delivery_in_progress
 
         dds_delivery = DDSDelivery(
             dds_project_id=dds_project_id,
             ngi_project_name=ngi_project_name,
             date_started=date_started,
-            delivery_status=delivery_status,
+            status=status,
             )
 
         self.session.add(dds_delivery)
@@ -139,7 +139,7 @@ class DatabaseBasedDDSPutRepository(DatabaseBasedDDSRepository):
             delivery_path,
             destination=None,
             date_started=None,
-            delivery_status=None,
+            status=None,
     ):
         """
         Register a new upload in the database. By default, starting date will
@@ -163,7 +163,7 @@ class DatabaseBasedDDSPutRepository(DatabaseBasedDDSRepository):
         date_started: datetime
             date when the upload was started (by default, will use the current
             time)
-        delivery_status: DeliveryStatus
+        status: DeliveryStatus
             Initial status of the upload
 
         Returns
@@ -173,8 +173,8 @@ class DatabaseBasedDDSPutRepository(DatabaseBasedDDSRepository):
         if not date_started:
             date_started = datetime.datetime.now()
 
-        if not delivery_status:
-            delivery_status = DeliveryStatus.delivery_in_progress
+        if not status:
+            status = DeliveryStatus.delivery_in_progress
 
         dds_put = DDSPut(
             dds_project_id=dds_project_id,
@@ -183,7 +183,7 @@ class DatabaseBasedDDSPutRepository(DatabaseBasedDDSRepository):
             delivery_path=delivery_path,
             destination=destination,
             date_started=date_started,
-            delivery_status=delivery_status,
+            status=status,
             )
 
         self.session.add(dds_put)
@@ -230,7 +230,7 @@ class DatabaseBasedDDSPutRepository(DatabaseBasedDDSRepository):
             .filter(DDSPut.delivery_source == source) \
             .first() is not None
 
-    def get_dds_put_by_status(self, dds_project_id, delivery_status):
+    def get_dds_put_by_status(self, dds_project_id, status):
         """
         Returns all uploads to a specific project with the given status
 
@@ -238,7 +238,7 @@ class DatabaseBasedDDSPutRepository(DatabaseBasedDDSRepository):
         ----------
         dds_project_id: str (e.g. snpseq00000)
             dds project where the uploads were made
-        delivery_status: DeliveryStatus
+        status: DeliveryStatus
             status to filter by
 
         Returns
@@ -248,5 +248,5 @@ class DatabaseBasedDDSPutRepository(DatabaseBasedDDSRepository):
         return self.session.query(DDSPut) \
             .join(DDSDelivery) \
             .filter(DDSDelivery.dds_project_id == dds_project_id) \
-            .filter(DDSPut.delivery_status == delivery_status) \
+            .filter(DDSPut.status == status) \
             .all()

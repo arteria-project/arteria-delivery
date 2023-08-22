@@ -308,10 +308,10 @@ class DDSProject:
         try:
             yield self.dds_service.external_program_service \
                 .wait_for_execution(execution)
-            dds_put.delivery_status = DeliveryStatus.delivery_successful
+            dds_put.status = DeliveryStatus.delivery_successful
             dds_put.date_completed = datetime.datetime.now()
         except RuntimeError:
-            dds_put.delivery_status = DeliveryStatus.delivery_failed
+            dds_put.status = DeliveryStatus.delivery_failed
             raise
         finally:
             self.dds_service.dds_put_repo.session.commit()

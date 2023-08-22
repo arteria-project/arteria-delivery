@@ -222,7 +222,7 @@ class DeliveryStatusHandler(ArteriaDeliveryBaseHandler):
             try:
                 body = {
                     'id': delivery_order_id,
-                    'status': delivery_project.get_db_entry().delivery_status.name,
+                    'status': delivery_project.get_db_entry().status.name,
                 }
             except AttributeError:
                 self.set_status(NOT_FOUND)

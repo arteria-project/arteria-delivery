@@ -149,7 +149,7 @@ class DDSDelivery(SQLAlchemyBase):
 
     date_started = Column(DateTime, nullable=False)
     date_completed = Column(DateTime)
-    delivery_status = Column(Enum(DeliveryStatus), nullable=False)
+    status = Column(Enum(DeliveryStatus), nullable=False)
 
     def __repr__(self):
         return (
@@ -158,7 +158,7 @@ class DDSDelivery(SQLAlchemyBase):
             f"ngi_project_name: '{self.ngi_project_name}', "
             f"date_started: {self.date_started}, "
             f"date_completed: {self.date_completed}, "
-            f"delivery_status: {self.delivery_status}, "
+            f"status: {self.status}, "
             " }"
         )
 
@@ -180,7 +180,7 @@ class DDSPut(SQLAlchemyBase):
 
     date_started = Column(DateTime, nullable=False)
     date_completed = Column(DateTime)
-    delivery_status = Column(Enum(DeliveryStatus), nullable=False)
+    status = Column(Enum(DeliveryStatus), nullable=False)
 
     def __repr__(self):
         return (
@@ -193,6 +193,6 @@ class DDSPut(SQLAlchemyBase):
             f"destination: '{self.destination}', "
             f"date_started: {self.date_started}, "
             f"date_completed: {self.date_completed}, "
-            f"delivery_status: {self.delivery_status}, "
+            f"status: {self.status}, "
             " }"
         )
