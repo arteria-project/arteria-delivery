@@ -156,7 +156,7 @@ class DDSDelivery(SQLAlchemyBase):
     def __repr__(self):
         return (
             "DDS Delivery: {"
-            f"dds_project: '{self.dds_project}', "
+            f"dds_project_id: '{self.dds_project}', "
             f"ngi_project_name: '{self.ngi_project_name}', "
             f"date_started: {self.date_started}, "
             f"date_completed: {self.date_completed}, "
@@ -188,7 +188,7 @@ class DDSPut(SQLAlchemyBase):
         return (
             "DDS Put: {"
             f"id: {self.id},"
-            f"dds_project: '{self.dds_project}', "
+            f"dds_project_id: '{self.dds_project}', "
             f"dds_pid: {self.dds_pid}, "
             f"delivery_source: '{self.delivery_source}', "
             f"delivery_path: '{self.delivery_path}', "
