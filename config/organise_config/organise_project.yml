@@ -1,0 +1,22 @@
+# Analysis results, readme and runfolder/runfolders.
+#Input: PROJECTID
+rootpath: /proj/ngi2016001/nobackup/NGI
+runfolderpath: /proj/ngi2016001/incoming
+analysispath: <ROOTPATH>/ANALYSIS/<PROJECTID>
+deliverypath: <ROOTPATH>/DELIVERY/<PROJECTID>
+files_to_deliver:
+- source: <ANALYSISPATH>/results
+  destination: <DELIVERYPATH>/results
+  options: 
+    required: True
+    symlink: True 
+- source: <DELIVERYPATH>/softlinks/DELIVERY.README.RNASEQ.md
+  destination: <DELIVERYPATH>/DELIVERY.README.RNASEQ.md
+  options: 
+    required: True
+    symlink: True
+- source: <RUNFOLDERPATH>/*/Projects/<PROJECTID>
+  destination: <DELIVERYPATH>/fastq/
+  options: 
+    required: True
+    symlink: True
