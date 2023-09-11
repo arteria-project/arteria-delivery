@@ -2,29 +2,31 @@
 #Input: runfolder_name
 
 #Currently named runfolderpath and runfolder to harmonize with rnaseq config by Monika, but for specific runfolder delivery, technically, these could be "merged" to one.
-runfolderpath: /proj/ngi2016001/incoming
-runfolder: <RUNFOLDERPATH>/<RUNFOLDER_NAME>
-organised: <RUNFOLDER>/Projects/
+variables:
+  inputkey: "runfolder_name"  
+  runfolderpath: "/proj/ngi2016001/incoming"
+  runfolder: "{runfolderpath}/{inputkey}"
+  organised: "{runfolder}/Projects"
 
 #current path is /proj/ngi2016001/incoming/<RUNFOLDER>/Projects/<PROJECT>/<RUNFOLDER>/
 #The following is based on that we are to keep the same directory structure as above.
-files_to_organize:
+files_to_organise:
 
-  #The fastq files
-  - source: <RUNFOLDER>/Unaligned/*  
-    destination: <ORGANISED>/(?P=projectid)/<RUNFOLDER_NAME>/Sample_(?P=samplename)/
-    options:
-      required: True
-      symlink: True
-      regexp: (?P<projectid>[\w-]+)/Sample_(?P<samplename>[\w-]+)/(?P=samplename)_S(?P<samplenumber>\d+)_L(?P<lanes>\d+)_R(?P<read>\d)_001.fastq.gz
+#The fastq files
+- source: "{runfolder}/Unaligned/*"  
+  destination: "{organised}/{projectid}/{inputkey}/Sample_{samplename}/"
+  options:
+    required: True
+    link_type: "softlink"
+    filter: "(?P<projectid>[\\w-]+)/Sample_(?P<samplename>[\\w-]+)/(?P=samplename)_S(?P<samplenumber>\\d+)_L(?P<lanes>\\d+)_R(?P<read>\\d)_001.fastq.gz"
 
-   #The MultiQC files
-   - source: <RUNFOLDER>/seqreports/project/*
-     destination: <ORGANISED>/(?P=projectid)/<RUNFOLDER_NAME>/
-     options:
-       required: True
-       symlink: True
-       regexp: (?P<projectid>[\w-]+)/(?P<RUNFOLDER_NAME>\w+)_(?P=projectid)_multiqc_report[\w.-]+
+#The MultiQC files
+- source: "{runfolder}/seqreports/projects/*"
+  destination: "{organised}/{projectid}/{inputkey}/"
+  options:
+    required: True
+    link_type: "softlink"
+    filter: "(?P<projectid>[\\w-]+)/{inputkey}_(?P=projectid)_multiqc_report[\\w.-]+"
 
 
 

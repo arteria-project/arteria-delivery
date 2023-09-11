@@ -59,7 +59,7 @@ class TestFileSystemService(unittest.TestCase):
         self.assertFalse(os.path.samefile(source_file, dest_file))
 
     def test_change_directory(self):
-        start_dir = pathlib.Path.home()
+        start_dir = pathlib.Path.cwd()
         target_dir = pathlib.Path(self.rootdir)
 
         os.chdir(start_dir)
