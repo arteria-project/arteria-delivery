@@ -1,44 +1,46 @@
 ---
-#Input: runfolder_name
+# Input: runfolder_name
 
-#Currently named runfolderpath and runfolder to harmonize with rnaseq config by Monika, but for specific runfolder delivery, technically, these could be "merged" to one.
+# Currently named runfolderpath and runfolder to harmonize with rnaseq config
+# by Monika, but for specific runfolder delivery, technically, these could be
+# "merged" to one.
 variables:
   runfolderpath: /proj/ngi2016001/incoming
   runfolder: "{runfolderpath}/{runfolder_name}"
   organised: "{runfolder}/Projects/"
 
-#current path is /proj/ngi2016001/incoming/<RUNFOLDER>/Projects/<PROJECT>/<RUNFOLDER>/
-#The following is based on that we are to keep the same directory structure as above.
+# current path is
+# /proj/ngi2016001/incoming/<RUNFOLDER>/Projects/<PROJECT>/<RUNFOLDER>/ The
+# following is based on that we are to keep the same directory structure as
+# above.
 files_to_organize:
 
-  #The fastq files
+  # The fastq files
   - source: "{runfolder}/Unaligned/*"
     destination: "{organised}/{projectid}/{runfolder_name}/Sample_{samplename}/"
     options:
-      required: True
+      required: true
       link_type: softlink
-      regex: (?P<projectid>[\w-]+)/Sample_(?P<samplename>[\w-]+)/(?P=samplename)_S(?P<samplenumber>\d+)_L(?P<lanes>\d+)_R(?P<read>\d)_001.fastq.gz
+      regex: (?P<projectid>[\w-]+)/Sample_(?P<samplename>[\w-]+)/(?P=samplename)_S(?P<samplenumber>\d+)_L(?P<lanes>\d+)_R(?P<read>\d)_001.fastq.gz # yamllint disable-line
 
-   # The MultiQC files
+  # The MultiQC files
   - source: "{runfolder}/seqreports/project/*"
     destination: "{organised}/{projectid}/<runfolder_name>/"
     options:
-      required: True
+      required: true
       link_type: softlink
       regexp: (?P<projectid>[\w-]+)/\w+_(?P=projectid)_multiqc_report[\w.-]+
 
+# what we are lacking, and what might need to be created outside the config is:
+# 1. checksums.md5
+# 2. Encrypted samplesheet
+# As far as I know, these don't exist prior to organization.
 
-
-#what we are lacking, and what might need to be created outside the config is:
-#1. checksums.md5
-#2. Encrypted samplesheet
-#As far as I know, these don't exist prior to organization.
-
-#  #hypothethical undetermined, needs an input of lane(s) connected to project
-#  #We will not include this at this point, as it requires additional input. Will maybe end up in its own config or something.
+# hypothethical undetermined, needs an input of lane(s) connected to project
+# We will not include this at this point, as it requires additional input. Will
+# maybe end up in its own config or something.
 #  - source: <RUNFOLDER>/Unaligned/Undetermined/Undetermined_S0_L<lanes>_R<read>_001.fastq.gz
 #    destination: <RUNFOLDER>/Unaligned/<PROJECT>/Undetermined/
 #    options:
 #      required: False
 #      symlink: True
-

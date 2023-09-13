@@ -21,3 +21,6 @@ jobs:
     - name: Launch tests
       run: |
         nosetests ./tests
+    - name: Lint config files
+      run: |
+        yamllint -c .yamllint.yml config/organise_configs/*.yml
