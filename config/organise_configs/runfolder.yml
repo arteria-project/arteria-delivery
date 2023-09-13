@@ -13,7 +13,7 @@ variables:
 # /proj/ngi2016001/incoming/<RUNFOLDER>/Projects/<PROJECT>/<RUNFOLDER>/ The
 # following is based on that we are to keep the same directory structure as
 # above.
-files_to_organize:
+files_to_organise:
 
   # The fastq files
   - source: "{runfolder}/Unaligned/*"
@@ -21,7 +21,7 @@ files_to_organize:
     options:
       required: true
       link_type: softlink
-      regex: (?P<projectid>[\w-]+)/Sample_(?P<samplename>[\w-]+)/(?P=samplename)_S(?P<samplenumber>\d+)_L(?P<lanes>\d+)_R(?P<read>\d)_001.fastq.gz # yamllint disable-line
+      filter: (?P<projectid>[\w-]+)/Sample_(?P<samplename>[\w-]+)/(?P=samplename)_S(?P<samplenumber>\d+)_L(?P<lanes>\d+)_R(?P<read>\d)_001.fastq.gz # yamllint disable-line
 
   # The MultiQC files
   - source: "{runfolder}/seqreports/project/*"
@@ -29,7 +29,7 @@ files_to_organize:
     options:
       required: true
       link_type: softlink
-      regexp: (?P<projectid>[\w-]+)/\w+_(?P=projectid)_multiqc_report[\w.-]+
+      filter: (?P<projectid>[\w-]+)/\w+_(?P=projectid)_multiqc_report[\w.-]+
 
 # what we are lacking, and what might need to be created outside the config is:
 # 1. checksums.md5
