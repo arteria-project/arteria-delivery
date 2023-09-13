@@ -19,13 +19,13 @@ files_to_organize:
       link_type: softlink
       regex: (?P<projectid>[\w-]+)/Sample_(?P<samplename>[\w-]+)/(?P=samplename)_S(?P<samplenumber>\d+)_L(?P<lanes>\d+)_R(?P<read>\d)_001.fastq.gz
 
-   #The MultiQC files
-   - source: "{runfolder}/seqreports/project/*"
-     destination: "{organised}/{projectid}/<runfolder_name>/"
-     options:
-       required: True
-       link_type: softlink
-       regexp: (?P<projectid>[\w-]+)/\w+_(?P=projectid)_multiqc_report[\w.-]+
+   # The MultiQC files
+  - source: "{runfolder}/seqreports/project/*"
+    destination: "{organised}/{projectid}/<runfolder_name>/"
+    options:
+      required: True
+      link_type: softlink
+      regexp: (?P<projectid>[\w-]+)/\w+_(?P=projectid)_multiqc_report[\w.-]+
 
 
 
