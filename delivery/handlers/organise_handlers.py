@@ -12,41 +12,6 @@ from delivery.handlers import OK, NOT_FOUND, INTERNAL_SERVER_ERROR, FORBIDDEN, e
 
 log = logging.getLogger(__name__)
 
-ORGANISE_CONFIG_SCHEMA = {
-    "type": "object",
-    "required": ["variables", "files_to_organise"],
-    "properties": {
-        "variables": {
-            "type": "object",
-            "additionalProperties": {"type": "string"},
-        },
-        "files_to_organise": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "required": ["source", "destination", "options"],
-                "properties": {
-                    "source": {"type": "string"},
-                    "destination": {"type": "string"},
-                    "options": {
-                        "type": "object",
-                        "properties": {
-                            "required": {"type": "boolean"},
-                            "link_type": {
-                                "type": "string",
-                                "enum": ["softlink", "hardlink", "copy"],
-                            },
-                            "filter": {"type": "string"},
-                        },
-                        "additionalProperties": False,
-                    }
-                }
-            }
-        }
-    },
-    "additionalProperties": False,
-}
-
 
 class BaseOrganiseHandler(BaseRestHandler):
     pass
@@ -145,7 +110,9 @@ class OrganiseProjectAnalysisHandler(BaseOrganiseHandler):
                 f"Config file not found at {organise_config_path}")
         with open(organise_config_path, 'r') as organise_config_file:
             config = yaml.load(organise_config_file, Loader=yaml.CLoader)
-            jsonschema.validate(config, ORGANISE_CONFIG_SCHEMA)
+        with open(organise_config_dir / "schema.json", 'r') as organise_config_schema:
+            schema = json.load(organise_config_schema)
+        jsonschema.validate(config, schema)
 
         if not project_path.is_dir():
             raise FileNotFoundError(
@@ -176,7 +143,9 @@ class OrganiseProjectHandler(BaseOrganiseHandler):
                 f"Config file not found at {organise_config_path}")
         with open(organise_config_path, 'r') as organise_config_file:
             config = yaml.load(organise_config_file, Loader=yaml.CLoader)
-            jsonschema.validate(config, ORGANISE_CONFIG_SCHEMA)
+        with open(pathlib.Path(self.config["organise_config_dir"]) / "schema.json", 'r') as organise_config_schema:
+            schema = json.load(organise_config_schema)
+        jsonschema.validate(config, schema)
 
         if not project_path.is_dir():
             raise FileNotFoundError(
@@ -211,7 +180,9 @@ class OrganiseRunfolderConfigHandler(BaseOrganiseHandler):
                 f"Config file not found at {organise_config_path}")
         with open(organise_config_path, 'r') as organise_config_file:
             config = yaml.load(organise_config_file, Loader=yaml.CLoader)
-            jsonschema.validate(config, ORGANISE_CONFIG_SCHEMA)
+        with open(organise_config_dir / "schema.json", 'r') as organise_config_schema:
+            schema = json.load(organise_config_schema)
+        jsonschema.validate(config, schema)
 
         if not runfolder_path.is_dir():
             raise FileNotFoundError(

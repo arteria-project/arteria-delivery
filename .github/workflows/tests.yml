@@ -18,9 +18,15 @@ jobs:
         python -m pip install --upgrade pip
         pip install wheel
         pip install -r requirements/dev .
+        npm install -g pajv
     - name: Launch tests
       run: |
         nosetests ./tests
     - name: Lint config files
       run: |
         yamllint -c .yamllint.yml config/organise_configs/*.yml
+    - name: Validate config files
+      run: >
+        pajv
+        -s config/organise_configs/schema.json
+        -d config/organise_configs/*.yml

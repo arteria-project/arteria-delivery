@@ -1,0 +1,34 @@
+{
+    "type": "object",
+    "required": ["variables", "files_to_organise"],
+    "properties": {
+        "variables": {
+            "type": "object",
+            "additionalProperties": {"type": "string"}
+        },
+        "files_to_organise": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": ["source", "destination", "options"],
+                "properties": {
+                    "source": {"type": "string"},
+                    "destination": {"type": "string"},
+                    "options": {
+                        "type": "object",
+                        "properties": {
+                            "required": {"type": "boolean"},
+                            "link_type": {
+                                "type": "string",
+                                "enum": ["softlink", "hardlink", "copy"]
+                            },
+                            "filter": {"type": "string"}
+                        },
+                        "additionalProperties": false
+                    }
+                }
+            }
+        }
+    },
+    "additionalProperties": false
+}
