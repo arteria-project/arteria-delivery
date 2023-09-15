@@ -19,7 +19,11 @@ from delivery.handlers.dds_handlers import DDSCreateProjectHandler
 from delivery.handlers.delivery_handlers import DeliverByStageIdHandler, DeliveryStatusHandler
 from delivery.handlers.staging_handlers import StagingRunfolderHandler, StagingHandler,\
     StageGeneralDirectoryHandler, StagingProjectRunfoldersHandler
-from delivery.handlers.organise_handlers import OrganiseRunfolderHandler
+from delivery.handlers.organise_handlers import \
+        OrganiseRunfolderHandler, \
+        OrganiseProjectHandler, \
+        OrganiseProjectAnalysisHandler, \
+        OrganiseRunfolderConfigHandler
 
 from delivery.repositories.runfolder_repository import FileSystemBasedRunfolderRepository, \
     FileSystemBasedUnorganisedRunfolderRepository
@@ -57,8 +61,21 @@ def routes(**kwargs):
         url(r"/api/1.0/project/([^/]+)/best_practice_samples$", BestPracticeProjectSampleHandler,
             name="best_practice_samples", kwargs=kwargs),
 
+        # I'm keeping this endpoint for backward compatibility but we should be
+        # able to remove it once we have updated our workflows to use the new
+        # endpoints /AC230510
         url(r"/api/1.0/organise/runfolder/([^/]+)", OrganiseRunfolderHandler,
             name="organise_runfolder", kwargs=kwargs),
+
+        url(r"/api/1.0/organise/delivery/runfolder/([^/]+)",
+            OrganiseRunfolderConfigHandler,
+            name="organise_runfolder", kwargs=kwargs),
+        url(r"/api/1.0/organise/delivery/project/([^/]+)/([^/]+)",
+            OrganiseProjectAnalysisHandler,
+            name="organise_project", kwargs=kwargs),
+        url(r"/api/1.0/organise/delivery/project/([^/]+)",
+            OrganiseProjectHandler,
+            name="organise_project_custom", kwargs=kwargs),
 
         url(r"/api/1.0/stage/project/runfolders/(.+)", StagingProjectRunfoldersHandler,
             name="stage_multiple_runfolders_one_project", kwargs=kwargs),

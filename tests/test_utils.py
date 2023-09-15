@@ -1,6 +1,7 @@
 
 import csv
 import os
+import tempfile
 import time
 from collections import OrderedDict
 
@@ -20,14 +21,30 @@ class MockIOLoop():
     def spawn_callback(self, f, **args):
         f(**args)
 
-class TestUtils:
-    DUMMY_CONFIG = {"monitored_directory": "/foo"}
-
 
 class DummyConfig:
+    def __init__(self):
+        # TODO add documentation
+        self.dummy_config = {
+            "db_connection_string": "sqlite:///my.db",
+            "alembic_path": "alembic/",
+            "runfolder_directory": None,
+            "general_project_directory": None,
+            "staging_directory": None,
+            "project_links_directory": None,
+            "dds_conf": {"log_path": "dds.log"},
+            "organise_config_dir": None,
+            "port": 9999,
+        }
+
+        for key in self.dummy_config:
+            if self.dummy_config[key] is None:
+                tempdir = tempfile.TemporaryDirectory()
+                self.__setattr__(f"_{key}",  tempdir)
+                self.dummy_config[key] = tempdir.name
 
     def __getitem__(self, key):
-        return TestUtils.DUMMY_CONFIG[key]
+        return self.dummy_config[key]
 
 fake_directories = ["160930_ST-E00216_0111_BH37CWALXX",
                     "160930_ST-E00216_0112_BH37CWALXX"]
