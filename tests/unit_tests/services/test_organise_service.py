@@ -6,7 +6,7 @@ import os
 import unittest
 
 from delivery.exceptions import ProjectAlreadyOrganisedException, \
-    AmbiguousOrganisationOperationException, RequiredFileNotFoundException, DestinationAlreadyExistsException
+    AmbiguousOrganisationOperationException, DestinationAlreadyExistsException
 from delivery.models.runfolder import RunfolderFile
 from delivery.models.sample import Sample
 from delivery.repositories.project_repository import GeneralProjectRepository
@@ -256,7 +256,7 @@ class TestOrganiseService(unittest.TestCase):
                 }
             }
             # a missing required file should raise an exception
-            with self.assertRaises(RequiredFileNotFoundException):
+            with self.assertRaises(FileNotFoundError):
                 self.organise_service._configure_organisation_entry(entry)
 
             # a missing non-required file should return None
@@ -295,23 +295,30 @@ class TestOrganiseService(unittest.TestCase):
             parse_config.return_value = config
             config[0]["source"].touch()
             organised_paths = self.organise_service.organise_with_config(
-                "this-would-be-a-yaml-file")
+                "this-would-be-a-yaml-file",
+                "this-is-a-path-to-runfolder-or-project")
 
             self.assertEqual([config[0]["destination"]], organised_paths)
             self.organise_service.file_system_service.hardlink.assert_called_once()
 
-            with self.assertRaises(RequiredFileNotFoundException):
+            with self.assertRaises(FileNotFoundError):
                 config[1]["options"]["required"] = True
-                self.organise_service.organise_with_config("this-would-be-a-yaml-file")
+                self.organise_service.organise_with_config(
+                    "this-would-be-a-yaml-file",
+                    "this-is-a-path-to-runfolder-or-project")
 
             with self.assertRaises(AmbiguousOrganisationOperationException):
                 config[0]["options"]["copy"] = True
                 config[0]["options"]["softlink"] = True
-                self.organise_service.organise_with_config("this-would-be-a-yaml-file")
+                self.organise_service.organise_with_config(
+                    "this-would-be-a-yaml-file",
+                    "this-is-a-path-to-runfolder-or-project")
 
             with self.assertRaises(DestinationAlreadyExistsException):
                 config[0]["destination"].touch()
-                self.organise_service.organise_with_config("this-would-be-a-yaml-file")
+                self.organise_service.organise_with_config(
+                    "this-would-be-a-yaml-file",
+                    "this-is-a-path-to-runfolder-or-project")
 
             with self.assertRaises(OSError):
                 self.organise_service.file_system_service.copy.side_effect = OSError(
@@ -319,4 +326,6 @@ class TestOrganiseService(unittest.TestCase):
                 config[0]["destination"].unlink()
                 config[0]["options"]["softlink"] = False
                 config[1]["options"]["required"] = False
-                self.organise_service.organise_with_config("this-would-be-a-yaml-file")
+                self.organise_service.organise_with_config(
+                    "this-would-be-a-yaml-file",
+                    "this-is-a-path-to-runfolder-or-project")

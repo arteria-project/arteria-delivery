@@ -6,8 +6,7 @@ import time
 
 from delivery.exceptions import AmbiguousOrganisationOperationException, \
     DestinationAlreadyExistsException, \
-    ProjectAlreadyOrganisedException, \
-    RequiredFileNotFoundException
+    ProjectAlreadyOrganisedException
 
 from delivery.models.project import RunfolderProject
 from delivery.models.runfolder import Runfolder, RunfolderFile
@@ -212,7 +211,7 @@ class OrganiseService(object):
             is_index=sample_file.is_index,
             checksum=sample_file.checksum)
 
-    def parse_yaml_config(self, config_yaml_file):
+    def parse_yaml_config(self, config_yaml_file, top_path):
         return [
             {
                 "source": pathlib.Path("/path", "to", "source"),
@@ -258,7 +257,7 @@ class OrganiseService(object):
         required = options.get("required", False)
         if not src_path.exists():
             if required:
-                raise RequiredFileNotFoundException(f"{src_path} does not exist")
+                raise FileNotFoundError(f"{src_path} does not exist")
             return None
 
         # ensure that the destination path does not already exist
@@ -274,20 +273,21 @@ class OrganiseService(object):
 
         return organise_op, src_path, dst_path
 
-    def organise_with_config(self, config_yaml_file):
+    def organise_with_config(self, config_yaml_file, top_path):
         """
         Organise files for delivery according to a supplied config file in YAML format.
 
         This will parse the config and symlink files accordingly.
 
         :param config_yaml_file:
+        :param top_path:
         :return: a list of paths to organised files
-        :raise: RequiredFileNotFoundException, DestinationAlreadyExistsException,
+        :raise: FileNotFoundError, DestinationAlreadyExistsException,
         AmbiguousOrganisationOperationException
         """
 
         # use the config parser to resolve into source - destination entries
-        parsed_config_dict = self.parse_yaml_config(config_yaml_file)
+        parsed_config_dict = self.parse_yaml_config(config_yaml_file, top_path)
         log.debug(f"parsed yaml config and received {len(parsed_config_dict)} entries")
 
         # do a first round to check status of source and destination, basically in order to avoid
@@ -303,7 +303,7 @@ class OrganiseService(object):
                         parsed_config_dict)))
         except (
                 AmbiguousOrganisationOperationException,
-                RequiredFileNotFoundException,
+                FileNotFoundError,
                 DestinationAlreadyExistsException) as ex:
             log.debug(str(ex))
             raise

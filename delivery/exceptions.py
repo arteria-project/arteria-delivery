@@ -89,13 +89,6 @@ class CannotParseDDSOutputException(Exception):
     pass
 
 
-class RequiredFileNotFoundException(Exception):
-    """
-    Should be raised when a required file cannot be found, e.g. during organisation for delivery
-    """
-    pass
-
-
 class DestinationAlreadyExistsException(Exception):
     """
     Should be raised when a destination path already exists, e.g. during organisation for delivery
