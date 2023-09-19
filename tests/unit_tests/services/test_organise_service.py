@@ -271,58 +271,75 @@ class TestOrganiseService(unittest.TestCase):
             with self.assertRaises(PermissionError):
                 self.organise_service._configure_organisation_entry(entry)
 
-    def test_organise_with_config(self):
-
-        with tempfile.TemporaryDirectory() as dir, mock.patch.object(
-                self.organise_service, "parse_yaml_config") as parse_config:
-            config = [
-                {
-                    "source": pathlib.Path(dir, "existing_source"),
-                    "destination": pathlib.Path(dir, "existing_dest"),
-                    "options": {}
-                },
-                {
-                    "source": pathlib.Path(dir, "missing_source"),
-                    "destination": pathlib.Path(dir, "missing_dest"),
-                    "options": {
-                        "required": False
-                    }
+    @staticmethod
+    def _organise_with_config_config(tempdir, parse_config_mock):
+        config = [
+            {
+                "source": pathlib.Path(tempdir, "existing_source"),
+                "destination": pathlib.Path(tempdir, "existing_dest"),
+                "options": {}
+            },
+            {
+                "source": pathlib.Path(tempdir, "missing_source"),
+                "destination": pathlib.Path(tempdir, "missing_dest"),
+                "options": {
+                    "required": False
                 }
-            ]
-            parse_config.return_value = config
-            config[0]["source"].touch()
-            organised_paths = self.organise_service.organise_with_config(
+            }
+        ]
+        parse_config_mock.return_value = config
+        return config
+
+    def test_organise_with_config(self):
+        with tempfile.TemporaryDirectory() as d, mock.patch.object(
+                self.organise_service, "parse_yaml_config") as parse_config:
+            cfg = self._organise_with_config_config(d, parse_config)
+
+            cfg[0]["options"]["required"] = True
+            self._organise_with_config_file_not_found()
+
+            cfg[0]["source"].touch()
+            self._organise_with_config_hardlink(cfg[0]["destination"])
+
+            cfg[0]["options"]["copy"] = True
+            self._organise_with_config_oserror()
+
+            cfg[0]["options"]["softlink"] = True
+            self._organise_with_config_illegal()
+
+            cfg[0]["destination"].touch()
+            self._organise_with_config_destination_exists()
+
+    def _organise_with_config_hardlink(self, dest):
+        organised_paths = self.organise_service.organise_with_config(
+            "this-would-be-a-yaml-file",
+            "this-is-a-path-to-runfolder-or-project")
+
+        self.assertEqual([dest], organised_paths)
+        self.organise_service.file_system_service.hardlink.assert_called_once()
+
+    def _organise_with_config_file_not_found(self):
+        with self.assertRaises(FileNotFoundError):
+            self.organise_service.organise_with_config(
                 "this-would-be-a-yaml-file",
                 "this-is-a-path-to-runfolder-or-project")
 
-            self.assertEqual([config[0]["destination"]], organised_paths)
-            self.organise_service.file_system_service.hardlink.assert_called_once()
+    def _organise_with_config_illegal(self):
+        with self.assertRaises(RuntimeError):
+            self.organise_service.organise_with_config(
+                "this-would-be-a-yaml-file",
+                "this-is-a-path-to-runfolder-or-project")
 
-            with self.assertRaises(FileNotFoundError):
-                config[1]["options"]["required"] = True
-                self.organise_service.organise_with_config(
-                    "this-would-be-a-yaml-file",
-                    "this-is-a-path-to-runfolder-or-project")
+    def _organise_with_config_destination_exists(self):
+        with self.assertRaises(PermissionError):
+            self.organise_service.organise_with_config(
+                "this-would-be-a-yaml-file",
+                "this-is-a-path-to-runfolder-or-project")
 
-            with self.assertRaises(RuntimeError):
-                config[0]["options"]["copy"] = True
-                config[0]["options"]["softlink"] = True
-                self.organise_service.organise_with_config(
-                    "this-would-be-a-yaml-file",
-                    "this-is-a-path-to-runfolder-or-project")
-
-            with self.assertRaises(PermissionError):
-                config[0]["destination"].touch()
-                self.organise_service.organise_with_config(
-                    "this-would-be-a-yaml-file",
-                    "this-is-a-path-to-runfolder-or-project")
-
-            with self.assertRaises(OSError):
-                self.organise_service.file_system_service.copy.side_effect = OSError(
-                    "just-a-mocked-exception")
-                config[0]["destination"].unlink()
-                config[0]["options"]["softlink"] = False
-                config[1]["options"]["required"] = False
-                self.organise_service.organise_with_config(
-                    "this-would-be-a-yaml-file",
-                    "this-is-a-path-to-runfolder-or-project")
+    def _organise_with_config_oserror(self):
+        with self.assertRaises(OSError):
+            self.organise_service.file_system_service.copy.side_effect = OSError(
+                "just-a-mocked-exception")
+            self.organise_service.organise_with_config(
+                "this-would-be-a-yaml-file",
+                "this-is-a-path-to-runfolder-or-project")
