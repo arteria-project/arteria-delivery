@@ -4,10 +4,6 @@ import os
 import pathlib
 import time
 
-from delivery.exceptions import AmbiguousOrganisationOperationException, \
-    DestinationAlreadyExistsException, \
-    ProjectAlreadyOrganisedException
-
 from delivery.models.project import RunfolderProject
 from delivery.models.runfolder import Runfolder, RunfolderFile
 from delivery.models.sample import Sample, SampleFile
@@ -42,7 +38,7 @@ class OrganiseService(object):
         :param lanes: if not None, only samples on any of the specified lanes will be organised
         :param projects: if not None, only projects in this list will be organised
         :param force: if True, a previously organised project will be renamed with a unique suffix
-        :raises ProjectAlreadyOrganisedException: if a project has already been organised and force is False
+        :raises PermissionError: if a project has already been organised and force is False
         :return: a Runfolder instance representing the runfolder after organisation
         """
         # retrieve a runfolder object and project objects to be organised
@@ -71,7 +67,7 @@ class OrganiseService(object):
         if self.file_system_service.exists(organised_project_path):
             msg = "Organised project path '{}' already exists".format(organised_project_path)
             if not force:
-                raise ProjectAlreadyOrganisedException(msg)
+                raise PermissionError(msg)
             organised_projects_backup_path = "{}.bak".format(organised_projects_path)
             backup_path = os.path.join(
                 organised_projects_backup_path,
@@ -85,14 +81,14 @@ class OrganiseService(object):
     def organise_project(self, runfolder, project, organised_projects_path, lanes):
         """
         Organise a project on a runfolder into its own directory and into a standard structure. If the project has
-        already been organised, a ProjectAlreadyOrganisedException will be raised, unless force is True. If force is
+        already been organised, a PermissionError will be raised, unless force is True. If force is
         True, the existing project path will be renamed with a unique suffix.
 
         :param runfolder: a Runfolder instance representing the runfolder on which the project belongs
         :param project: a Project instance representing the project to be organised
         :param lanes: if not None, only samples on any of the specified lanes will be organised
         :param force: if True, a previously organised project will be renamed with a unique suffix
-        :raises ProjectAlreadyOrganisedException: if project has already been organised and force is False
+        :raises PermissionError: if project has already been organised and force is False
         :return: a Project instance representing the project after organisation
         """
         # symlink the samples
@@ -232,11 +228,11 @@ class OrganiseService(object):
         :param hardlink:
         :param copy:
         :return: the function reference for the organisation operation to use
-        :raise: AmbiguousOrganisationOperationException
+        :raise: RuntimeError
         """
         if sum([softlink, hardlink, copy]) > 1:
             opts = dict(zip(["softlink", "hardlink", "copy"], [softlink, hardlink, copy]))
-            raise AmbiguousOrganisationOperationException(
+            raise RuntimeError(
                 f"{' and '.join(filter(lambda x: opts[x], opts.keys()))} cannot both be True")
 
         if softlink:
@@ -262,7 +258,7 @@ class OrganiseService(object):
 
         # ensure that the destination path does not already exist
         if dst_path.exists():
-            raise DestinationAlreadyExistsException(f"{dst_path} already exists")
+            raise PermissionError(f"{dst_path} already exists")
 
         # determine what operation should be used, i.e. hardlink (default), softlink or copy
         organise_op = self._determine_organise_operation(
@@ -282,8 +278,7 @@ class OrganiseService(object):
         :param config_yaml_file:
         :param top_path:
         :return: a list of paths to organised files
-        :raise: FileNotFoundError, DestinationAlreadyExistsException,
-        AmbiguousOrganisationOperationException
+        :raise: FileNotFoundError, PermissionError, RuntimeError
         """
 
         # use the config parser to resolve into source - destination entries
@@ -302,9 +297,9 @@ class OrganiseService(object):
                         lambda entry: self._configure_organisation_entry(entry),
                         parsed_config_dict)))
         except (
-                AmbiguousOrganisationOperationException,
+                RuntimeError,
                 FileNotFoundError,
-                DestinationAlreadyExistsException) as ex:
+                PermissionError) as ex:
             log.debug(str(ex))
             raise
 

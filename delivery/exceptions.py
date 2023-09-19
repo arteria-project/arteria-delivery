@@ -59,13 +59,6 @@ class ProjectAlreadyDeliveredException(Exception):
     pass
 
 
-class ProjectAlreadyOrganisedException(Exception):
-    """
-    Should be raised when a project has already been organised.
-    """
-    pass
-
-
 class FileNameParsingException(Exception):
     pass
 
@@ -85,19 +78,5 @@ class CannotParseDDSOutputException(Exception):
     """
     Should be raised when DDS's output cannot be parsed for e.g. creating a
     project.
-    """
-    pass
-
-
-class DestinationAlreadyExistsException(Exception):
-    """
-    Should be raised when a destination path already exists, e.g. during organisation for delivery
-    """
-    pass
-
-
-class AmbiguousOrganisationOperationException(Exception):
-    """
-    Should be raised when the organisation operation can not be unambiguously determined
     """
     pass

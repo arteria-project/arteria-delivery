@@ -5,10 +5,7 @@ import mock
 import os
 import unittest
 
-from delivery.exceptions import ProjectAlreadyOrganisedException, \
-    AmbiguousOrganisationOperationException, DestinationAlreadyExistsException
 from delivery.models.runfolder import RunfolderFile
-from delivery.models.sample import Sample
 from delivery.repositories.project_repository import GeneralProjectRepository
 from delivery.repositories.sample_repository import RunfolderProjectBasedSampleRepository
 from delivery.services.file_system_service import FileSystemService
@@ -68,7 +65,7 @@ class TestOrganiseService(unittest.TestCase):
         # previously organised and not forced
         self.file_system_service.exists.return_value = True
         self.assertRaises(
-            ProjectAlreadyOrganisedException,
+            PermissionError,
             self.organise_service.check_previously_organised_project,
             self.project,
             organised_projects_path,
@@ -91,7 +88,7 @@ class TestOrganiseService(unittest.TestCase):
 
             # without force
             self.assertRaises(
-                ProjectAlreadyOrganisedException,
+                PermissionError,
                 self.organise_service.organise_runfolder,
                 runfolder_id, [], [], False)
 
@@ -239,7 +236,7 @@ class TestOrganiseService(unittest.TestCase):
             self.organise_service._determine_organise_operation(False, False, False)())
 
         # assert ambiguous operation throws exception
-        with self.assertRaises(AmbiguousOrganisationOperationException):
+        with self.assertRaises(RuntimeError):
             self.organise_service._determine_organise_operation(True, False, True)
 
     def test__configure_organisation_entry(self):
@@ -271,7 +268,7 @@ class TestOrganiseService(unittest.TestCase):
 
             # an existing destination file should raise an exception
             entry["destination"].touch()
-            with self.assertRaises(DestinationAlreadyExistsException):
+            with self.assertRaises(PermissionError):
                 self.organise_service._configure_organisation_entry(entry)
 
     def test_organise_with_config(self):
@@ -307,14 +304,14 @@ class TestOrganiseService(unittest.TestCase):
                     "this-would-be-a-yaml-file",
                     "this-is-a-path-to-runfolder-or-project")
 
-            with self.assertRaises(AmbiguousOrganisationOperationException):
+            with self.assertRaises(RuntimeError):
                 config[0]["options"]["copy"] = True
                 config[0]["options"]["softlink"] = True
                 self.organise_service.organise_with_config(
                     "this-would-be-a-yaml-file",
                     "this-is-a-path-to-runfolder-or-project")
 
-            with self.assertRaises(DestinationAlreadyExistsException):
+            with self.assertRaises(PermissionError):
                 config[0]["destination"].touch()
                 self.organise_service.organise_with_config(
                     "this-would-be-a-yaml-file",
