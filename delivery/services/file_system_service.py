@@ -99,8 +99,7 @@ class FileSystemService(object):
         :return: None
         """
         self.create_parent_dirs(link_name)
-        # replace with pathlib.Path(link_name).symlink_to(source) ?
-        return os.symlink(source, link_name)
+        return pathlib.Path(link_name).symlink_to(source)
 
     def hardlink(self, source, link_name):
         """
