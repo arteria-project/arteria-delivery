@@ -219,28 +219,25 @@ class OrganiseService(object):
             }
         ]
 
-    def _determine_organise_operation(self, softlink, hardlink, copy):
+    def _determine_organise_operation(self, link_type=None):
         """
-        Determine the organisation operation from the config. If all arguments are False, use the
-        default which will be hardlink. Only one of the operations can be true simultaneously.
-        Otherwise, raise an Exception.
-        :param softlink:
-        :param hardlink:
-        :param copy:
+        Determine the organisation operation from the config. If link_type is None, the default
+        will hardlink. Raises a RuntimeError if link_type is neither None or one of "hard", "soft"
+        or "copy".
+        :param link_type: None or one of "hard", "soft" or "copy"
         :return: the function reference for the organisation operation to use
-        :raise: RuntimeError
+        :raise: RuntimeError if link_type is not recognized
         """
-        if sum([softlink, hardlink, copy]) > 1:
-            opts = dict(zip(["softlink", "hardlink", "copy"], [softlink, hardlink, copy]))
+        ops = {
+            "hard": self.file_system_service.hardlink,
+            "soft": self.file_system_service.symlink,
+            "copy": self.file_system_service.copy
+        }
+        try:
+            return ops[link_type or "hard"]
+        except KeyError:
             raise RuntimeError(
-                f"{' and '.join(filter(lambda x: opts[x], opts.keys()))} cannot both be True")
-
-        if softlink:
-            return self.file_system_service.symlink
-        if copy:
-            return self.file_system_service.copy
-
-        return self.file_system_service.hardlink
+                f"{link_type} is not a recognized operation")
 
     def _configure_organisation_entry(self, entry):
 
@@ -262,10 +259,7 @@ class OrganiseService(object):
 
         # determine what operation should be used, i.e. hardlink (default), softlink or copy
         organise_op = self._determine_organise_operation(
-            options.get("softlink", False),
-            options.get("hardlink", False),
-            options.get("copy", False)
-        )
+            link_type=options.get("link_type"))
 
         return organise_op, src_path, dst_path
 

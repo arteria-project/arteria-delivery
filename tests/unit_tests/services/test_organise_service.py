@@ -226,18 +226,19 @@ class TestOrganiseService(unittest.TestCase):
         self.file_system_service.copy.return_value = ops[2]
 
         for op in ops:
-            args = list(map(lambda o: op == o, ops))
-            fn = self.organise_service._determine_organise_operation(*args)
+            link_type = op[0:4]
+            fn = self.organise_service._determine_organise_operation(link_type=link_type)
             self.assertEqual(op, fn())
 
         # assert hardlink is the default
         self.assertEqual(
             ops[1],
-            self.organise_service._determine_organise_operation(False, False, False)())
+            self.organise_service._determine_organise_operation()())
 
-        # assert ambiguous operation throws exception
+        # assert unrecognized operation throws exception
         with self.assertRaises(RuntimeError):
-            self.organise_service._determine_organise_operation(True, False, True)
+            self.organise_service._determine_organise_operation(
+                link_type="not-a-recognized-link-type")
 
     def test__configure_organisation_entry(self):
         fn_name = "softlink"
@@ -249,7 +250,7 @@ class TestOrganiseService(unittest.TestCase):
                 "destination": pathlib.Path(dir, "dest"),
                 "options": {
                     "required": True,
-                    "softlink": True
+                    "link_type": "soft"
                 }
             }
             # a missing required file should raise an exception
@@ -301,10 +302,10 @@ class TestOrganiseService(unittest.TestCase):
             cfg[0]["source"].touch()
             self._organise_with_config_hardlink(cfg[0]["destination"])
 
-            cfg[0]["options"]["copy"] = True
+            cfg[0]["options"]["link_type"] = "copy"
             self._organise_with_config_oserror()
 
-            cfg[0]["options"]["softlink"] = True
+            cfg[0]["options"]["link_type"] = "not-recognized"
             self._organise_with_config_illegal()
 
             cfg[0]["destination"].touch()
