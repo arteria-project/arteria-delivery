@@ -307,3 +307,14 @@ class OrganiseService(object):
             raise
 
         return organised_paths
+
+    def get_paths_matching_glob_pattern(self, path, glob_pattern):
+        """
+        Search the file hierarchy under the supplied path using a glob pattern and return a list of
+        the matching paths.
+
+        :param path: the path under which to search for the pattern
+        :param glob_pattern: the glob pattern to search for, relative to the supplied path
+        :return: a list of strings representing the matching paths
+        """
+        return self.file_system_service.glob(path, glob_pattern)

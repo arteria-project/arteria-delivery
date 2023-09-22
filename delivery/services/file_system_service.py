@@ -155,3 +155,10 @@ class FileSystemService(object):
     @staticmethod
     def relpath(path, start):
         return os.path.relpath(path, start)
+
+    @staticmethod
+    def glob(path, pattern):
+        return list(
+            map(
+                str,
+                pathlib.Path(path).glob(pattern)))

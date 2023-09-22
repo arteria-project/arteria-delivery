@@ -80,3 +80,65 @@ class TestFileSystemService(unittest.TestCase):
     def test_symlink(self):
         src, dst = self._link_helper(self.service.symlink)
         self.assertTrue(pathlib.Path(dst).is_symlink())
+
+    def test_glob(self):
+        dirs = [
+            "dir_AA",
+            "dir_AB",
+            "dir_BB",
+        ]
+        subdirs = [
+            "subdir_01",
+            "subdir_11",
+            "subdir_10",
+        ]
+        files = [
+            "file_XX.txt",
+            "file_XY.txt.gz",
+            "ZZ_file_YY.txt",
+        ]
+
+        def _create_file_path(p):
+            self.service.create_parent_dirs(str(p))
+            p.touch()
+
+        # create the file structure
+        for f in files:
+            r = pathlib.Path(self.rootdir)
+            _create_file_path(r / f)
+            for d in dirs:
+                d = r / d
+                _create_file_path(d / f)
+                for s in subdirs:
+                    s = d / s
+                    _create_file_path(s / f)
+
+        patterns = [
+            ["*.txt", [files[0], files[2]]],
+            ["*/*.txt", [os.path.join(d, f) for d in dirs for f in [files[0], files[2]]]],
+            ["**/*.txt", [
+                os.path.join(d, s, f)
+                for d in dirs
+                for s in subdirs + ["."]
+                for f in [files[0], files[2]]] + [
+                files[0], files[2]]],
+            ["*B/**/*.gz", [
+                os.path.join(d, s, files[1])
+                for d in [dirs[1], dirs[2]]
+                for s in subdirs + ["."]]
+            ],
+            ["**/*10/*", [
+                os.path.join(d, subdirs[2], f)
+                for d in dirs
+                for f in files
+            ]],
+            ["*10/*", []],
+            [files[1], [files[1]]]
+        ]
+        for pat, exp in patterns:
+            obs = sorted(
+                self.service.glob(
+                    self.rootdir,
+                    pat))
+            exp = sorted([str(pathlib.Path(self.rootdir) / e) for e in exp])
+            self.assertListEqual(obs, exp)
