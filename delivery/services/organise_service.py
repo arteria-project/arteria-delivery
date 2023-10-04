@@ -308,13 +308,16 @@ class OrganiseService(object):
 
         return organised_paths
 
-    def get_paths_matching_glob_pattern(self, path, glob_pattern):
+    def get_paths_matching_glob_path(self, glob_path, root_dir=None):
         """
-        Search the file hierarchy under the supplied path using a glob pattern and return a list of
-        the matching paths.
+        Search the file system using a path with (or without) globs and return a list yielding
+        the matching paths as strings. If glob_path is relative, it will be evaluated relative to
+        root_dir (or os.getcwd() if root_dir is None).
 
-        :param path: the path under which to search for the pattern
-        :param glob_pattern: the glob pattern to search for, relative to the supplied path
-        :return: a list of strings representing the matching paths
+        :param glob_path: the glob path to match, can be absolute or relative in combination with
+        root_dir
+        :param root_dir: (optional) if the glob_path is relative, it will be evaluated relative to
+        this root_dir
+        :return: an iterator yielding the matching paths as strings
         """
-        return self.file_system_service.glob(path, glob_pattern)
+        return self.file_system_service.glob(glob_path, root_dir=root_dir)

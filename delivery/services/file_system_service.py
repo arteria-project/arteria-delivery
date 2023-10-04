@@ -1,8 +1,10 @@
 
+import glob
 import logging
 import os
 import pathlib
 import shutil
+from contextlib import contextmanager
 
 log = logging.getLogger(__name__)
 
@@ -12,6 +14,19 @@ class FileSystemService(object):
     File system service, used for accessing the file system in a way that can
     easily be mocked out in testing.
     """
+
+    @staticmethod
+    @contextmanager
+    def change_directory(new_dir):
+        """
+        A context manager for changing directory and changing back when leaving the context
+        """
+        current_dir = os.getcwd()
+        try:
+            os.chdir(new_dir)
+            yield
+        finally:
+            os.chdir(current_dir)
 
     @staticmethod
     def list_directories(base_path):
@@ -157,8 +172,8 @@ class FileSystemService(object):
         return os.path.relpath(path, start)
 
     @staticmethod
-    def glob(path, pattern):
-        return list(
-            map(
-                str,
-                pathlib.Path(path).glob(pattern)))
+    def glob(pattern, root_dir=None):
+        if root_dir:
+            with FileSystemService.change_directory(root_dir):
+                return FileSystemService.glob(pattern, root_dir=None)
+        return glob.glob(pattern, recursive=True)

@@ -58,6 +58,19 @@ class TestFileSystemService(unittest.TestCase):
         self.assertTrue(self._content_equal(source_file, dest_file))
         self.assertFalse(os.path.samefile(source_file, dest_file))
 
+    def test_change_directory(self):
+        start_dir = pathlib.Path.home()
+        target_dir = pathlib.Path(self.rootdir)
+
+        os.chdir(start_dir)
+        # assert that we have moved to the user's home directory
+        self.assertTrue(start_dir.samefile(os.getcwd()))
+        # assert that the context manager changes to the target directory
+        with self.service.change_directory(target_dir):
+            self.assertTrue(target_dir.samefile(os.getcwd()))
+        # assert that we have moved back to the user's home directory when leaving the context
+        self.assertTrue(start_dir.samefile(os.getcwd()))
+
     def _link_helper(self, fn):
         source_file = self.files[-1]
         dest_file = self.files[0]
@@ -80,6 +93,23 @@ class TestFileSystemService(unittest.TestCase):
     def test_symlink(self):
         src, dst = self._link_helper(self.service.symlink)
         self.assertTrue(pathlib.Path(dst).is_symlink())
+
+    def _absolute_glob_helper(self, pattern, expected_paths):
+        self._glob_helper(pattern, expected_paths, root_dir="", relative_dir=self.rootdir)
+
+    def _relative_glob_helper(self, pattern, expected_paths):
+        self._glob_helper(pattern, expected_paths, root_dir=self.rootdir, relative_dir="")
+
+    def _glob_helper(self, pattern, expected_paths, root_dir, relative_dir):
+        obs = sorted([
+            str(pathlib.Path(p).resolve())
+            for p in self.service.glob(os.path.join(relative_dir, pattern), root_dir=root_dir)
+        ])
+        exp = sorted([
+            str((pathlib.Path(relative_dir) / p).resolve())
+            for p in expected_paths
+        ])
+        self.assertListEqual(obs, exp)
 
     def test_glob(self):
         dirs = [
@@ -135,10 +165,8 @@ class TestFileSystemService(unittest.TestCase):
             ["*10/*", []],
             [files[1], [files[1]]]
         ]
+
+        # test absolute and relative patterns
         for pat, exp in patterns:
-            obs = sorted(
-                self.service.glob(
-                    self.rootdir,
-                    pat))
-            exp = sorted([str(pathlib.Path(self.rootdir) / e) for e in exp])
-            self.assertListEqual(obs, exp)
+            self._absolute_glob_helper(pat, exp)
+            self._relative_glob_helper(pat, exp)
