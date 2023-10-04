@@ -2,29 +2,30 @@
 #Input: runfolder_name
 
 #Currently named runfolderpath and runfolder to harmonize with rnaseq config by Monika, but for specific runfolder delivery, technically, these could be "merged" to one.
-runfolderpath: "/proj/ngi2016001/incoming"
-runfolder: "{runfolderpath}/{runfolder_name}"
-organised: "{runfolder}/Projects/"
+variables:  
+  runfolderpath: "/proj/ngi2016001/incoming"
+  runfolder: "{runfolderpath}/{runfolder_name}"
+  organised: "{runfolder}/Projects"
 
 #current path is /proj/ngi2016001/incoming/<RUNFOLDER>/Projects/<PROJECT>/<RUNFOLDER>/
 #The following is based on that we are to keep the same directory structure as above.
-files_to_organize:
+files_to_organise:
 
 #The fastq files
 - source: "{runfolder}/Unaligned/*"  
   destination: "{organised}/{projectid}/{runfolder_name}/Sample_{samplename}/"
   options:
     required: True
-    symlink: True
-    regexp: (?P<projectid>[\w-]+)/Sample_(?P<samplename>[\w-]+)/(?P=samplename)_S(?P<samplenumber>\d+)_L(?P<lanes>\d+)_R(?P<read>\d)_001.fastq.gz
+    link_type: "softlink"
+    filter: (?P<projectid>[\w-]+)/Sample_(?P<samplename>[\w-]+)/(?P=samplename)_S(?P<samplenumber>\d+)_L(?P<lanes>\d+)_R(?P<read>\d)_001.fastq.gz
 
 #The MultiQC files
 - source: "{runfolder}/seqreports/project/*"
   destination: "{organised}/{projectid}/{runfolder_name}/"
   options:
     required: True
-    symlink: True
-    regexp: (?P<projectid>[\w-]+)/(?P{runfolder_name}\w+)_(?P=projectid)_multiqc_report[\w.-]+
+    link_type: "softlink"
+    filter: (?P<projectid>[\w-]+)/{runfolder_name}_(?P=projectid)_multiqc_report[\w.-]+
 
 
 
