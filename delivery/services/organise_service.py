@@ -301,16 +301,3 @@ class OrganiseService(object):
 class Default(dict):
     def __missing__(self, key):
         return f"{{{key}}}"
-
-
-
-if __name__ == "__main__":
-    config_file_path = sys.argv[1]
-    input_key = sys.argv[2]
-    input_value = sys.argv[3]
-
-    if not os.path.exists(config_file_path):
-        raise Exception("Config file does not exist.")
-
-    config_as_list = OrganiseService.parse_yaml_config(config_file_path=config_file_path , input_key=input_key, input_value=input_value)
-    
