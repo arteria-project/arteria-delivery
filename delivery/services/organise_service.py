@@ -7,12 +7,12 @@ import yaml
 import json
 import re
 
-#from delivery.exceptions import ProjectAlreadyOrganisedException
+from delivery.exceptions import ProjectAlreadyOrganisedException
 
-#from delivery.models.project import RunfolderProject
-#from delivery.models.runfolder import Runfolder, RunfolderFile
-#from delivery.models.sample import Sample, SampleFile
-#from delivery.services.file_system_service import FileSystemService
+from delivery.models.project import RunfolderProject
+from delivery.models.runfolder import Runfolder, RunfolderFile
+from delivery.models.sample import Sample, SampleFile
+from delivery.services.file_system_service import FileSystemService
 
 log = logging.getLogger(__name__)
 
@@ -24,8 +24,7 @@ class OrganiseService(object):
     This service handles that in a synchronous way.
     """
 
-    #def __init__(self, runfolder_service, file_system_service=FileSystemService()):
-    def __init__(self, runfolder_service, file_system_service=None):
+    def __init__(self, runfolder_service, file_system_service=FileSystemService()):
         """
         Instantiate a new OrganiseService
         :param runfolder_service: an instance of a RunfolderService
