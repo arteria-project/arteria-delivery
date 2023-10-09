@@ -11,7 +11,7 @@ files_to_organise:
   options: 
     required: True
     link_type: "softlink" 
-- source: "{deliverypath}/softlinks/DELIVERY.README.RNASEQ.md"
+- source: "{rootpath}/DELIVERY/softlinks/DELIVERY.README.RNASEQ.md"
   destination: "{deliverypath}/DELIVERY.README.RNASEQ.md"
   options: 
     required: True
