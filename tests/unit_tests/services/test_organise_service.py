@@ -217,3 +217,71 @@ class TestOrganiseService(unittest.TestCase):
             mock.call(
                 os.path.join("..", "..", "..", "foo", "report-dir", "another-report-file"),
                 os.path.join(organised_project_path, "report-dir", "another-report-file"))])
+
+    def test_parse_yaml_config_project(self):
+        config_file_path = "config/organise_config/organise_project.yml"
+        input_key = "projectid"
+        input_value = "ABC-123"
+        
+        self.assertEqual(OrganiseService.parse_yaml_config(config_file_path,input_key,input_value),
+                        [("/proj/ngi2016001/nobackup/NGI/ANALYSIS/ABC-123/results",
+                          "/proj/ngi2016001/nobackup/NGI/DELIVERY/ABC-123/results",
+                          {"required": True,"link_type": "softlink"}),
+                         ("/proj/ngi2016001/nobackup/NGI/DELIVERY/softlinks/DELIVERY.README.RNASEQ.md",
+                          "/proj/ngi2016001/nobackup/NGI/DELIVERY/ABC-123/DELIVERY.README.RNASEQ.md",
+                          {"required": True,"link_type": "softlink"}),
+                          ("/proj/ngi2016001/incoming/*/Projects/ABC-123",
+                          "/proj/ngi2016001/nobackup/NGI/DELIVERY/ABC-123/fastq/",
+                          {"required": True,"link_type": "softlink"})])
+
+    def test_parse_yaml_config_runfolder_empty(self):
+        '''
+        If the input (i.e. the list of files) is empty the output will be empty in this case since
+        we have a "filter" option for all files_to_organise in the given configuration file.
+        '''
+        config_file_path = "config/organise_config/organise_runfolder.yml"
+        input_key = "runfolder_name"
+        input_value = "200624_A00834_0183_BHMTFYDRXX"
+
+        OrganiseService.get_mock_file_list = mock.MagicMock(return_value=[])
+
+        self.assertEqual(OrganiseService.parse_yaml_config(config_file_path,input_key,input_value),[])
+
+    def test_parse_yaml_config_runfolder_reports(self):
+        config_file_path = "config/organise_config/organise_runfolder.yml"
+        input_key = "runfolder_name"
+        input_value = "200624_A00834_0183_BHMTFYDRXX"
+
+        OrganiseService.get_mock_file_list = mock.MagicMock(return_value=["/proj/ngi2016001/incoming/200624_A00834_0183_BHMTFYDRXX/seqreports/project/AB-1234/200624_A00834_0183_BHMTFYDRXX_AB-1234_multiqc_report.html"])
+
+        expected_output = [("/proj/ngi2016001/incoming/200624_A00834_0183_BHMTFYDRXX/seqreports/project/AB-1234/200624_A00834_0183_BHMTFYDRXX_AB-1234_multiqc_report.html",
+        "/proj/ngi2016001/incoming/200624_A00834_0183_BHMTFYDRXX/Projects/AB-1234/200624_A00834_0183_BHMTFYDRXX/200624_A00834_0183_BHMTFYDRXX_AB-1234_multiqc_report.html", 
+        {"required": True,
+        "link_type": "softlink",
+        "filter": "(?P<projectid>[\w-]+)/200624_A00834_0183_BHMTFYDRXX_(?P=projectid)_multiqc_report[\w.-]+"})]
+
+        self.assertEqual(OrganiseService.parse_yaml_config(config_file_path,input_key,input_value),expected_output)
+
+    def test_parse_yaml_config_runfolder_fastq(self):
+        config_file_path = "config/organise_config/organise_runfolder.yml"
+        input_key = "runfolder_name"
+        input_value = "200624_A00834_0183_BHMTFYDRXX"
+
+        OrganiseService.get_mock_file_list = mock.MagicMock(return_value=["/proj/ngi2016001/incoming/200624_A00834_0183_BHMTFYDRXX/Unaligned/AB-1234/Sample_AB-1234-14092/AB-1234-14092_S35_L001_R1_001.fastq.gz"])
+
+        expected_output = [("/proj/ngi2016001/incoming/200624_A00834_0183_BHMTFYDRXX/Unaligned/AB-1234/Sample_AB-1234-14092/AB-1234-14092_S35_L001_R1_001.fastq.gz",
+        "/proj/ngi2016001/incoming/200624_A00834_0183_BHMTFYDRXX/Projects/AB-1234/200624_A00834_0183_BHMTFYDRXX/Sample_AB-1234-14092/AB-1234-14092_S35_L001_R1_001.fastq.gz", 
+        {"required": True,
+        "link_type": "softlink",
+        "filter": "(?P<projectid>[\w-]+)/Sample_(?P<samplename>[\w-]+)/(?P=samplename)_S(?P<samplenumber>\d+)_L(?P<lanes>\d+)_R(?P<read>\d)_001.fastq.gz"})]
+
+        self.assertEqual(OrganiseService.parse_yaml_config(config_file_path,input_key,input_value),expected_output)
+
+    def test_parse_yaml_config_runfolder_no_filter_match(self):
+        config_file_path = "config/organise_config/organise_runfolder.yml"
+        input_key = "runfolder_name"
+        input_value = "200624_A00834_0183_BHMTFYDRXX"
+
+        OrganiseService.get_mock_file_list = mock.MagicMock(return_value=["/proj/ngi2016001/incoming/200624_A00834_0183_BHMTFYDRXX/Unaligned/AB-1234/Sample_AB-1234-14092/AB-1234-14092.txt"])
+
+        self.assertEqual(OrganiseService.parse_yaml_config(config_file_path,input_key,input_value),[])
