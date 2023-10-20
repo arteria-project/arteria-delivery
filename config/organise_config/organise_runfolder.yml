@@ -2,9 +2,10 @@
 #Input: runfolder_name
 
 #Currently named runfolderpath and runfolder to harmonize with rnaseq config by Monika, but for specific runfolder delivery, technically, these could be "merged" to one.
-variables:  
+variables:
+  inputkey: "runfolder_name"  
   runfolderpath: "/proj/ngi2016001/incoming"
-  runfolder: "{runfolderpath}/{runfolder_name}"
+  runfolder: "{runfolderpath}/{inputkey}"
   organised: "{runfolder}/Projects"
 
 #current path is /proj/ngi2016001/incoming/<RUNFOLDER>/Projects/<PROJECT>/<RUNFOLDER>/
@@ -13,7 +14,7 @@ files_to_organise:
 
 #The fastq files
 - source: "{runfolder}/Unaligned/*"  
-  destination: "{organised}/{projectid}/{runfolder_name}/Sample_{samplename}/"
+  destination: "{organised}/{projectid}/{inputkey}/Sample_{samplename}/"
   options:
     required: True
     link_type: "softlink"
@@ -21,11 +22,11 @@ files_to_organise:
 
 #The MultiQC files
 - source: "{runfolder}/seqreports/project/*"
-  destination: "{organised}/{projectid}/{runfolder_name}/"
+  destination: "{organised}/{projectid}/{inputkey}/"
   options:
     required: True
     link_type: "softlink"
-    filter: (?P<projectid>[\w-]+)/{runfolder_name}_(?P=projectid)_multiqc_report[\w.-]+
+    filter: (?P<projectid>[\w-]+)/{inputkey}_(?P=projectid)_multiqc_report[\w.-]+
 
 
 
