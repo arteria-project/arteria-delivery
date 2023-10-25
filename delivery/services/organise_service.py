@@ -222,28 +222,30 @@ class OrganiseService(object):
     def _determine_organise_operation(self, link_type=None):
         """
         Determine the organisation operation from the config. If link_type is None, the default
-        will hardlink. Raises a RuntimeError if link_type is neither None or one of "hard", "soft"
+        will be to copy. Raises a RuntimeError if link_type is neither None or one of "softlink"
         or "copy".
-        :param link_type: None or one of "hard", "soft" or "copy"
+        :param link_type: None or one of "softlink" or "copy"
         :return: the function reference for the organisation operation to use
         :raise: RuntimeError if link_type is not recognized
         """
         ops = {
-            "hard": self.file_system_service.hardlink,
-            "soft": self.file_system_service.symlink,
+            "softlink": self.file_system_service.symlink,
             "copy": self.file_system_service.copy
         }
         try:
-            return ops[link_type or "hard"]
+            return ops[link_type or "copy"]
         except KeyError:
             raise RuntimeError(
                 f"{link_type} is not a recognized operation")
 
     def _configure_organisation_entry(self, entry):
 
-        src_path = entry["source"]
-        dst_path = entry["destination"]
-        options = entry["options"]
+        try:
+            src_path = pathlib.Path(entry["source"])
+            dst_path = pathlib.Path(entry["destination"])
+            options = entry["options"]
+        except KeyError as k:
+            raise RuntimeError(f"config entry is missing required key: {str(k)}")
 
         # check explicitly if source exists since hard linking would throw an exception but
         # soft links will not
@@ -282,7 +284,7 @@ class OrganiseService(object):
         # do a first round to check status of source and destination, basically in order to avoid
         # creating half-finished organised structures. Since non-existing, non-required files
         # return None, filter those out
-        operations = None
+        organised_paths = []
         try:
             operations = list(
                 filter(
@@ -290,21 +292,17 @@ class OrganiseService(object):
                     map(
                         lambda entry: self._configure_organisation_entry(entry),
                         parsed_config_dict)))
-        except (
-                RuntimeError,
+            for operation in operations:
+                operation[0](operation[1], operation[2])
+                organised_paths.append(operation[2])
+        except (RuntimeError,
                 FileNotFoundError,
                 PermissionError) as ex:
             log.debug(str(ex))
             raise
-
-        organised_paths = []
-        try:
-            for operation in operations:
-                operation[0](operation[1], operation[2])
-                organised_paths.append(operation[2])
         except Exception as ex:
             log.debug(ex)
-            raise
+            raise RuntimeError(ex)
 
         return organised_paths
 
