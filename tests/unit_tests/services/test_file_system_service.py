@@ -94,24 +94,7 @@ class TestFileSystemService(unittest.TestCase):
         src, dst = self._link_helper(self.service.symlink)
         self.assertTrue(pathlib.Path(dst).is_symlink())
 
-    def _absolute_glob_helper(self, pattern, expected_paths):
-        self._glob_helper(pattern, expected_paths, root_dir="", relative_dir=self.rootdir)
-
-    def _relative_glob_helper(self, pattern, expected_paths):
-        self._glob_helper(pattern, expected_paths, root_dir=self.rootdir, relative_dir="")
-
-    def _glob_helper(self, pattern, expected_paths, root_dir, relative_dir):
-        obs = sorted([
-            str(pathlib.Path(p).resolve())
-            for p in self.service.glob(os.path.join(relative_dir, pattern), root_dir=root_dir)
-        ])
-        exp = sorted([
-            str((pathlib.Path(relative_dir) / p).resolve())
-            for p in expected_paths
-        ])
-        self.assertListEqual(obs, exp)
-
-    def test_glob(self):
+    def _create_disk_structure(self):
         dirs = [
             "dir_AA",
             "dir_AB",
@@ -127,10 +110,12 @@ class TestFileSystemService(unittest.TestCase):
             "file_XY.txt.gz",
             "ZZ_file_YY.txt",
         ]
+        paths = []
 
         def _create_file_path(p):
             self.service.create_parent_dirs(str(p))
             p.touch()
+            paths.append(p.relative_to(self.rootdir))
 
         # create the file structure
         for f in files:
@@ -143,30 +128,105 @@ class TestFileSystemService(unittest.TestCase):
                     s = d / s
                     _create_file_path(s / f)
 
-        patterns = [
-            ["*.txt", [files[0], files[2]]],
-            ["*/*.txt", [os.path.join(d, f) for d in dirs for f in [files[0], files[2]]]],
-            ["**/*.txt", [
-                os.path.join(d, s, f)
-                for d in dirs
-                for s in subdirs + ["."]
-                for f in [files[0], files[2]]] + [
-                files[0], files[2]]],
-            ["*B/**/*.gz", [
-                os.path.join(d, s, files[1])
-                for d in [dirs[1], dirs[2]]
-                for s in subdirs + ["."]]
-            ],
-            ["**/*10/*", [
-                os.path.join(d, subdirs[2], f)
-                for d in dirs
-                for f in files
-            ]],
-            ["*10/*", []],
-            [files[1], [files[1]]]
-        ]
+        return paths
 
-        # test absolute and relative patterns
-        for pat, exp in patterns:
-            self._absolute_glob_helper(pat, exp)
-            self._relative_glob_helper(pat, exp)
+    def _absolute_glob_helper(self, pattern, expected_paths):
+        self._glob_helper(pattern, expected_paths, root_dir="", relative_dir=self.rootdir)
+
+    def _relative_glob_helper(self, pattern, expected_paths):
+        self._glob_helper(pattern, expected_paths, root_dir=self.rootdir, relative_dir="")
+
+    def _glob_helper(self, pattern, expected_paths, root_dir, relative_dir):
+        obs = sorted([
+            str(pathlib.Path(p))
+            for p in self.service.glob(os.path.join(relative_dir, pattern), root_dir=root_dir)
+        ])
+        exp = sorted([
+            str((pathlib.Path(relative_dir) / p))
+            for p in expected_paths
+        ])
+        self.assertListEqual(obs, exp)
+
+    def test_rootdir_file_glob(self):
+        paths = self._create_disk_structure()
+        pattern = "*.txt"
+        expected_paths = list(
+            filter(
+                lambda p: p.parent.name == "" and p.suffix == ".txt",
+                paths))
+        self._absolute_glob_helper(pattern, expected_paths)
+        self._relative_glob_helper(pattern, expected_paths)
+
+    def test_subdir_file_glob(self):
+        paths = self._create_disk_structure()
+        pattern = "*/*.txt"
+        expected_paths = list(
+            filter(
+                lambda p: p.parent.name.startswith("dir_") and p.suffix == ".txt",
+                paths))
+        self._absolute_glob_helper(pattern, expected_paths)
+        self._relative_glob_helper(pattern, expected_paths)
+
+    def test_anydir_file_glob(self):
+        paths = self._create_disk_structure()
+        pattern = "**/*.txt"
+        expected_paths = list(
+            filter(
+                lambda p: p.suffix == ".txt",
+                paths))
+        self._absolute_glob_helper(pattern, expected_paths)
+        self._relative_glob_helper(pattern, expected_paths)
+
+    def test_dirsuffix_anydir_file_glob(self):
+        paths = self._create_disk_structure()
+        pattern = "*B/**/*.gz"
+        expected_paths = list(
+            filter(
+                lambda p: p.parts[0].endswith("B") and p.suffix == ".gz",
+                paths))
+        self._absolute_glob_helper(pattern, expected_paths)
+        self._relative_glob_helper(pattern, expected_paths)
+
+    def test_dirsuffix_anyfile_glob(self):
+        paths = self._create_disk_structure()
+        pattern = "**/*10/*"
+        expected_paths = list(
+            filter(
+                lambda p: p.parent.name.endswith("10"),
+                paths))
+        self._absolute_glob_helper(pattern, expected_paths)
+        self._relative_glob_helper(pattern, expected_paths)
+
+    def test_rootsuffix_anyfile_glob(self):
+        paths = self._create_disk_structure()
+        pattern = "*10/*"
+        expected_paths = list(
+            filter(
+                lambda p: len(p.parts) > 1 and p.parts[0].endswith("10"),
+                paths))
+        self._absolute_glob_helper(pattern, expected_paths)
+        self._relative_glob_helper(pattern, expected_paths)
+
+    def test_noglob_file_glob(self):
+        paths = self._create_disk_structure()
+        pattern = paths[0].name
+        expected_paths = [paths[0].name]
+        self._absolute_glob_helper(pattern, expected_paths)
+        self._relative_glob_helper(pattern, expected_paths)
+
+    def test_anyfile_glob(self):
+        paths = self._create_disk_structure()
+        pattern = "dir_*/**"
+        expected_paths = list(
+            filter(
+                lambda p: len(p.parts) > 1 and p.parts[0].startswith("dir_"),
+                paths))
+        expected_paths.extend(
+            list(
+                set(
+                    [d for p in paths for d in p.parents if d.name]
+                )
+            )
+        )
+        self._absolute_glob_helper(pattern, expected_paths)
+        self._relative_glob_helper(pattern, expected_paths)
