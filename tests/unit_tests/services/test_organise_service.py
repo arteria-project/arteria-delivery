@@ -27,7 +27,8 @@ class TestOrganiseService(unittest.TestCase):
         self.file_system_service = mock.MagicMock(spec=FileSystemService)
         self.runfolder_service = mock.MagicMock(spec=RunfolderService)
         self.project_repository = mock.MagicMock(spec=GeneralProjectRepository)
-        self.sample_repository = mock.MagicMock(spec=RunfolderProjectBasedSampleRepository)
+        self.sample_repository = mock.MagicMock(
+            spec=RunfolderProjectBasedSampleRepository)
         self.organise_service = OrganiseService(
             self.runfolder_service,
             file_system_service=self.file_system_service)
@@ -36,12 +37,19 @@ class TestOrganiseService(unittest.TestCase):
         self.runfolder_service.find_runfolder.return_value = self.runfolder
         self.runfolder_service.find_projects_on_runfolder.side_effect = [[self.project]]
         self.file_system_service.exists.return_value = False
-        with mock.patch.object(self.organise_service, "organise_project", autospec=True) as organise_project_mock:
+        with mock.patch.object(
+            self.organise_service, 
+            "organise_project", 
+            autospec=True) as organise_project_mock:
             runfolder_id = self.runfolder.name
             lanes = [1, 2, 3]
             projects = ["a", "b", "c"]
             force = False
-            self.organise_service.organise_runfolder(runfolder_id, lanes, projects, force)
+            self.organise_service.organise_runfolder(
+                runfolder_id, 
+                lanes, 
+                projects, 
+                force)
             organise_project_mock.assert_called_once_with(
                 self.runfolder,
                 self.project,
@@ -79,7 +87,10 @@ class TestOrganiseService(unittest.TestCase):
     def test_organise_runfolder_already_organised(self):
         self.runfolder_service.find_runfolder.return_value = self.runfolder
         self.file_system_service.exists.return_value = True
-        with mock.patch.object(self.organise_service, "organise_project", autospec=True) as organise_project_mock:
+        with mock.patch.object(
+            self.organise_service, 
+            "organise_project", 
+            autospec=True) as organise_project_mock:
             expected_organised_project = "this-is-an-organised-project"
             organise_project_mock.return_value = expected_organised_project
             self.runfolder_service.find_projects_on_runfolder.side_effect = [[self.project], [self.project]]
@@ -106,7 +117,11 @@ class TestOrganiseService(unittest.TestCase):
             self.file_system_service.dirname.side_effect = os.path.dirname
             lanes = [1, 2, 3]
             organised_projects_path = os.path.join(self.project.runfolder_path, "Projects")
-            self.organise_service.organise_project(self.runfolder, self.project, organised_projects_path, lanes)
+            self.organise_service.organise_project(
+                self.runfolder, 
+                self.project, 
+                organised_projects_path, 
+                lanes)
             organise_sample_mock.assert_has_calls([
                 mock.call(
                     sample,
@@ -116,8 +131,12 @@ class TestOrganiseService(unittest.TestCase):
             organise_project_file_mock.assert_has_calls([
                 mock.call(
                     project_file,
-                    os.path.join(organised_projects_path, self.project.name, self.project.runfolder_name),
-                    project_file_base=os.path.dirname(self.project.project_files[0].file_path)
+                    os.path.join(
+                        organised_projects_path, 
+                        self.project.name, 
+                        self.project.runfolder_name),
+                    project_file_base=os.path.dirname(
+                        self.project.project_files[0].file_path)
                 )
                 for project_file in self.project.project_files])
 
@@ -126,7 +145,10 @@ class TestOrganiseService(unittest.TestCase):
         self.file_system_service.relpath.side_effect = os.path.relpath
         self.file_system_service.dirname.side_effect = os.path.dirname
         for sample in self.project.samples:
-            organised_sample = self.organise_service.organise_sample(sample, self.organised_project_path, [])
+            organised_sample = self.organise_service.organise_sample(
+                sample, 
+                self.organised_project_path, 
+                [])
             sample_file_dir = os.path.relpath(
                 os.path.dirname(
                     sample.sample_files[0].file_path),
@@ -134,19 +156,26 @@ class TestOrganiseService(unittest.TestCase):
             relative_path = os.path.join("..", "..", "..", "..", sample_file_dir)
             self.file_system_service.symlink.assert_has_calls([
                 mock.call(
-                    os.path.join(relative_path, os.path.basename(sample_file.file_path)),
+                    os.path.join(relative_path, os.path.basename(
+                        sample_file.file_path)),
                     sample_file.file_path) for sample_file in organised_sample.sample_files])
 
     def test_organise_sample_exclude_by_lane(self):
 
         # all sample lanes are excluded
         for sample in self.project.samples:
-            organised_sample = self.organise_service.organise_sample(sample, self.organised_project_path, [0])
+            organised_sample = self.organise_service.organise_sample(
+                sample, 
+                self.organised_project_path, 
+                [0])
             self.assertListEqual([], organised_sample.sample_files)
 
         # a specific sample lane is excluded
         for sample in self.project.samples:
-            organised_sample = self.organise_service.organise_sample(sample, self.organised_project_path, [2, 3])
+            organised_sample = self.organise_service.organise_sample(
+                sample, 
+                self.organised_project_path, 
+                [2, 3])
             self.assertListEqual(
                 list(map(lambda x: x.file_name, filter(lambda f: f.lane_no in [2, 3], sample.sample_files))),
                 list(map(lambda x: x.file_name, organised_sample.sample_files)))
@@ -184,7 +213,13 @@ class TestOrganiseService(unittest.TestCase):
                             os.path.dirname(sample_file.file_path)),
                         os.path.basename(sample_file.file_path)),
                     expected_link_path)
-                for attr in ("file_name", "sample_name", "sample_index", "lane_no", "read_no", "is_index", "checksum"):
+                for attr in ("file_name", 
+                             "sample_name", 
+                             "sample_index", 
+                             "lane_no", 
+                             "read_no", 
+                             "is_index", 
+                             "checksum"):
                     self.assertEqual(
                         getattr(sample_file, attr),
                         getattr(organised_sample_file, attr))
@@ -198,7 +233,9 @@ class TestOrganiseService(unittest.TestCase):
                     project_file_base,
                     project_file),
                 file_checksum="checksum-for-{}".format(project_file))
-            for project_file in ("a-report-file", os.path.join("report-dir", "another-report-file"))]
+            for project_file in ("a-report-file", os.path.join(
+                "report-dir", 
+                "another-report-file"))]
         self.file_system_service.relpath.side_effect = os.path.relpath
         self.file_system_service.dirname.side_effect = os.path.dirname
         for project_file in project_files:
@@ -218,70 +255,163 @@ class TestOrganiseService(unittest.TestCase):
                 os.path.join("..", "..", "..", "foo", "report-dir", "another-report-file"),
                 os.path.join(organised_project_path, "report-dir", "another-report-file"))])
 
-    def test_parse_yaml_config_project(self):
-        config_file_path = "config/organise_config/organise_project.yml"
-        input_key = "projectid"
-        input_value = "ABC-123"
-        
-        self.assertEqual(OrganiseService.parse_yaml_config(config_file_path,input_key,input_value),
-                        [("/proj/ngi2016001/nobackup/NGI/ANALYSIS/ABC-123/results",
-                          "/proj/ngi2016001/nobackup/NGI/DELIVERY/ABC-123/results",
-                          {"required": True,"link_type": "softlink"}),
-                         ("/proj/ngi2016001/nobackup/NGI/DELIVERY/softlinks/DELIVERY.README.RNASEQ.md",
-                          "/proj/ngi2016001/nobackup/NGI/DELIVERY/ABC-123/DELIVERY.README.RNASEQ.md",
-                          {"required": True,"link_type": "softlink"}),
-                          ("/proj/ngi2016001/incoming/*/Projects/ABC-123",
-                          "/proj/ngi2016001/nobackup/NGI/DELIVERY/ABC-123/fastq/",
-                          {"required": True,"link_type": "softlink"})])
-
-    def test_parse_yaml_config_runfolder_empty(self):
+    def test_parse_yaml_config_empty_source(self):
         '''
-        If the input (i.e. the list of files) is empty the output will be empty in this case since
-        we have a "filter" option for all files_to_organise in the given configuration file.
+        If the input (i.e. the list of files) is empty 
+        the output will be empty in this case since
+        we have a "filter" option for all files_to_organise in 
+        the given configuration file.
         '''
         config_file_path = "config/organise_config/organise_runfolder.yml"
-        input_key = "runfolder_name"
         input_value = "200624_A00834_0183_BHMTFYDRXX"
 
         OrganiseService.get_mock_file_list = mock.MagicMock(return_value=[])
 
-        self.assertEqual(OrganiseService.parse_yaml_config(config_file_path,input_key,input_value),[])
-
-    def test_parse_yaml_config_runfolder_reports(self):
-        config_file_path = "config/organise_config/organise_runfolder.yml"
-        input_key = "runfolder_name"
-        input_value = "200624_A00834_0183_BHMTFYDRXX"
-
-        OrganiseService.get_mock_file_list = mock.MagicMock(return_value=["/proj/ngi2016001/incoming/200624_A00834_0183_BHMTFYDRXX/seqreports/project/AB-1234/200624_A00834_0183_BHMTFYDRXX_AB-1234_multiqc_report.html"])
-
-        expected_output = [("/proj/ngi2016001/incoming/200624_A00834_0183_BHMTFYDRXX/seqreports/project/AB-1234/200624_A00834_0183_BHMTFYDRXX_AB-1234_multiqc_report.html",
-        "/proj/ngi2016001/incoming/200624_A00834_0183_BHMTFYDRXX/Projects/AB-1234/200624_A00834_0183_BHMTFYDRXX/200624_A00834_0183_BHMTFYDRXX_AB-1234_multiqc_report.html", 
-        {"required": True,
-        "link_type": "softlink",
-        "filter": "(?P<projectid>[\w-]+)/200624_A00834_0183_BHMTFYDRXX_(?P=projectid)_multiqc_report[\w.-]+"})]
-
-        self.assertEqual(OrganiseService.parse_yaml_config(config_file_path,input_key,input_value),expected_output)
+        self.assertEqual(OrganiseService.parse_yaml_config(
+            config_file_path, 
+            input_value), 
+            [])
 
     def test_parse_yaml_config_runfolder_fastq(self):
-        config_file_path = "config/organise_config/organise_runfolder.yml"
-        input_key = "runfolder_name"
+        config_file_path = "/path/to/config.yaml"
         input_value = "200624_A00834_0183_BHMTFYDRXX"
 
-        OrganiseService.get_mock_file_list = mock.MagicMock(return_value=["/proj/ngi2016001/incoming/200624_A00834_0183_BHMTFYDRXX/Unaligned/AB-1234/Sample_AB-1234-14092/AB-1234-14092_S35_L001_R1_001.fastq.gz"])
+        OrganiseService.load_yaml_config = mock.MagicMock(
+            return_value={
+            "variables": 
+            {
+                "inputkey": "runfolder_name",  
+                "runfolderpath": "/proj/ngi2016001/incoming",
+                "runfolder": "{runfolderpath}/{inputkey}",
+                "organised": "{runfolder}/Projects",
+            },
+            "files_to_organise":
+                [{
+                "source": "{runfolder}/Unaligned/*",  
+                "destination": "{organised}/{projectid}/{inputkey}/Sample_{samplename}/",
+                "options":
+                    {
+                        "required": True,
+                        "link_type": "softlink",
+                        "filter": "(?P<projectid>[\\w-]+)/Sample_(?P<samplename>[\\w-]+)/(?P=samplename)_S(?P<samplenumber>\\d+)_L(?P<lanes>\\d+)_R(?P<read>\\d)_001.fastq.gz"
+                    }
+                }]
+            })
+
+        OrganiseService.get_mock_file_list = mock.MagicMock(
+            return_value=[
+                "/proj/ngi2016001/incoming/200624_A00834_0183_BHMTFYDRXX/Unaligned/AB-1234/Sample_AB-1234-14092/AB-1234-14092_S35_L001_R1_001.fastq.gz",
+                 "/proj/ngi2016001/incoming/200624_A00834_0183_BHMTFYDRXX/Unaligned/AB-1234/Sample_AB-1234-14597/AB-1234-14597_S35_L001_R1_001.fastq.gz",
+                 "/proj/ngi2016001/incoming/200624_A00834_0183_BHMTFYDRXX/Unaligned/CD-5678/Sample_CD-5678-1/CD-5678-1_S89_L001_R1_001.fastq.gz"
+                 ]
+            )
 
         expected_output = [("/proj/ngi2016001/incoming/200624_A00834_0183_BHMTFYDRXX/Unaligned/AB-1234/Sample_AB-1234-14092/AB-1234-14092_S35_L001_R1_001.fastq.gz",
-        "/proj/ngi2016001/incoming/200624_A00834_0183_BHMTFYDRXX/Projects/AB-1234/200624_A00834_0183_BHMTFYDRXX/Sample_AB-1234-14092/AB-1234-14092_S35_L001_R1_001.fastq.gz", 
+        "/proj/ngi2016001/incoming/200624_A00834_0183_BHMTFYDRXX/Projects/AB-1234/200624_A00834_0183_BHMTFYDRXX/Sample_AB-1234-14092/", 
         {"required": True,
         "link_type": "softlink",
-        "filter": "(?P<projectid>[\w-]+)/Sample_(?P<samplename>[\w-]+)/(?P=samplename)_S(?P<samplenumber>\d+)_L(?P<lanes>\d+)_R(?P<read>\d)_001.fastq.gz"})]
+        "filter": "(?P<projectid>[\\w-]+)/Sample_(?P<samplename>[\\w-]+)/(?P=samplename)_S(?P<samplenumber>\\d+)_L(?P<lanes>\\d+)_R(?P<read>\\d)_001.fastq.gz"}),
+        ("/proj/ngi2016001/incoming/200624_A00834_0183_BHMTFYDRXX/Unaligned/AB-1234/Sample_AB-1234-14597/AB-1234-14597_S35_L001_R1_001.fastq.gz",
+        "/proj/ngi2016001/incoming/200624_A00834_0183_BHMTFYDRXX/Projects/AB-1234/200624_A00834_0183_BHMTFYDRXX/Sample_AB-1234-14597/", 
+        {"required": True,
+        "link_type": "softlink",
+        "filter": "(?P<projectid>[\\w-]+)/Sample_(?P<samplename>[\\w-]+)/(?P=samplename)_S(?P<samplenumber>\\d+)_L(?P<lanes>\\d+)_R(?P<read>\\d)_001.fastq.gz"}),
+        ("/proj/ngi2016001/incoming/200624_A00834_0183_BHMTFYDRXX/Unaligned/CD-5678/Sample_CD-5678-1/CD-5678-1_S89_L001_R1_001.fastq.gz",
+        "/proj/ngi2016001/incoming/200624_A00834_0183_BHMTFYDRXX/Projects/CD-5678/200624_A00834_0183_BHMTFYDRXX/Sample_CD-5678-1/", 
+        {"required": True,
+        "link_type": "softlink",
+        "filter": "(?P<projectid>[\\w-]+)/Sample_(?P<samplename>[\\w-]+)/(?P=samplename)_S(?P<samplenumber>\\d+)_L(?P<lanes>\\d+)_R(?P<read>\\d)_001.fastq.gz"})]
 
-        self.assertEqual(OrganiseService.parse_yaml_config(config_file_path,input_key,input_value),expected_output)
+        self.assertEqual(OrganiseService.parse_yaml_config(
+            config_file_path,
+            input_value),
+            expected_output)
 
-    def test_parse_yaml_config_runfolder_no_filter_match(self):
-        config_file_path = "config/organise_config/organise_runfolder.yml"
-        input_key = "runfolder_name"
+    def test_parse_yaml_config_runfolder_reports(self):
+        config_file_path = "/path/to/config.yaml"
         input_value = "200624_A00834_0183_BHMTFYDRXX"
 
-        OrganiseService.get_mock_file_list = mock.MagicMock(return_value=["/proj/ngi2016001/incoming/200624_A00834_0183_BHMTFYDRXX/Unaligned/AB-1234/Sample_AB-1234-14092/AB-1234-14092.txt"])
+        OrganiseService.load_yaml_config = mock.MagicMock(
+            return_value={
+            "variables": 
+            {
+                "inputkey": "runfolder_name",  
+                "runfolderpath": "/proj/ngi2016001/incoming",
+                "runfolder": "{runfolderpath}/{inputkey}",
+                "organised": "{runfolder}/Projects",
+            },
+            "files_to_organise":
+                [{
+                "source": "{runfolder}/seqreports/projects/*",
+                "destination": "{organised}/{projectid}/{inputkey}/",
+                "options":
+                    {
+                        "required": True,
+                        "link_type": "softlink",
+                        "filter": "(?P<projectid>[\\w-]+)/{inputkey}_(?P=projectid)_multiqc_report[\\w.-]+"
+                    }
+                }]
+            })
 
-        self.assertEqual(OrganiseService.parse_yaml_config(config_file_path,input_key,input_value),[])
+        OrganiseService.get_mock_file_list = mock.MagicMock(
+            return_value=["/proj/ngi2016001/incoming/200624_A00834_0183_BHMTFYDRXX/seqreports/projects/AB-1234/200624_A00834_0183_BHMTFYDRXX_AB-1234_multiqc_report.html",
+                          "/proj/ngi2016001/incoming/200624_A00834_0183_BHMTFYDRXX/seqreports/projects/CD-5678/200624_A00834_0183_BHMTFYDRXX_CD-5678_multiqc_report.html"]
+                          )
+
+        expected_output = [("/proj/ngi2016001/incoming/200624_A00834_0183_BHMTFYDRXX/seqreports/projects/AB-1234/200624_A00834_0183_BHMTFYDRXX_AB-1234_multiqc_report.html",
+        "/proj/ngi2016001/incoming/200624_A00834_0183_BHMTFYDRXX/Projects/AB-1234/200624_A00834_0183_BHMTFYDRXX/", 
+        {"required": True,
+        "link_type": "softlink",
+        "filter": "(?P<projectid>[\\w-]+)/{inputkey}_(?P=projectid)_multiqc_report[\\w.-]+"}),
+        ("/proj/ngi2016001/incoming/200624_A00834_0183_BHMTFYDRXX/seqreports/projects/CD-5678/200624_A00834_0183_BHMTFYDRXX_CD-5678_multiqc_report.html",
+        "/proj/ngi2016001/incoming/200624_A00834_0183_BHMTFYDRXX/Projects/CD-5678/200624_A00834_0183_BHMTFYDRXX/", 
+        {"required": True,
+        "link_type": "softlink",
+        "filter": "(?P<projectid>[\\w-]+)/{inputkey}_(?P=projectid)_multiqc_report[\\w.-]+"})]
+
+        self.assertEqual(OrganiseService.parse_yaml_config(
+            config_file_path,
+            input_value),
+            expected_output)
+
+    def test_parse_yaml_config_no_filter(self):
+        config_file_path = "/path/to/config.yaml"
+        input_value = "AB-1234"
+
+        OrganiseService.load_yaml_config = mock.MagicMock(
+            return_value={
+            "variables":
+            {
+            "inputkey": "projectid",
+            "rootpath": "/proj/ngi2016001/nobackup/NGI",
+            "runfolderpath": "/proj/ngi2016001/incoming",
+            "analysispath": "{rootpath}/ANALYSIS/{inputkey}",
+            "deliverypath": "{rootpath}/DELIVERY/{inputkey}"
+            },
+            "files_to_organise":
+                [{
+                "source": "{analysispath}/results",
+                "destination": "{deliverypath}/results",
+                "options":
+                    {
+                        "required": True,
+                        "link_type": "softlink"
+                    }
+                }]
+            })
+
+        OrganiseService.get_mock_file_list = mock.MagicMock(
+            return_value=["/proj/ngi2016001/nobackup/NGI/ANALYSIS/AB-1234/results"]
+                          )
+        expected_output = [("/proj/ngi2016001/nobackup/NGI/ANALYSIS/AB-1234/results",
+                            "/proj/ngi2016001/nobackup/NGI/DELIVERY/AB-1234/results",
+                            {
+                                "required": True,
+                                "link_type": "softlink"
+                            }
+                            )]
+
+        self.assertEqual(OrganiseService.parse_yaml_config(
+            config_file_path, 
+            input_value), 
+            expected_output)

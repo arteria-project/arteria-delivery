@@ -18,15 +18,15 @@ files_to_organise:
   options:
     required: True
     link_type: "softlink"
-    filter: (?P<projectid>[\w-]+)/Sample_(?P<samplename>[\w-]+)/(?P=samplename)_S(?P<samplenumber>\d+)_L(?P<lanes>\d+)_R(?P<read>\d)_001.fastq.gz
+    filter: "(?P<projectid>[\\w-]+)/Sample_(?P<samplename>[\\w-]+)/(?P=samplename)_S(?P<samplenumber>\\d+)_L(?P<lanes>\\d+)_R(?P<read>\\d)_001.fastq.gz"
 
 #The MultiQC files
-- source: "{runfolder}/seqreports/project/*"
+- source: "{runfolder}/seqreports/projects/*"
   destination: "{organised}/{projectid}/{inputkey}/"
   options:
     required: True
     link_type: "softlink"
-    filter: (?P<projectid>[\w-]+)/{inputkey}_(?P=projectid)_multiqc_report[\w.-]+
+    filter: "(?P<projectid>[\\w-]+)/{inputkey}_(?P=projectid)_multiqc_report[\\w.-]+"
 
 
 

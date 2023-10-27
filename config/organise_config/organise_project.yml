@@ -17,8 +17,15 @@ files_to_organise:
   options: 
     required: True
     link_type: "copy"
-- source: "{runfolderpath}/*/Projects/{inputkey}"
-  destination: "{deliverypath}/fastq/"
+- source: "{runfolderpath}/*/Projects/{inputkey}/*"
+  destination: "{deliverypath}/fastq/{runfoldername}/{samplename}/"
   options: 
     required: True
     link_type: "softlink"
+    filter: "{runfolderpath}/(?P<runfoldername>[^/]+)/Projects/{inputkey}/(?P=runfoldername)/(?P<samplename>[^/]+)/"
+- source: "{runfolderpath}/*/Projects/{inputkey}/*"
+  destination: "{deliverypath}/fastq/{runfoldername}/"
+  options: 
+    required: True
+    link_type: "softlink"
+    filter: "{runfolderpath}/(?P<runfoldername>[^/]+)/Projects/{inputkey}/(?P=runfoldername)/(?P=runfoldername)_{inputkey}_multiqc_report[\\w.-]+"
