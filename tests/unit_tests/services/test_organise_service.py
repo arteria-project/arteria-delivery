@@ -412,19 +412,57 @@ class TestOrganiseService(unittest.TestCase):
 
     def test_parse_yaml_config_project(self):
         config_file_path = "config/organise_config/organise_project.yml"
-        input_key = "projectid"
         input_value = "ABC-123"
-        
-        self.assertEqual(OrganiseService.parse_yaml_config(config_file_path,input_key,input_value),
-                        [("/proj/ngi2016001/nobackup/NGI/ANALYSIS/ABC-123/results",
-                          "/proj/ngi2016001/nobackup/NGI/DELIVERY/ABC-123/results",
-                          {"required": True,"link_type": "softlink"}),
-                         ("/proj/ngi2016001/nobackup/NGI/DELIVERY/softlinks/DELIVERY.README.RNASEQ.md",
-                          "/proj/ngi2016001/nobackup/NGI/DELIVERY/ABC-123/DELIVERY.README.RNASEQ.md",
-                          {"required": True,"link_type": "softlink"}),
-                          ("/proj/ngi2016001/incoming/*/Projects/ABC-123",
-                          "/proj/ngi2016001/nobackup/NGI/DELIVERY/ABC-123/fastq/",
-                          {"required": True,"link_type": "softlink"})])
+
+        with mock.patch.object(
+                self.organise_service,
+                "load_yaml_config"
+        ) as cfg_mock, mock.patch.object(
+            self.organise_service,
+            "get_paths_matching_glob_path"
+        ) as glob_mock:
+
+            cfg_mock.return_value = {
+                "variables": {
+                    "inputkey": "projectid",
+                    "rootpath": "/proj/ngi2016001/nobackup/NGI",
+                    "runfolderpath": "/proj/ngi2016001/incoming",
+                    "analysispath": "{rootpath}/ANALYSIS/{inputkey}",
+                    "deliverypath": "{rootpath}/DELIVERY/{inputkey}"
+                },
+                "files_to_organise": [
+                    {
+                        "source": "{analysispath}/results",
+                        "destination": "{deliverypath}",
+                        "options": {
+                            "required": True,
+                            "link_type": "softlink"
+                        }
+                    }
+                ]
+            }
+
+            def _glob_mirror(src):
+                return [src]
+
+            glob_mock.side_effect = _glob_mirror
+
+            expected_cfg = [
+                (
+                    f"/proj/ngi2016001/nobackup/NGI/ANALYSIS/{input_value}/results",
+                    f"/proj/ngi2016001/nobackup/NGI/DELIVERY/{input_value}/results",
+                    {
+                        "required": True,
+                        "link_type": "softlink"
+                    }
+                )
+            ]
+            self.assertEqual(
+                expected_cfg,
+                self.organise_service.parse_yaml_config(
+                    config_file_path,
+                    input_value)
+            )
 
     def test_parse_yaml_config_empty_source(self):
         '''
