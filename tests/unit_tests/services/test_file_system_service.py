@@ -15,7 +15,11 @@ class TestFileSystemService(unittest.TestCase):
 
     @staticmethod
     def _tempfiles(dir, n):
-        return [tempfile.mkstemp(dir=dir)[1] for i in range(n)]
+        files = []
+        for i in range(n):
+            files.append(tempfile.mkstemp(dir=dir)[1])
+            pathlib.Path(files[-1]).write_text("\n".join([str(i), files[-1]]))
+        return files
 
     @staticmethod
     def _content_equal(file_a, file_b):
@@ -57,6 +61,37 @@ class TestFileSystemService(unittest.TestCase):
         self.service.copy(source_file, dest_file)
         self.assertTrue(self._content_equal(source_file, dest_file))
         self.assertFalse(os.path.samefile(source_file, dest_file))
+
+    def test_copy_dir(self):
+
+        def _list_dirs_and_files(rdir):
+            paths = []
+            for root, subdirs, files in os.walk(rdir):
+                r = os.path.relpath(root, rdir)
+                paths.extend([os.path.join(r, p) for p in subdirs + files])
+            return sorted(paths)
+
+        with tempfile.TemporaryDirectory() as dest_root:
+            dest = os.path.join(dest_root, os.path.basename(self.rootdir))
+            self.service.copy(self.rootdir, dest)
+
+            expected = _list_dirs_and_files(self.rootdir)
+            observed = _list_dirs_and_files(dest)
+
+            self.assertListEqual(observed, expected)
+
+            # assert that the files are identical
+            for f in filter(
+                    lambda x: x.is_file(),
+                    map(
+                        lambda p: pathlib.Path(self.rootdir) / p,
+                        expected
+                    )
+            ):
+                self.assertEqual(
+                    (pathlib.Path(dest) / f.relative_to(self.rootdir)).read_text(),
+                    f.read_text()
+                )
 
     def test_change_directory(self):
         start_dir = pathlib.Path.cwd()

@@ -124,7 +124,7 @@ class FileSystemService(object):
         :return: None
         """
         self.create_parent_dirs(link_name)
-        return pathlib.Path(source).link_to(link_name)
+        return pathlib.Path(link_name).hardlink_to(source)
 
     def copy(self, source, dest):
         """
@@ -134,8 +134,10 @@ class FileSystemService(object):
         :return: None
         """
         self.create_parent_dirs(dest)
-        return shutil.copyfile(source, dest)
-
+        try:
+            return shutil.copyfile(source, dest)
+        except IsADirectoryError:
+            return shutil.copytree(source, dest, symlinks=True)
 
     @staticmethod
     def mkdir(path):
