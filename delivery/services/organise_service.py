@@ -579,24 +579,6 @@ class OrganiseService(object):
   
         return source_file_list
 
-    def get_mock_file_list():
-        """
-        Mock function for getting a list with all files found in on
-          "source" specified in the config.
-        Only for testing purpose. Remove this function when code 
-        is getting intergated.
-        """
-        file_list_runfolder = ["/proj/ngi2016001/incoming/200624_A00834_0183_BHMTFYDRXX/Unaligned/AB-1234/Sample_AB-1234-14092/AB-1234-14092_S35_L001_R1_001.fastq.gz",
-                     "/proj/ngi2016001/incoming/200624_A00834_0183_BHMTFYDRXX/Unaligned/AB-1234/Sample_AB-1234-14092/AB-1234-14092_S35_L001_R2_001.fastq.gz",
-                     "/proj/ngi2016001/incoming/200624_A00834_0183_BHMTFYDRXX/Unaligned/AB-1234/Sample_AB-1234-14597/AB-1234-14597_S35_L001_R1_001.fastq.gz",
-                     "/proj/ngi2016001/incoming/200624_A00834_0183_BHMTFYDRXX/Unaligned/AB-1234/Sample_AB-1234-14597/AB-1234-14597_S35_L001_R2_001.fastq.gz",
-                     "/proj/ngi2016001/incoming/200624_A00834_0183_BHMTFYDRXX/Unaligned/CD-5678/Sample_CD-5678-1/CD-5678-1_S89_L001_R1_001.fastq.gz",
-                     "/proj/ngi2016001/incoming/200624_A00834_0183_BHMTFYDRXX/Unaligned/CD-5678/Sample_CD-5678-1/CD-5678-1_S89_L001_R1_001.fastq.gz",
-                     "/proj/ngi2016001/incoming/200624_A00834_0183_BHMTFYDRXX/seqreports/project/AB-1234/200624_A00834_0183_BHMTFYDRXX_AB-1234_multiqc_report.html",
-                     "/proj/ngi2016001/incoming/200624_A00834_0183_BHMTFYDRXX/seqreports/project/CD-5678/200624_A00834_0183_BHMTFYDRXX_CD-5678_multiqc_report.html"]
-
-        return file_list_runfolder
-
 
 class Default(dict):
     def __missing__(self, key):
