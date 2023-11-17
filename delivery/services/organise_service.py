@@ -127,7 +127,7 @@ class OrganiseService(object):
 
         Organise a project on a runfolder into its own directory and
         into a standard structure. If the project has
-        already been organised, a ProjectAlreadyOrganisedException will 
+        already been organised, a PermissionError will
         be raised, unless force is True. If force is
         True, the existing project path will be renamed with a unique suffix.
 
@@ -337,7 +337,7 @@ class OrganiseService(object):
         if dst_path.exists():
             raise PermissionError(f"{dst_path} already exists")
 
-        # determine what operation should be used, i.e. hardlink (default), softlink or copy
+        # determine what operation should be used, i.e. softlink or copy (default)
         organise_op = self._determine_organise_operation(
             link_type=options.get("link_type"))
 
@@ -356,8 +356,8 @@ class OrganiseService(object):
         """
 
         # use the config parser to resolve into source - destination entries
-        parsed_config_dict = self.parse_yaml_config(config_yaml_file, input_value)
-        log.debug(f"parsed yaml config and received {len(parsed_config_dict)} entries")
+        parsed_config_entries = self.parse_yaml_config(config_yaml_file, input_value)
+        log.debug(f"parsed yaml config and received {len(parsed_config_entries)} entries")
 
         # do a first round to check status of source and destination, basically in order to avoid
         # creating half-finished organised structures. Since non-existing, non-required files
@@ -369,7 +369,7 @@ class OrganiseService(object):
                     lambda op: op is not None,
                     map(
                         lambda entry: self._configure_organisation_entry(entry),
-                        parsed_config_dict)))
+                        parsed_config_entries)))
             for operation in operations:
                 operation[0](operation[1], operation[2])
                 organised_paths.append(operation[2])
