@@ -1,0 +1,31 @@
+# Analysis results, readme and runfolder/runfolders.
+#Input: PROJECTID
+variables:
+  inputkey: "projectid"
+  rootpath: "/proj/ngi2016001/nobackup/NGI"
+  runfolderpath: "/proj/ngi2016001/incoming"
+  analysispath: "{rootpath}/ANALYSIS/{inputkey}"
+  deliverypath: "{rootpath}/DELIVERY/{inputkey}"
+files_to_organise:
+- source: "{analysispath}/results"
+  destination: "{deliverypath}/results"
+  options: 
+    required: True
+    link_type: "softlink" 
+- source: "{rootpath}/DELIVERY/softlinks/DELIVERY.README.RNASEQ.md"
+  destination: "{deliverypath}/DELIVERY.README.RNASEQ.md"
+  options: 
+    required: True
+    link_type: "copy"
+- source: "{runfolderpath}/*/Projects/{inputkey}/*"
+  destination: "{deliverypath}/fastq/{runfoldername}/{samplename}/"
+  options: 
+    required: True
+    link_type: "softlink"
+    filter: "{runfolderpath}/(?P<runfoldername>[^/]+)/Projects/{inputkey}/(?P=runfoldername)/(?P<samplename>[^/]+)/"
+- source: "{runfolderpath}/*/Projects/{inputkey}/*"
+  destination: "{deliverypath}/fastq/{runfoldername}/"
+  options: 
+    required: True
+    link_type: "softlink"
+    filter: "{runfolderpath}/(?P<runfoldername>[^/]+)/Projects/{inputkey}/(?P=runfoldername)/(?P=runfoldername)_{inputkey}_multiqc_report[\\w.-]+"
