@@ -45,5 +45,5 @@ class RunfolderFile(object):
     ):
         self.file_path = os.path.abspath(file_path)
         self.file_name = os.path.basename(file_path)
-        self.base_path = base_path
+        self.base_path = base_path or os.path.dirname(self.file_path)
         self.checksum = file_checksum

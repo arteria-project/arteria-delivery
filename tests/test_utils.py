@@ -306,6 +306,7 @@ _runfolder2.projects = [RunfolderProject(name="ABC_123",
 
 FAKE_RUNFOLDERS = [_runfolder1, _runfolder2]
 UNORGANISED_RUNFOLDER = unorganised_runfolder()
+README_DIRECTORY = "/bar"
 
 
 def assert_eventually_equals(self, timeout, f, expected, delay=0.1):
