@@ -46,6 +46,7 @@ class SampleFile(RunfolderFile):
             lane_no=None,
             read_no=None,
             is_index=None,
+            base_path=None,
             checksum=None):
         """
         Instantiate a new `SampleFile` object
@@ -56,9 +57,14 @@ class SampleFile(RunfolderFile):
         :param lane_no: the lane number the sequences in the file were derived from
         :param read_no: the read number
         :param is_index: if True, the sequence file contains index sequences
+        :param base_path: the base path that the sample_path may be referenced relative to
         :param checksum: the MD5 checksum for this SampleFile
         """
-        super(SampleFile, self).__init__(sample_path, file_checksum=checksum)
+        super(SampleFile, self).__init__(
+            sample_path,
+            base_path=base_path,
+            file_checksum=checksum
+        )
         self.sample_name = sample_name
         self.sample_index = sample_index
         self.lane_no = lane_no

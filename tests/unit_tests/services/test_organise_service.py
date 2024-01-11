@@ -116,8 +116,11 @@ class TestOrganiseService(unittest.TestCase):
             organise_project_file_mock.assert_has_calls([
                 mock.call(
                     project_file,
-                    os.path.join(organised_projects_path, self.project.name, self.project.runfolder_name),
-                    project_file_base=os.path.dirname(self.project.project_files[0].file_path)
+                    os.path.join(
+                        organised_projects_path,
+                        self.project.name,
+                        self.project.runfolder_name
+                    )
                 )
                 for project_file in self.project.project_files])
 
@@ -197,13 +200,14 @@ class TestOrganiseService(unittest.TestCase):
                 os.path.join(
                     project_file_base,
                     project_file),
+                base_path=project_file_base,
                 file_checksum="checksum-for-{}".format(project_file))
             for project_file in ("a-report-file", os.path.join("report-dir", "another-report-file"))]
         self.file_system_service.relpath.side_effect = os.path.relpath
         self.file_system_service.dirname.side_effect = os.path.dirname
         for project_file in project_files:
             organised_project_file = self.organise_service.organise_project_file(
-                project_file, organised_project_path, project_file_base)
+                project_file, organised_project_path)
             self.assertEqual(
                 os.path.join(
                     organised_project_path,
