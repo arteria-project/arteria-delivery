@@ -21,7 +21,12 @@ class FileSystemBasedRunfolderRepository(object):
     CHECKSUM_FILE_PATH = os.path.join("MD5", "checksums.md5")
     SAMPLESHEET_PATH = "SampleSheet.csv"
 
-    def __init__(self, base_path, file_system_service=FileSystemService(), metadata_service=MetadataService()):
+    def __init__(
+            self,
+            base_path,
+            file_system_service=FileSystemService(),
+            metadata_service=MetadataService()
+    ):
         """
         Instantiate a new FileSystemBasedRunfolderRepository
         :param base_path: the directory where runfolders are stored
@@ -220,12 +225,17 @@ class FileSystemBasedUnorganisedRunfolderRepository(FileSystemBasedRunfolderRepo
             return masked_entry
 
         samplesheet_data = self.get_samplesheet(runfolder)
-        # mask all entries not belonging to the project and write the resulting data to the project-specific location
+        # mask all entries not belonging to the project and write the resulting data to the
+        # project-specific location
         project_samplesheet_data = list(map(_mask_samplesheet_entry, samplesheet_data))
         project_samplesheet_file = os.path.join(project.path, runfolder.name, self.SAMPLESHEET_PATH)
-        self.metadata_service.write_samplesheet_file(project_samplesheet_file, project_samplesheet_data)
+        self.metadata_service.write_samplesheet_file(
+            project_samplesheet_file,
+            project_samplesheet_data
+        )
         return RunfolderFile(
             project_samplesheet_file,
+            base_path=self.file_system_service.dirname(project_samplesheet_file),
             file_checksum=self.metadata_service.hash_file(
                 project_samplesheet_file))
 

@@ -117,6 +117,7 @@ class RunfolderProjectBasedSampleRepository(object):
             lane_no=lane_no,
             read_no=read_no,
             is_index=is_index,
+            base_path=self.file_system_service.dirname(sample_path),
             checksum=checksum)
 
     @staticmethod
