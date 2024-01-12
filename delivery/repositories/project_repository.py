@@ -96,7 +96,7 @@ class UnorganisedRunfolderProjectRepository(object):
                 sample_file.checksum,
                 self.filesystem_service.relpath(
                     sample_file.file_path,
-                    project.path)] if sample_file.checksum else None
+                    project.path)] if sample_file.checksum else [None, None]
 
         def _sample_checksums(sample):
             for sample_file in sample.sample_files:
