@@ -108,6 +108,9 @@ class TestIntegrationDDS(BaseIntegration):
 
                 status_response = yield self.http_client.fetch(delivery_link)
                 self.assertEqual(json.loads(status_response.body)["status"], DeliveryStatus.delivery_skipped.name)
+                
+                dds_version = delivery_resp_as_json['dds_version']
+                self.assertEqual(dds_version, '2.6.1')
 
     @gen_test
     def test_can_stage_and_deliver_clean_flowcells(self):
