@@ -41,7 +41,8 @@ class RunfolderFile(object):
             self,
             file_path,
             base_path=None,
-            file_checksum=None
+            file_checksum=None,
+            file_operation="symlink"
     ):
         """
         A `RunfolderFile` object representing a file in the runfolder
@@ -54,11 +55,15 @@ class RunfolderFile(object):
         :param file_path: the path to the file
         :param base_path: a path relative to which the file will be considered
         :param file_checksum: a computed checksum for the file
+        :param file_operation: the file operation to perform, symlink (default) or copy
         """
         self.file_path = os.path.abspath(file_path)
         self.file_name = os.path.basename(file_path)
         self.base_path = base_path or os.path.dirname(self.file_path)
         self.checksum = file_checksum
+        self.file_operation = file_operation \
+            if file_operation and file_operation in ["symlink", "copy"] \
+            else "symlink"
 
     @classmethod
     def create_object_from_path(
@@ -68,7 +73,8 @@ class RunfolderFile(object):
             filesystem_service,
             metadata_service,
             base_path=None,
-            checksums=None
+            checksums=None,
+            file_operation="symlink"
     ):
         checksums = checksums or {}
         relative_file_path = filesystem_service.relpath(
@@ -83,5 +89,6 @@ class RunfolderFile(object):
         return cls(
             file_path,
             base_path=base_path,
-            file_checksum=checksum
+            file_checksum=checksum,
+            file_operation=file_operation
         )

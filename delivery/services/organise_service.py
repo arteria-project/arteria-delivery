@@ -128,10 +128,11 @@ class OrganiseService(object):
 
     def organise_project_file(self, project_file, organised_project_path):
         """
-        Find and symlink the project report to the organised project directory.
+        Find and symlink or copy the project-associated files to the organised project directory.
 
-        :param project: a Project instance representing the project before organisation
-        :param organised_project: a Project instance representing the project after organisation
+        :param project_file: a RunfolderFile instance representing the project-associated file
+        before organisation
+        :param organised_project_path: path where the project will be organised
         """
 
         # the relative path from the project file base to the project file (e.g. plots/filename.png)
@@ -145,11 +146,16 @@ class OrganiseService(object):
             organised_project_path,
             relpath
         )
-        # the relative path from the symlink to the original file
-        link_path = self.file_system_service.relpath(
-            project_file.file_path,
-            self.file_system_service.dirname(link_name))
-        self.file_system_service.symlink(link_path, link_name)
+        if project_file.file_operation == "copy":
+            self.file_system_service.copy(project_file.file_path, link_name)
+        else:
+            # the relative path from the symlink to the original file
+            link_path = self.file_system_service.relpath(
+                project_file.file_path,
+                self.file_system_service.dirname(link_name)
+            )
+            self.file_system_service.symlink(link_path, link_name)
+
         return RunfolderFile(
             link_name,
             base_path=organised_project_path,
@@ -203,8 +209,15 @@ class OrganiseService(object):
 
         # create the symlink in the supplied directory and relative to the file's original location
         link_name = os.path.join(organised_sample_path, sample_file.file_name)
-        relative_path = self.file_system_service.relpath(sample_file.file_path, organised_sample_path)
-        self.file_system_service.symlink(relative_path, link_name)
+        if sample_file.file_operation == "copy":
+            self.file_system_service.copy(sample_file.file_path, link_name)
+        else:
+            relative_path = self.file_system_service.relpath(
+                sample_file.file_path,
+                organised_sample_path
+            )
+            self.file_system_service.symlink(relative_path, link_name)
+
         return SampleFile(
             sample_path=link_name,
             sample_name=sample_file.sample_name,

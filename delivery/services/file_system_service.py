@@ -1,6 +1,7 @@
 
 import os
 import logging
+import shutil
 
 log = logging.getLogger(__name__)
 
@@ -90,6 +91,19 @@ class FileSystemService(object):
         """
         self.makedirs(self.dirname(link_name), exist_ok=True)
         return os.symlink(source, link_name)
+
+    @staticmethod
+    def copy(source, dest):
+        """
+        Shadows shutil.copyfile
+        :param source:
+        :param dest:
+        :return: None
+        """
+        try:
+            return shutil.copyfile(source, dest)
+        except IsADirectoryError:
+            return shutil.copytree(source, dest, symlinks=True)
 
     @staticmethod
     def mkdir(path):

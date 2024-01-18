@@ -324,7 +324,8 @@ class UnorganisedRunfolderProjectRepository(object):
                     filesystem_service=self.filesystem_service,
                     metadata_service=self.metadata_service,
                     base_path=self.filesystem_service.dirname(readme_file),
-                    checksums=checksums
+                    checksums=checksums,
+                    file_operation="copy"
                 )
             ]
         except FileNotFoundError:
