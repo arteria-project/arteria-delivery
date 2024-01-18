@@ -31,6 +31,7 @@ class FileSystemBasedRunfolderRepository(object):
         Instantiate a new FileSystemBasedRunfolderRepository
         :param base_path: the directory where runfolders are stored
         :param file_system_service: a service which can access the file system.
+        :param metadata_service: a MetadataService for reading and writing metadata files
         """
         self._base_path = base_path
         self.file_system_service = file_system_service
@@ -161,6 +162,7 @@ class FileSystemBasedUnorganisedRunfolderRepository(FileSystemBasedRunfolderRepo
         :param base_path: the directory where runfolders are stored
         :param project_repository: an instance of UnorganisedRunfolderProjectRepository
         :param file_system_service: a service which can access the file system
+        :param metadata_service: a MetadataService for reading and writing metadata files
         """
         super(FileSystemBasedUnorganisedRunfolderRepository, self).__init__(
             base_path,

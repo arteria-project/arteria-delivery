@@ -23,7 +23,7 @@ class RunfolderProjectBasedSampleRepository(object):
     def __init__(self, file_system_service=FileSystemService()):
         self.file_system_service = file_system_service
 
-    def get_samples(self, project, runfolder):
+    def get_samples(self, project_path, project_name, runfolder):
         """
         Parse the supplied project directory and create Sample instances representing the samples in the project.
 
@@ -31,26 +31,26 @@ class RunfolderProjectBasedSampleRepository(object):
         :param runfolder: a Runfolder instance
         :return: a list of Sample instances
         """
-        return self._get_samples(project, runfolder)
+        return self._get_samples(project_path, project_name, runfolder)
 
-    def _get_samples(self, project, runfolder):
+    def _get_samples(self, project_path, project_name, runfolder):
 
         def _is_fastq_file(f):
             return re.match(self.filename_regexp, f) is not None
 
         def _name_from_sample_file(s):
-            subdir = self.file_system_service.relpath(os.path.dirname(s.file_path), project.path)
+            subdir = self.file_system_service.relpath(os.path.dirname(s.file_path), project_path)
             return s.sample_name, subdir if subdir != "." else None
 
         def _sample_from_name(name_id, sample_files=None):
-            return Sample(name_id[0], project.name, sample_id=name_id[1], sample_files=sample_files)
+            return Sample(name_id[0], project_name, sample_id=name_id[1], sample_files=sample_files)
 
         def _sample_file_from_path(p):
             return self.sample_file_from_sample_path(p, runfolder)
 
         project_fastq_files = filter(
             _is_fastq_file,
-            self.file_system_service.list_files_recursively(project.path))
+            self.file_system_service.list_files_recursively(project_path))
 
         # create SampleFile objects from the paths
         project_sample_files = list(map(
@@ -111,14 +111,15 @@ class RunfolderProjectBasedSampleRepository(object):
             checksum = None
 
         return SampleFile(
-            sample_path,
+            sample_path=sample_path,
             sample_name=sample_name,
             sample_index=sample_index,
             lane_no=lane_no,
             read_no=read_no,
             is_index=is_index,
             base_path=self.file_system_service.dirname(sample_path),
-            checksum=checksum)
+            checksum=checksum
+        )
 
     @staticmethod
     def sample_lanes(sample):

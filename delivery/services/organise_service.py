@@ -206,11 +206,12 @@ class OrganiseService(object):
         relative_path = self.file_system_service.relpath(sample_file.file_path, organised_sample_path)
         self.file_system_service.symlink(relative_path, link_name)
         return SampleFile(
-            link_name,
+            sample_path=link_name,
             sample_name=sample_file.sample_name,
             sample_index=sample_file.sample_index,
             lane_no=sample_file.lane_no,
             read_no=sample_file.read_no,
             is_index=sample_file.is_index,
             base_path=organised_sample_path,
-            checksum=sample_file.checksum)
+            checksum=sample_file.checksum
+        )

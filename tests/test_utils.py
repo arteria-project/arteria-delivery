@@ -68,7 +68,7 @@ def lane_generator():
 
 
 def report_type_generator():
-    report_types = ["multiqc", "seqreports", "sisyphus"]
+    report_types = ["multiqc", "seqreports"]
     while True:
         for rt in report_types:
             yield rt

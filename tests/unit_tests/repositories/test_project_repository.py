@@ -52,10 +52,14 @@ class TestUnorganisedRunfolderProjectRepository(unittest.TestCase):
 
         # missing report files will raise an exception at this point
         self.filesystem_service.exists.return_value = False
+        self.metadata_service.hash_file.side_effect = FileNotFoundError
         self.assertRaises(
             ProjectReportNotFoundException,
             self.project_repository.get_report_files,
-            self.runfolder.projects[0])
+            self.runfolder.projects[0].path,
+            self.runfolder.projects[0].name,
+            self.runfolder
+        )
 
     def test_get_projects(self):
 
@@ -79,5 +83,9 @@ class TestUnorganisedRunfolderProjectRepository(unittest.TestCase):
 
         self.filesystem_service.dirname.return_value = "foo/bar"
         with self.assertLogs(level='INFO') as log:
-            self.project_repository.get_report_files(self.runfolder.projects[0])
+            self.project_repository.get_report_files(
+                self.runfolder.projects[0].path,
+                self.runfolder.projects[0].name,
+                self.runfolder
+            )
             self.assertIn('overriding organisation of seqreports', log.output[0])

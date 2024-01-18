@@ -59,8 +59,9 @@ class GeneralProjectRepository(object):
 
 class UnorganisedRunfolderProjectRepository(object):
     """
-    Repository for a unorganised project in a runfolder. For this purpose a project is represented by a directory under
-    the runfolder's PROJECTS_DIR directory, having at least one fastq file beneath it.
+    Repository for a unorganised project in a runfolder. For this purpose a project is represented
+    by a directory under the runfolder's PROJECTS_DIR directory, having at least one fastq file
+    beneath it.
     """
 
     PROJECTS_DIR = "Unaligned"
@@ -76,7 +77,10 @@ class UnorganisedRunfolderProjectRepository(object):
         Instantiate a new UnorganisedRunfolderProjectRepository object
 
         :param sample_repository: a RunfolderProjectBasedSampleRepository instance
-        :param filesystem_service:  a FileSystemService instance for accessing the file system
+        :param readme_directory: the path to the directory containing README files to include when
+        organising the project
+        :param filesystem_service: a FileSystemService instance for accessing the file system
+        :param metadata_service: a MetadataService for reading and writing metadata files
         """
         self.filesystem_service = filesystem_service
         self.sample_repository = sample_repository
@@ -117,11 +121,13 @@ class UnorganisedRunfolderProjectRepository(object):
 
     def get_projects(self, runfolder):
         """
-        Returns a list of RunfolderProject instances, representing all projects found in this runfolder.
+        Returns a list of RunfolderProject instances, representing all projects found in this
+        runfolder, or None if no project can be found.
 
         :param runfolder: a Runfolder instance
         :return: a list of RunfolderProject instances or None if no projects were found
-        :raises: ProjectsDirNotfoundException if the Unaligned directory could not be found in the runfolder
+        :raises: ProjectsDirNotfoundException if the Unaligned directory could not be found in the
+        runfolder
         """
         def dir_contains_fastq_files(d):
             return any(
@@ -130,39 +136,47 @@ class UnorganisedRunfolderProjectRepository(object):
                     self.filesystem_service.list_files_recursively(d)))
 
         def project_from_dir(d):
-            project = RunfolderProject(
-                name=os.path.basename(d),
+            project_path = os.path.join(projects_base_dir, d)
+            project_name = os.path.basename(d)
+            project_files = []
+
+            try:
+                project_files.extend(
+                    self.get_report_files(
+                        project_path,
+                        project_name,
+                        runfolder,
+                        checksums=runfolder.checksums
+                    )
+                )
+            except ProjectReportNotFoundException as ex:
+                log.warning(ex)
+
+            try:
+                project_files.extend(
+                    self.get_project_readme(
+                        project_name=project_name,
+                        runfolder=runfolder,
+                        with_undetermined=False
+                    )
+                )
+            except ProjectReportNotFoundException as ex:
+                log.warning(ex)
+
+            samples = self.sample_repository.get_samples(
+                project_path,
+                project_name,
+                runfolder
+            )
+
+            return RunfolderProject(
+                name=project_name,
                 path=os.path.join(projects_base_dir, d),
                 runfolder_path=runfolder.path,
-                runfolder_name=runfolder.name
+                runfolder_name=runfolder.name,
+                project_files=project_files,
+                samples=samples
             )
-            project_files = []
-            for fn, kw in zip(
-                [
-                    self.get_report_files,
-                    self.get_project_readme
-                ],
-                [
-                    {
-                        "project": project,
-                        "checksums": runfolder.checksums
-                    },
-                    {
-                        "project": project,
-                        "with_undetermined": False
-                    }
-                ]
-            ):
-                try:
-                    project_files.extend(
-                        fn(**kw)
-                    )
-                except ProjectReportNotFoundException as e:
-                    log.warning(e)
-
-            project.project_files = project_files
-            project.samples = self.sample_repository.get_samples(project, runfolder)
-            return project
 
         try:
             projects_base_dir = os.path.join(runfolder.path, self.PROJECTS_DIR)
@@ -174,151 +188,150 @@ class UnorganisedRunfolderProjectRepository(object):
                 [dirs] if type(dirs) is str else dirs
             )
 
-            return list(map(project_from_dir, project_directories)) or None
+            return [
+                project_from_dir(project_directory)
+                for project_directory in project_directories
+            ] or None
 
         except FileNotFoundError:
             raise ProjectsDirNotfoundException(
                 f"Did not find {self.PROJECTS_DIR} folder for: {runfolder.name}"
             )
 
-    def file_object_from_path(self, file_path, base_path, project, checksums=None):
-        checksums = checksums or {}
-        relative_file_path = self.filesystem_service.relpath(
-            file_path,
-            self.filesystem_service.dirname(project.runfolder_path))
-        checksum = checksums[relative_file_path] \
-            if relative_file_path in checksums else self.metadata_service.hash_file(file_path)
-        return RunfolderFile(
-            file_path,
-            base_path=base_path,
-            file_checksum=checksum
-        )
-
-    def get_report_files(self, project, checksums=None):
+    def get_report_files(self, project_path, project_name, runfolder, checksums=None):
         """
-        Gets the paths to files associated with the supplied project's report. This can be either a MultiQC report or,
-        if no such report was found, a Sisyphus report. If a pre-calculated checksum cannot be found for a file, it will
-        be calculated on-the-fly.
+        Gets the paths to files associated with the supplied project's MultiQC report. This report
+        is fetched from seqreports unless there is a MultiQC report directly under the project's
+        path. If a pre-calculated checksum cannot be found for a file, it will be calculated
+        on-the-fly.
 
-        :param project: a RunfolderProject instance
-        :param checksums: a dict with pre-calculated checksums for files. paths are keys and the corresponding
-        checksum is the value
-        :return: a list of RunfolderFile objects
-        :raises ProjectReportNotFoundException: if no MultiQC or Sisyphus report was found for the project
+        :param project_path: the path to the project folder
+        :param project_name: the name of the project
+        :param runfolder: a Runfolder instance representing the runfolder containing the project
+        :param checksums: a dict with pre-calculated checksums for files. paths are keys and the
+        corresponding checksum is the value
+        :return: a list of RunfolderFile objects representing project report files
+        :raises ProjectReportNotFoundException: if no MultiQC report was found for the project
         """
-        def _file_object_from_path(file_paths):
-            return self.file_object_from_path(file_paths[0], file_paths[1], project, checksums)
 
-        checksums = checksums or {}
-        report_files = []
-        if self.filesystem_service.exists(self.multiqc_report_path(project)):
+        report_files = self.project_multiqc_report_files(project_path, project_name)
+        if self.filesystem_service.exists(report_files[0]):
             log.info(
-                f"MultiQC reports found in Unaligned/{project.name}, overriding organisation of "
-                f"seqreports")
-            report_path = self.filesystem_service.dirname(
-                self.multiqc_report_path(project)
+                f"MultiQC reports found in Unaligned/{project_name}, overriding organisation of "
+                f"seqreports"
             )
-            report_files = [
-                (report_file, report_path)
-                for report_file in self.multiqc_report_files(project)
-            ]
-        elif self.filesystem_service.exists(self.seqreports_path(project)):
-            log.info(f"Organising seqreports for {project.name}")
-            report_path = self.filesystem_service.dirname(
-                self.seqreports_path(project)
-            )
-            report_files = [
-                (report_file, report_path)
-                for report_file in self.seqreports_files(project)
-            ]
         else:
-            for sisyphus_report_path in self.sisyphus_report_path(project):
-                if self.filesystem_service.exists(sisyphus_report_path):
-                    log.info("Organising sisyphus reports for {}".format(project.name))
-                    report_path = self.filesystem_service.dirname(sisyphus_report_path)
-                    report_files = [
-                        (report_file, report_path)
-                        for report_file in self.sisyphus_report_files(report_path)
-                    ]
-                    break
-        if not report_files:
+            log.info(f"Organising seqreports for {project_name}")
+            report_files = self.runfolder_project_multiqc_report_files(
+                project_name,
+                runfolder
+            )
+        try:
+            report_path = self.filesystem_service.dirname(report_files[0])
+            return [
+                RunfolderFile.create_object_from_path(
+                    file_path=report_file,
+                    runfolder_path=runfolder.path,
+                    filesystem_service=self.filesystem_service,
+                    metadata_service=self.metadata_service,
+                    base_path=report_path,
+                    checksums=checksums
+                )
+                for report_file in report_files
+            ]
+        except FileNotFoundError:
             raise ProjectReportNotFoundException(
-                f"No project report found for {project.name}"
+                f"No project report found for {project_name}"
             )
 
-        return list(map(_file_object_from_path, report_files))
-
     @staticmethod
-    def sisyphus_report_path(project):
-        return os.path.join(
-            project.runfolder_path, "Summary", project.name, "report.html"), \
-               os.path.join(
-                   project.path, "report.html")
+    def project_multiqc_report_files(project_path, project_name):
+        """
+        Return a list of MultiQC report files found under the project directory.
 
-    def sisyphus_report_files(self, report_dir):
-        report_files = [
-            os.path.join(report_dir, "report.html"),
-            os.path.join(report_dir, "report.xml"),
-            os.path.join(report_dir, "report.xsl")
+        :param project_path: the path to the project folder
+        :param project_name: the name of the project
+        :return: a list of paths to MultiQC-report-related files
+        """
+        return [
+            os.path.join(
+                project_path,
+                f"{project_name}_multiqc_report.html"
+            ),
+            os.path.join(
+                project_path,
+                f"{project_name}_multiqc_report_data.zip"
+            )
         ]
-        report_files.extend(list(
-            self.filesystem_service.list_files_recursively(
-                os.path.join(
-                    report_dir,
-                    "Plots"))))
-        return report_files
 
     @staticmethod
-    def multiqc_report_path(project):
-        return os.path.join(
-            project.path,
-            "{}_multiqc_report.html".format(project.name))
+    def runfolder_project_multiqc_report_files(project_name, runfolder):
+        """
+        Return a list of MultiQC report files for a project found under the seqreports folder.
 
-    def multiqc_report_files(self, project):
-        report_files = [self.multiqc_report_path(project)]
-        report_dir = self.filesystem_service.dirname(report_files[0])
-        report_files.append(
-            os.path.join(report_dir, "{}_multiqc_report_data.zip".format(project.name)))
-        return report_files
+        :param project_name: the name of the project
+        :param runfolder: a Runfolder instance representing the runfolder containing the project
+        :return: a list of paths to MultiQC-report-related files
+        """
+        report_dir = os.path.join(
+            runfolder.path,
+            "seqreports",
+            "projects",
+            project_name
+        )
+        return [
+            os.path.join(
+                report_dir,
+                f"{runfolder.name}_{project_name}_multiqc_report.html",
+            ),
+            os.path.join(
+                report_dir,
+                f"{runfolder.name}_{project_name}_multiqc_report_data.zip"
+            )
+        ]
 
-    @staticmethod
-    def seqreports_path(project):
-        return os.path.join(
-            project.runfolder_path, "seqreports", "projects", project.name,
-            "{}_{}_multiqc_report.html".format(project.runfolder_name, project.name))
+    def get_project_readme(
+            self,
+            project_name,
+            runfolder,
+            checksums=None,
+            with_undetermined=False
+    ):
+        """
+        Get the README to be included with the project data set.
 
-    def seqreports_files(self, project):
-        report_files = [self.seqreports_path(project)]
-        report_dir = self.filesystem_service.dirname(report_files[0])
-        report_files.append(
-            os.path.join(report_dir,
-                         "{}_{}_multiqc_report_data.zip".format(project.runfolder_name, project.name)))
-        return report_files
-
-    def project_readme_path(self, with_undetermined=False):
-        return os.path.join(
+        :param project_name: the name of the project
+        :param runfolder: a Runfolder instance representing the runfolder containing the project
+        :param checksums: a dict with pre-calculated checksums for files. paths are keys and the
+        corresponding checksum is the value
+        :param with_undetermined: if True, the README should refer to data that includes
+        undetermined reads
+        :return: the path to the README file wrapped in a list
+        :raises ProjectReportNotFoundException: if the README was not found
+        """
+        log.info(f"Organising README for {project_name}")
+        readme_file = os.path.join(
             self.readme_directory,
             "undetermined" if with_undetermined else "",
             "README.md"
         )
 
-    def get_project_readme(self, project, checksums=None, with_undetermined=False):
-        log.info("Organising README for {}".format(project.name))
-        readme_file = self.project_readme_path(with_undetermined)
-
-        if not os.path.exists(readme_file):
+        try:
+            return [
+                RunfolderFile.create_object_from_path(
+                    file_path=readme_file,
+                    runfolder_path=runfolder.path,
+                    filesystem_service=self.filesystem_service,
+                    metadata_service=self.metadata_service,
+                    base_path=self.filesystem_service.dirname(readme_file),
+                    checksums=checksums
+                )
+            ]
+        except FileNotFoundError:
             raise ProjectReportNotFoundException(
                 f"{os.path.basename(readme_file)} not found at {os.path.dirname(readme_file)} for "
-                f"{project.name}"
+                f"{project_name}"
             )
-        return [
-            self.file_object_from_path(
-                readme_file,
-                self.filesystem_service.dirname(readme_file),
-                project,
-                checksums
-            )
-        ]
 
     def is_sample_in_project(self, project, sample_project, sample_id, sample_lane):
         """
@@ -335,7 +348,8 @@ class UnorganisedRunfolderProjectRepository(object):
         return all([
             sample_project == project.name,
             sample_obj,
-            sample_lane in sample_lanes])
+            sample_lane in sample_lanes
+        ])
 
     @staticmethod
     def get_sample(project, sample_id):
