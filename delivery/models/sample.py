@@ -47,8 +47,7 @@ class SampleFile(RunfolderFile):
             read_no=None,
             is_index=None,
             base_path=None,
-            checksum=None,
-            file_operation="symlink"
+            checksum=None
     ):
         """
         A `SampleFile` object
@@ -66,13 +65,11 @@ class SampleFile(RunfolderFile):
         :param is_index: if True, the sequence file contains index sequences
         :param base_path: a path relative to which the file will be considered
         :param checksum: the MD5 checksum for this SampleFile
-        :param file_operation: the file operation to perform, symlink (default) or copy
         """
         super(SampleFile, self).__init__(
             sample_path,
             base_path=base_path,
-            file_checksum=checksum,
-            file_operation=file_operation
+            file_checksum=checksum
         )
         self.sample_name = sample_name
         self.sample_index = sample_index
@@ -92,6 +89,5 @@ class SampleFile(RunfolderFile):
             self.lane_no,
             self.read_no,
             self.is_index,
-            self.checksum,
-            self.file_operation
+            self.checksum
         ))

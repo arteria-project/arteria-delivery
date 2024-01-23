@@ -93,10 +93,9 @@ class TestIntegration(BaseIntegration):
                     project_file_base = os.path.dirname(project.project_files[0].file_path)
                     relative_path = os.path.relpath(project_file.file_path, project_file_base)
                     organised_project_file_path = os.path.join(organised_path, relative_path)
-                    self.assertTrue(
-                        os.path.samefile(
-                            organised_project_file_path,
-                            project_file.file_path))
+                    self.assertEqual(
+                        os.path.basename(organised_project_file_path),
+                        project_file.file_name)
                     _verify_checksum(os.path.join(runfolder.name, relative_path), project_file.checksum)
                 for sample in project.samples:
                     sample_path = os.path.join(organised_path, sample.sample_id)

@@ -214,81 +214,63 @@ class UnorganisedRunfolderProjectRepository(object):
         :raises ProjectReportNotFoundException: if no MultiQC report was found for the project
         """
 
-        report_files = self.project_multiqc_report_files(project_path, project_name)
-        if self.filesystem_service.exists(report_files[0]):
-            log.info(
-                f"MultiQC reports found in Unaligned/{project_name}, overriding organisation of "
-                f"seqreports"
-            )
-        else:
-            log.info(f"Organising seqreports for {project_name}")
-            report_files = self.runfolder_project_multiqc_report_files(
-                project_name,
-                runfolder
-            )
-        try:
-            report_path = self.filesystem_service.dirname(report_files[0])
-            return [
-                RunfolderFile.create_object_from_path(
-                    file_path=report_file,
-                    runfolder_path=runfolder.path,
-                    filesystem_service=self.filesystem_service,
-                    metadata_service=self.metadata_service,
-                    base_path=report_path,
-                    checksums=checksums
-                )
-                for report_file in report_files
-            ]
-        except FileNotFoundError:
-            raise ProjectReportNotFoundException(
-                f"No project report found for {project_name}"
-            )
-
-    @staticmethod
-    def project_multiqc_report_files(project_path, project_name):
-        """
-        Return a list of MultiQC report files found under the project directory.
-
-        :param project_path: the path to the project folder
-        :param project_name: the name of the project
-        :return: a list of paths to MultiQC-report-related files
-        """
-        return [
+        # look for the MultiQC report in these locations (in order of precedence)
+        report_paths = [
+            project_path,
             os.path.join(
-                project_path,
-                f"{project_name}_multiqc_report.html"
-            ),
-            os.path.join(
-                project_path,
-                f"{project_name}_multiqc_report_data.zip"
+                runfolder.path,
+                "seqreports",
+                "projects",
+                project_name
             )
         ]
+        # depending on the location of the MultiQC report, use these different prefixes
+        report_prefixes = [
+            project_name,
+            f"{runfolder.name}_{project_name}"
+        ]
+        report_names = [
+            "multiqc_report.html",
+            "multiqc_report_data.zip"
+        ]
+        for report_path, report_prefix in zip(report_paths, report_prefixes):
+            # creating the RunfolderFile for a non-existing file should raise an exception
+            try:
+                report_files = []
+                for report_name in report_names:
+                    report_file = os.path.join(
+                        report_path,
+                        f"{report_prefix}_{report_name}"
+                    )
+                    report_files.append(
+                        RunfolderFile.create_object_from_path(
+                            file_path=report_file,
+                            runfolder_path=runfolder.path,
+                            filesystem_service=self.filesystem_service,
+                            metadata_service=self.metadata_service,
+                            base_path=report_path,
+                            checksums=checksums
+                        )
+                    )
+            except FileNotFoundError:
+                report_files = []
+            # if no exception was raised, return the report files and log a message depending on
+            # where they were found
+            else:
+                if report_path == report_paths[0]:
+                    log.info(
+                        f"MultiQC reports found in Unaligned/{project_name}, overriding "
+                        f"organisation of seqreports"
+                    )
+                else:
+                    log.info(f"Organising seqreports for {project_name}")
 
-    @staticmethod
-    def runfolder_project_multiqc_report_files(project_name, runfolder):
-        """
-        Return a list of MultiQC report files for a project found under the seqreports folder.
+                return report_files
 
-        :param project_name: the name of the project
-        :param runfolder: a Runfolder instance representing the runfolder containing the project
-        :return: a list of paths to MultiQC-report-related files
-        """
-        report_dir = os.path.join(
-            runfolder.path,
-            "seqreports",
-            "projects",
-            project_name
+        # raise an exception if no report files at all were found
+        raise ProjectReportNotFoundException(
+            f"No project report found for {project_name}"
         )
-        return [
-            os.path.join(
-                report_dir,
-                f"{runfolder.name}_{project_name}_multiqc_report.html",
-            ),
-            os.path.join(
-                report_dir,
-                f"{runfolder.name}_{project_name}_multiqc_report_data.zip"
-            )
-        ]
 
     def get_project_readme(
             self,
@@ -324,8 +306,7 @@ class UnorganisedRunfolderProjectRepository(object):
                     filesystem_service=self.filesystem_service,
                     metadata_service=self.metadata_service,
                     base_path=self.filesystem_service.dirname(readme_file),
-                    checksums=checksums,
-                    file_operation="copy"
+                    checksums=checksums
                 )
             ]
         except FileNotFoundError:

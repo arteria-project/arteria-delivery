@@ -214,10 +214,10 @@ class TestOrganiseService(unittest.TestCase):
                     os.path.relpath(project_file.file_path, project_file_base)),
                 organised_project_file.file_path)
             self.assertEqual(project_file.checksum, organised_project_file.checksum)
-        self.file_system_service.symlink.assert_has_calls([
+        self.file_system_service.copy.assert_has_calls([
             mock.call(
-                os.path.join("..", "..", "foo", "a-report-file"),
+                os.path.join(project_files[0].file_path),
                 os.path.join(organised_project_path, "a-report-file")),
             mock.call(
-                os.path.join("..", "..", "..", "foo", "report-dir", "another-report-file"),
+                os.path.join(project_files[1].file_path),
                 os.path.join(organised_project_path, "report-dir", "another-report-file"))])

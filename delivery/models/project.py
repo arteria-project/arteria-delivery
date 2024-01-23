@@ -35,18 +35,29 @@ class BaseProject(BaseModel):
 
 class RunfolderProject(BaseProject):
     """
-    Model a project directory in a runfolder on disk. Note that this means that this project model only extends
-    to the idea of projects as subdirectories in a demultiplexed Illumina runfolder.
+    Model a project directory in a runfolder on disk. Note that this means that this project model
+    only extends to the idea of projects as subdirectories in a demultiplexed Illumina runfolder.
     """
 
-    def __init__(self, name, path, runfolder_path, runfolder_name, samples=None, project_files=None):
+    def __init__(
+            self,
+            name,
+            path,
+            runfolder_path,
+            runfolder_name,
+            samples=None,
+            project_files=None
+    ):
         """
         Instantiate a new `RunfolderProject` object
+
         :param name: of the project
         :param path: path to the project
         :param runfolder_path: path the runfolder in which this project is stored.
         :param runfolder_name: name of the runfolder in which this project is stored
         :param samples: list of instances of Sample, representing samples in the project
+        :param project_files: list of instances of RunfolderFile, representing files belonging to
+        the project. These do not include files already accounted for in the `samples` list.
         """
         self.name = name
         self.path = os.path.abspath(path)
