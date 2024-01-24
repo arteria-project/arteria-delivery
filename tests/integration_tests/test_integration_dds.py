@@ -31,6 +31,9 @@ class TestIntegrationDDS(BaseIntegration):
 
             staging_status_links = response_json.get("staging_order_links")
 
+            # Insert a pause to allow staging to complete
+            time.sleep(1)
+
             for project, link in staging_status_links.items():
 
                 self.assertEqual(project, "ABC_123")
@@ -78,6 +81,9 @@ class TestIntegrationDDS(BaseIntegration):
             response_json = json.loads(response.body)
 
             staging_status_links = response_json.get("staging_order_links")
+
+            # Insert a pause to allow staging to complete
+            time.sleep(1)
 
             for project, link in staging_status_links.items():
                 self.assertEqual(project, dir_name)
@@ -153,6 +159,7 @@ class TestIntegrationDDS(BaseIntegration):
 
             staging_status_links = response_json.get("staging_order_links")
 
+            # Insert a pause to allow staging to complete
             time.sleep(1)
 
             for project, link in staging_status_links.items():
@@ -189,6 +196,9 @@ class TestIntegrationDDS(BaseIntegration):
             response_json = json.loads(response_forced.body)
 
             staging_status_links = response_json.get("staging_order_links")
+
+            # Insert a pause to allow staging to complete
+            time.sleep(1)
 
             for project, link in staging_status_links.items():
                 self.assertEqual(project, 'XYZ_123')
@@ -248,7 +258,7 @@ class TestIntegrationDDSShortWait(BaseIntegration):
 
         self.mock_duration = 2
 
-    @gen_test(timeout=5)
+    @gen_test(timeout=10)
     def test_mock_duration_is_2(self):
         with tempfile.TemporaryDirectory(
                 dir='./tests/resources/runfolders/',
@@ -267,6 +277,9 @@ class TestIntegrationDDSShortWait(BaseIntegration):
             response_json = json.loads(response.body)
 
             staging_order_project_and_id = response_json.get("staging_order_ids")
+
+            # Insert a pause to allow staging to complete
+            time.sleep(1)
 
             for project, staging_id in staging_order_project_and_id.items():
                 delivery_url = '/'.join([
@@ -290,6 +303,9 @@ class TestIntegrationDDSShortWait(BaseIntegration):
                 delivery_link = delivery_resp_as_json['delivery_order_link']
 
                 while True:
+                    # Insert a pause to allow delivery to complete
+                    time.sleep(1)
+
                     status_response = yield self.http_client.fetch(
                             delivery_link)
                     if (json.loads(status_response.body)["status"]
@@ -299,7 +315,7 @@ class TestIntegrationDDSShortWait(BaseIntegration):
                 stop = time.time()
                 self.assertTrue(stop - start >= self.mock_duration)
 
-    @gen_test(timeout=5)
+    @gen_test(timeout=10)
     def test_can_delivery_data_asynchronously(self):
         with tempfile.TemporaryDirectory(
                 dir='./tests/resources/runfolders/',
@@ -318,8 +334,18 @@ class TestIntegrationDDSShortWait(BaseIntegration):
             response_json = json.loads(response.body)
 
             staging_order_project_and_id = response_json.get("staging_order_ids")
+            staging_status_links = response_json.get("staging_order_links")
 
-            for project, staging_id in staging_order_project_and_id.items():
+            for project, link in staging_status_links.items():
+                staging_id = staging_order_project_and_id[project]
+                while True:
+                    # Insert a pause to allow staging to complete
+                    time.sleep(1)
+                    status_response = yield self.http_client.fetch(link)
+                    if json.loads(status_response.body)["status"] == \
+                            StagingStatus.staging_successful.name:
+                        break
+
                 delivery_url = '/'.join([
                     self.API_BASE, 'deliver', 'stage_id', str(staging_id)])
                 delivery_body = {
@@ -339,6 +365,8 @@ class TestIntegrationDDSShortWait(BaseIntegration):
                 delivery_link = delivery_resp_as_json['delivery_order_link']
 
                 while True:
+                    # Insert a pause to allow delivery to complete
+                    time.sleep(1)
                     status_response = yield self.http_client.fetch(
                             delivery_link)
                     if (json.loads(status_response.body)["status"]
@@ -378,6 +406,9 @@ class TestIntegrationDDSLongWait(BaseIntegration):
 
             staging_order_project_and_id = response_json.get(
                     "staging_order_ids")
+
+            # Insert a pause to allow staging to complete
+            time.sleep(1)
 
             for project, staging_id in staging_order_project_and_id.items():
                 delivery_url = '/'.join([

@@ -13,7 +13,7 @@ from delivery.repositories.sample_repository import RunfolderProjectBasedSampleR
 from delivery.services.file_system_service import FileSystemService
 from delivery.services.metadata_service import MetadataService
 
-from tests.test_utils import UNORGANISED_RUNFOLDER
+from tests.test_utils import README_DIRECTORY, UNORGANISED_RUNFOLDER
 
 
 class TestGeneralProjectRepository(unittest.TestCase):
@@ -43,6 +43,7 @@ class TestUnorganisedRunfolderProjectRepository(unittest.TestCase):
         self.metadata_service = mock.create_autospec(MetadataService)
         self.project_repository = UnorganisedRunfolderProjectRepository(
             sample_repository=self.sample_repository,
+            readme_directory=README_DIRECTORY,
             filesystem_service=self.filesystem_service,
             metadata_service=self.metadata_service)
         self.runfolder = UNORGANISED_RUNFOLDER
@@ -51,10 +52,14 @@ class TestUnorganisedRunfolderProjectRepository(unittest.TestCase):
 
         # missing report files will raise an exception at this point
         self.filesystem_service.exists.return_value = False
+        self.metadata_service.hash_file.side_effect = FileNotFoundError
         self.assertRaises(
             ProjectReportNotFoundException,
             self.project_repository.get_report_files,
-            self.runfolder.projects[0])
+            self.runfolder.projects[0].path,
+            self.runfolder.projects[0].name,
+            self.runfolder
+        )
 
     def test_get_projects(self):
 
@@ -78,5 +83,9 @@ class TestUnorganisedRunfolderProjectRepository(unittest.TestCase):
 
         self.filesystem_service.dirname.return_value = "foo/bar"
         with self.assertLogs(level='INFO') as log:
-            self.project_repository.get_report_files(self.runfolder.projects[0])
+            self.project_repository.get_report_files(
+                self.runfolder.projects[0].path,
+                self.runfolder.projects[0].name,
+                self.runfolder
+            )
             self.assertIn('overriding organisation of seqreports', log.output[0])

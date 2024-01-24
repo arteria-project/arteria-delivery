@@ -25,7 +25,8 @@ from delivery.repositories.runfolder_repository import FileSystemBasedRunfolderR
     FileSystemBasedUnorganisedRunfolderRepository
 from delivery.repositories.staging_repository import DatabaseBasedStagingRepository
 from delivery.repositories.deliveries_repository import DatabaseBasedDeliveriesRepository
-from delivery.repositories.project_repository import GeneralProjectRepository, UnorganisedRunfolderProjectRepository
+from delivery.repositories.project_repository import GeneralProjectRepository, \
+    UnorganisedRunfolderProjectRepository
 from delivery.repositories.delivery_sources_repository import DatabaseBasedDeliverySourcesRepository
 from delivery.repositories.sample_repository import RunfolderProjectBasedSampleRepository
 
@@ -120,13 +121,19 @@ def compose_application(config):
     project_links_directory = config["project_links_directory"]
     _assert_is_dir(project_links_directory)
 
-    runfolder_repo = FileSystemBasedRunfolderRepository(runfolder_dir)
-    project_repository = UnorganisedRunfolderProjectRepository(
-        sample_repository=RunfolderProjectBasedSampleRepository()
+    readme_directory = config["readme_directory"]
+    _assert_is_dir(readme_directory)
+
+    sample_repo = RunfolderProjectBasedSampleRepository()
+    runfolder_repo = FileSystemBasedRunfolderRepository(
+        runfolder_dir
     )
     unorganised_runfolder_repo = FileSystemBasedUnorganisedRunfolderRepository(
         runfolder_dir,
-        project_repository=project_repository
+        project_repository=UnorganisedRunfolderProjectRepository(
+            sample_repository=sample_repo,
+            readme_directory=readme_directory
+        )
     )
 
     general_project_dir = config['general_project_directory']

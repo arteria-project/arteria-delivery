@@ -46,9 +46,16 @@ class SampleFile(RunfolderFile):
             lane_no=None,
             read_no=None,
             is_index=None,
-            checksum=None):
+            base_path=None,
+            checksum=None
+    ):
         """
-        Instantiate a new `SampleFile` object
+        A `SampleFile` object
+
+        If specified, the `base_path` parameter should specify the path that the file will be
+        considered relative to. For example, if `file_path` is `/path/to/example/file_name` and
+        `base_path` is `/path/to`, the file object, if moved or symlinked, will be placed under the
+        intermediate directory, i.e. `example/file_name`
 
         :param sample_path: the path to the file
         :param sample_name: the name of the sample
@@ -56,9 +63,14 @@ class SampleFile(RunfolderFile):
         :param lane_no: the lane number the sequences in the file were derived from
         :param read_no: the read number
         :param is_index: if True, the sequence file contains index sequences
+        :param base_path: a path relative to which the file will be considered
         :param checksum: the MD5 checksum for this SampleFile
         """
-        super(SampleFile, self).__init__(sample_path, file_checksum=checksum)
+        super(SampleFile, self).__init__(
+            sample_path,
+            base_path=base_path,
+            file_checksum=checksum
+        )
         self.sample_name = sample_name
         self.sample_index = sample_index
         self.lane_no = lane_no
@@ -77,4 +89,5 @@ class SampleFile(RunfolderFile):
             self.lane_no,
             self.read_no,
             self.is_index,
-            self.checksum))
+            self.checksum
+        ))
