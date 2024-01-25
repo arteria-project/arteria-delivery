@@ -410,3 +410,35 @@ project"""
 
             ngi_project_name = yield dds_project.get_ngi_project_name()
             self.assertEqual(ngi_project_name, "AB-1234")
+
+    @gen_test
+    def test_get_dds_version(self):
+        project_id = 'snpseq00001'
+        mocked_version = "2.6.1"
+
+        with patch(
+                'delivery.models.project.DDSProject._run',
+                new_callable=AsyncMock,
+                return_value=mocked_version,
+                ):
+                
+                dds_project = DDSProject(
+                        dds_service=self.dds_service,
+                        auth_token=self.token_file.name,
+                        dds_project_id=project_id,
+                        )
+
+                dds_version = yield dds_project.get_dds_version()
+                self.assertEqual(dds_version, mocked_version)
+        
+
+        yield dds_project.get_dds_version()
+        self.mock_dds_runner.run.assert_has_calls([
+                call([
+                        'dds',
+                        '--version', 
+                        ])
+                ])
+
+                        
+

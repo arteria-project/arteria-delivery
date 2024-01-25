@@ -165,6 +165,19 @@ class DDSProject:
                 " Check token expiry date (`dds auth info`).")
             raise
 
+    @gen.coroutine
+    def get_dds_version(self):
+        """
+        Get the DDS version been used
+        """
+
+        cmd = ['dds', '--version']
+        result = yield self._run(cmd) # should return "Data Delivery System, version 2.6.1"
+        version_stdout = ''.join(result)
+        version = (version_stdout.split("version")[-1]).strip()
+        return version
+
+
     @classmethod
     @gen.coroutine
     def new(

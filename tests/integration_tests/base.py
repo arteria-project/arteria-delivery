@@ -4,7 +4,8 @@ import mock
 import random
 import logging
 
-from subprocess import PIPE
+
+from subprocess import PIPE, run as subprocess_run
 
 from tornado.testing import *
 from tornado.web import Application
@@ -125,6 +126,8 @@ class BaseIntegration(AsyncHTTPTestCase):
                         new_cmd += ['&&', 'test', '-e', auth_token]
                         new_cmd = " ".join(new_cmd)
                         shell = True
+                    elif '--version' in cmd:
+                        new_cmd += ['&&', 'echo',  f"2.6.1"]
                 else:
                     new_cmd = cmd
 
