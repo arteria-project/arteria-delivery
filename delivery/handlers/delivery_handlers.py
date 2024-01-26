@@ -65,7 +65,7 @@ class DeliverByStageIdHandler(ArteriaDeliveryBaseHandler):
 
         self.set_status(ACCEPTED)
 
-        dds_version = dds_project.get_dds_version()
+        dds_version = yield dds_project.get_dds_version()
         self.write_json({'delivery_order_id': delivery_id,
                          'delivery_order_link': status_end_point,
                          'dds_version': dds_version})

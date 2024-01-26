@@ -127,7 +127,10 @@ class BaseIntegration(AsyncHTTPTestCase):
                         new_cmd = " ".join(new_cmd)
                         shell = True
                     elif '--version' in cmd:
+                        new_cmd = ['sleep', str(0.01)]
                         new_cmd += ['&&', 'echo',  f"2.6.1"]
+                        new_cmd = " ".join(new_cmd)
+                        shell = True
                 else:
                     new_cmd = cmd
 
