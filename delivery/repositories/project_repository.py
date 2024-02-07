@@ -146,7 +146,7 @@ class UnorganisedRunfolderProjectRepository(object):
                     self.get_report_files(
                         project_path,
                         project_name,
-                        runfolder
+                        runfolder,
                     )
                 )
             except ProjectReportNotFoundException as ex:
