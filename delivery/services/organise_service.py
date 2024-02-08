@@ -55,13 +55,21 @@ class OrganiseService(object):
         # organise the projects and return a new Runfolder instance
         organised_projects = []
         for project in projects_on_runfolder:
-            organised_projects.append(self.organise_project(runfolder, project, organised_projects_path, lanes))
+            organised_projects.append(
+                self.organise_project(
+                    runfolder,
+                    project,
+                    organised_projects_path,
+                    lanes
+                )
+            )
 
         return Runfolder(
             runfolder.name,
             runfolder.path,
             projects=organised_projects,
-            checksums=runfolder.checksums)
+            checksums=runfolder.checksums
+        )
 
     def check_previously_organised_project(self, project, organised_projects_path, force):
         organised_project_path = os.path.join(organised_projects_path, project.name)
@@ -79,7 +87,13 @@ class OrganiseService(object):
                 self.file_system_service.mkdir(organised_projects_backup_path)
             self.file_system_service.rename(organised_project_path, backup_path)
 
-    def organise_project(self, runfolder, project, organised_projects_path, lanes):
+    def organise_project(
+            self,
+            runfolder,
+            project,
+            organised_projects_path,
+            lanes
+    ):
         """
         Organise a project on a runfolder into its own directory and into a standard structure. If
         the project has already been organised, a ProjectAlreadyOrganisedException will be raised.
@@ -127,7 +141,7 @@ class OrganiseService(object):
 
     def organise_project_file(self, project_file, organised_project_path):
         """
-        Find and symlink or copy the project-associated files to the organised project directory.
+        Find and copy the project-associated files to the organised project directory.
 
         :param project_file: a RunfolderFile instance representing the project-associated file
         before organisation
