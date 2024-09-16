@@ -71,6 +71,9 @@ class DeliveryService(object):
         :param batch_nbr: which batch of deliveries of this project this corresponds to
         :return: the path to the dir created
         """
+        path = os.path.join(self.project_links_directory, project_name)
+        list_dir = [(x[0], os.listdir(x[0])) for x in os.walk(path)]
+        print(f"logging... delivery_service _create_links_area_for_project_runfolders path = {path}...list= {list_dir} ")
 
         project_dir = os.path.join(self.project_links_directory, project_name, str(batch_nbr))
         try:
@@ -184,6 +187,7 @@ class DeliveryService(object):
                                                           batch_nbr=batch_nbr)
 
         self.delivery_sources_repo.add_source(source)
+        print(f"logging... delivery_service deliver_all_runfolders_for_project path = {source}...project_name= {project_name},.. source_name= {project_name}/batch{batch_nbr}, links_directory= {links_directory} ")
 
         stage_order = self.staging_service.create_new_stage_order(path=source.path, project_name=project_name)
         self.staging_service.stage_order(stage_order)

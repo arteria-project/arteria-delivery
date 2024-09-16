@@ -52,6 +52,7 @@ class TestIntegration(BaseIntegration):
 
     def test_can_organise_project(self):
         runfolder = unorganised_runfolder()
+        breakpoint()
         with tempfile.TemporaryDirectory(dir='./tests/resources/runfolders/',
                                          prefix="{}_".format(runfolder.name)) as runfolder_path:
             runfolder = unorganised_runfolder(

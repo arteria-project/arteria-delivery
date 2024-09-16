@@ -88,6 +88,8 @@ class StagingService(object):
         staging_order = staging_repo.get_staging_order_by_id(staging_order_id, session)
         try:
             staging_source_with_trailing_slash = staging_order.source + "/"
+            # runfolders_for_projects = 
+            # print(f"logging... _copy_dir os.readlink = {os.readlink(staging_source_with_trailing_slash)}")
             cmd = ['rsync', '--stats', '-r', '--copy-links', '--times',
                    staging_source_with_trailing_slash, staging_order.staging_target]
             log.debug("Running rsync with command: {}".format(" ".join(cmd)))
@@ -99,6 +101,10 @@ class StagingService(object):
 
             execution_result = yield external_program_service.wait_for_execution(execution)
             log.debug("Execution result: {}".format(execution_result))
+            staging_target = [(x[0], os.listdir(x[0])) for x in os.walk(staging_order.staging_target)]
+            print(f"logging... _copy_dir os.walk staging_order.staging_source_with_trailing_slash = {staging_source_with_trailing_slash}")
+            log.info(f"logging... _copy_dir os.walk staging_order.staging_target = {staging_target}")
+            breakpoint()
             if execution_result.status_code == 0:
 
                 # Parse the file size from the output of rsync stats:
@@ -149,10 +155,10 @@ class StagingService(object):
                                  "external_program_service": self.external_program_service,
                                  "staging_repo": self.staging_repo,
                                  "session_factory": self.session_factory}
-
+            print(f"logging... staging_service stage_order stage_order.staging_target before = {stage_order.staging_target}")
             if not self.file_system_service.exists(stage_order.staging_target):
                 self.file_system_service.makedirs(stage_order.staging_target)
-
+            print(f"logging... staging_service stage_order stage_order.staging_target after = {stage_order.staging_target}")
             yield StagingService._copy_dir(**args_for_copy_dir)
 
         # TODO Better error handling
@@ -162,6 +168,7 @@ class StagingService(object):
             raise e
 
     def create_new_stage_order(self, path, project_name):
+        print(f"logging... staging_service create_new_stage_order path = {path}......staging_dir = {self.staging_dir}")
         staging_order = self.staging_repo.create_staging_order(source=path,
                                                                status=StagingStatus.pending,
                                                                staging_target_dir=self.staging_dir,
