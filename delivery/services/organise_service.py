@@ -29,7 +29,6 @@ class OrganiseService(object):
         """
         self.runfolder_service = runfolder_service
         self.file_system_service = file_system_service
- 
     def organise_runfolder(self, runfolder_id, lanes, projects, force):
         """
         Organise a runfolder in preparation for delivery. This will create separate subdirectories for each of the
@@ -148,7 +147,6 @@ class OrganiseService(object):
         before organisation
         :param organised_project_path: path where the project will be organised
         """
-        
         # the relative path from the project file base to the project file (e.g. plots/filename.png)
         relpath = self.file_system_service.relpath(
             project_file.file_path,

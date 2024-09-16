@@ -96,14 +96,14 @@ class StagingService(object):
             session.commit()
 
             execution_result = yield external_program_service.wait_for_execution(execution)
-
+            log.debug("Execution result: {}".format(execution_result))
             if execution_result.status_code == 0:
 
                 # Parse the file size from the output of rsync stats:
                 # Total file size: 207,707,566 bytes
                 match = re.search(r'Total file size: ([\d,]+) bytes',
-                                execution_result.stdout,
-                                re.MULTILINE)
+                                 execution_result.stdout,
+                                 re.MULTILINE)
                 size_of_transfer = match.group(1)
                 size_of_transfer = int(size_of_transfer.replace(",", ""))
                 staging_order.size = size_of_transfer
@@ -113,7 +113,7 @@ class StagingService(object):
             else:
                 staging_order.status = StagingStatus.staging_failed
                 log.error("Failed in staging: {} because rsync returned exit code: {}".
-                        format(staging_order, execution_result.status_code))
+                         format(staging_order, execution_result.status_code))
 
         # TODO Better exception handling here...
         except Exception as e:
@@ -149,7 +149,7 @@ class StagingService(object):
                                  "session_factory": self.session_factory}
             if not self.file_system_service.exists(stage_order.staging_target):
                 self.file_system_service.makedirs(stage_order.staging_target)
-            
+
             yield StagingService._copy_dir(**args_for_copy_dir)
 
         # TODO Better error handling

@@ -135,7 +135,7 @@ class DeliveryService(object):
                     raise NotImplementedError("This is not a valid state, delivery mode needs to be CLEAN/"
                                               "BATCH/FORCE.")
 
-    def deliver_all_runfolders_for_project(self, project_name, mode, request_url=None):
+    def deliver_all_runfolders_for_project(self, project_name, mode):
         """
         This method will attempt to deliver all runfolders for the specified
         project.

@@ -30,7 +30,6 @@ class BaseStagingHandler(BaseRestHandler):
 
         return link_results, id_results
 
- 
 class StagingProjectRunfoldersHandler(BaseStagingHandler):
     """
     Handler class for handling how to start staging of runfolders belonging to a project. Polling for status,
