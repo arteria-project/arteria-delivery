@@ -33,7 +33,7 @@ class BaseIntegration(AsyncHTTPTestCase):
     def _create_projects_dir_with_random_data(self, base_dir, proj_name='ABC_123', runfolder_name=None):
         tmp_proj_dir = os.path.join(base_dir, 'Projects', proj_name)
         if runfolder_name:
-            tmp_proj_dir = os.path.join(tmp_proj_dir, runfolder_name, proj_name)
+            tmp_proj_dir = os.path.join(tmp_proj_dir, runfolder_name)
         os.makedirs(tmp_proj_dir)
         with open(os.path.join(tmp_proj_dir, 'test_file'), 'wb') as f:
             f.write(os.urandom(1024))

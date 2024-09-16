@@ -71,9 +71,6 @@ class DeliveryService(object):
         :param batch_nbr: which batch of deliveries of this project this corresponds to
         :return: the path to the dir created
         """
-        path = os.path.join(self.project_links_directory, project_name)
-        list_dir = [(x[0], os.listdir(x[0])) for x in os.walk(path)]
-        print(f"logging... delivery_service _create_links_area_for_project_runfolders path = {path}...list= {list_dir} ")
 
         project_dir = os.path.join(self.project_links_directory, project_name, str(batch_nbr))
         try:
@@ -85,7 +82,13 @@ class DeliveryService(object):
         for project in projects:
             try:
                 link_name = os.path.join(project_dir, project.runfolder_name)
-                self.file_system_service.symlink(project.path, link_name)
+                project_path = project.path
+                if (
+                    os.path.exists(runfolder_path := os.path.join(project.path, project.runfolder_name)) and 
+                    len(os.listdir(project_path)) == 1
+                ):
+                    project_path = runfolder_path
+                self.file_system_service.symlink(project_path, link_name)
             except FileExistsError as e:
                 log.error("Project link: {} already exists".format(project_dir))
                 raise e
@@ -132,7 +135,7 @@ class DeliveryService(object):
                     raise NotImplementedError("This is not a valid state, delivery mode needs to be CLEAN/"
                                               "BATCH/FORCE.")
 
-    def deliver_all_runfolders_for_project(self, project_name, mode):
+    def deliver_all_runfolders_for_project(self, project_name, mode, request_url=None):
         """
         This method will attempt to deliver all runfolders for the specified
         project.
@@ -187,8 +190,6 @@ class DeliveryService(object):
                                                           batch_nbr=batch_nbr)
 
         self.delivery_sources_repo.add_source(source)
-        print(f"logging... delivery_service deliver_all_runfolders_for_project path = {source}...project_name= {project_name},.. source_name= {project_name}/batch{batch_nbr}, links_directory= {links_directory} ")
-
         stage_order = self.staging_service.create_new_stage_order(path=source.path, project_name=project_name)
         self.staging_service.stage_order(stage_order)
         return {source.project_name: stage_order.id}, projects_to_deliver

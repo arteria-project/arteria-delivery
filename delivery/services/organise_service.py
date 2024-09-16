@@ -163,9 +163,6 @@ class OrganiseService(object):
 
         # copy the source file to the organised file destination
         self.file_system_service.copy(project_file.file_path, destination)
-        print(f"logging... organise_project_file destination = {destination}")
-        log.info(f"logging... organise_project_file destination = {destination}")
-        breakpoint()
 
         # return a new RunFolder file object representing the organised file at its new location
         return RunfolderFile(
