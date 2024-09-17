@@ -148,7 +148,7 @@ class StagingService(object):
                                  "external_program_service": self.external_program_service,
                                  "staging_repo": self.staging_repo,
                                  "session_factory": self.session_factory}
-            
+
             if not self.file_system_service.exists(stage_order.staging_target):
                 self.file_system_service.makedirs(stage_order.staging_target)
 
