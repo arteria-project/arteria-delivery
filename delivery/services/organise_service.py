@@ -29,6 +29,7 @@ class OrganiseService(object):
         """
         self.runfolder_service = runfolder_service
         self.file_system_service = file_system_service
+
     def organise_runfolder(self, runfolder_id, lanes, projects, force):
         """
         Organise a runfolder in preparation for delivery. This will create separate subdirectories for each of the
@@ -114,8 +115,7 @@ class OrganiseService(object):
                     sample,
                     organised_project_runfolder_path,
                     lanes))
-        # symlink the project files
-        
+        # symlink the project files    
         organised_project_files = []
         if project.project_files:
             for project_file in project.project_files:

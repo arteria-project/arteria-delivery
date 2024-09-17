@@ -90,6 +90,7 @@ class StagingService(object):
             staging_source_with_trailing_slash = staging_order.source + "/"
             cmd = ['rsync', '--stats', '-r', '--copy-links', '--times',
                    staging_source_with_trailing_slash, staging_order.staging_target]
+            log.debug("Running rsync with command: {}".format(" ".join(cmd)))
             execution = external_program_service.run(cmd)
 
             staging_order.pid = execution.pid
@@ -102,8 +103,8 @@ class StagingService(object):
                 # Parse the file size from the output of rsync stats:
                 # Total file size: 207,707,566 bytes
                 match = re.search(r'Total file size: ([\d,]+) bytes',
-                                 execution_result.stdout,
-                                 re.MULTILINE)
+                                  execution_result.stdout,
+                                  re.MULTILINE)
                 size_of_transfer = match.group(1)
                 size_of_transfer = int(size_of_transfer.replace(",", ""))
                 staging_order.size = size_of_transfer
@@ -147,6 +148,7 @@ class StagingService(object):
                                  "external_program_service": self.external_program_service,
                                  "staging_repo": self.staging_repo,
                                  "session_factory": self.session_factory}
+            
             if not self.file_system_service.exists(stage_order.staging_target):
                 self.file_system_service.makedirs(stage_order.staging_target)
 

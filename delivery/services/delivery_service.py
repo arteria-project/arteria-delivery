@@ -190,6 +190,7 @@ class DeliveryService(object):
                                                           batch_nbr=batch_nbr)
 
         self.delivery_sources_repo.add_source(source)
+
         stage_order = self.staging_service.create_new_stage_order(path=source.path, project_name=project_name)
         self.staging_service.stage_order(stage_order)
         return {source.project_name: stage_order.id}, projects_to_deliver
