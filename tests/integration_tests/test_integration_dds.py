@@ -8,7 +8,7 @@ from tornado.testing import *
 from delivery.models.db_models import StagingStatus, DeliveryStatus
 
 from tests.integration_tests.base import BaseIntegration
-
+from tests.test_utils import unorganised_runfolder
 
 class TestIntegrationDDS(BaseIntegration):
     @gen_test
@@ -178,11 +178,32 @@ class TestIntegrationDDS(BaseIntegration):
                                         prefix='160930_ST-E00216_0555_BH37CWALXX_') as tmpdir1, \
                 tempfile.TemporaryDirectory(dir='./tests/resources/runfolders/',
                                             prefix='160930_ST-E00216_0556_BH37CWALXX_') as tmpdir2:
-            self._create_projects_dir_with_random_data(tmpdir1, 'XYZ_123', os.path.basename(tmpdir1))
-            self._create_projects_dir_with_random_data(tmpdir2, 'XYZ_123', os.path.basename(tmpdir2))
+            # First organise
+            unorganised_runfolder1 = unorganised_runfolder(
+                name=os.path.basename(tmpdir1),
+                root_path=os.path.dirname(tmpdir1))
+            unorganised_runfolder2 = unorganised_runfolder(
+                name=os.path.basename(tmpdir2),
+                root_path=os.path.dirname(tmpdir2))
+            
+            self._create_runfolder_structure_on_disk(unorganised_runfolder1)
+            self._create_runfolder_structure_on_disk(unorganised_runfolder2)
 
-            # First just stage it
-            url = "/".join([self.API_BASE, "stage", "project", 'runfolders', 'XYZ_123'])
+            url = "/".join([self.API_BASE, "organise", "runfolder", unorganised_runfolder1.name])
+            response1 = yield self.http_client.fetch(self.get_url(url), method='POST', body='')
+
+            self.assertEqual(response1.code, 200)
+
+            response_json1 = json.loads(response1.body)
+
+            url = "/".join([self.API_BASE, "organise", "runfolder", unorganised_runfolder2.name])
+            response2 = yield self.http_client.fetch(self.get_url(url), method='POST', body='')
+            self.assertEqual(response2.code, 200)
+
+            response_json2 = json.loads(response2.body)
+
+            # Then just stage it
+            url = "/".join([self.API_BASE, "stage", "project", 'runfolders', 'JKL_123'])
             payload = {'delivery_mode': 'BATCH'}
             response = yield self.http_client.fetch(self.get_url(url), method='POST', body=json.dumps(payload))
             self.assertEqual(response.code, 202)
@@ -200,12 +221,14 @@ class TestIntegrationDDS(BaseIntegration):
             response_json = json.loads(response_forced.body)
 
             staging_status_links = response_json.get("staging_order_links")
+            #TODO: Assert the staged folder structure has only one runfolder folder 
+            print(f"staging_status_links......{staging_status_links}")
 
             # Insert a pause to allow staging to complete
             time.sleep(1)
 
             for project, link in staging_status_links.items():
-                self.assertEqual(project, 'XYZ_123')
+                self.assertEqual(project, 'JKL_123')
 
                 status_response = yield self.http_client.fetch(link)
                 self.assertEqual(json.loads(status_response.body)["status"], StagingStatus.staging_successful.name)
