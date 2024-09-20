@@ -172,6 +172,12 @@ class TestIntegrationDDS(BaseIntegration):
                 status_response = yield self.http_client.fetch(link)
                 self.assertEqual(json.loads(status_response.body)["status"], StagingStatus.staging_successful.name)
 
+    def create_unorganised_test_runfolders(self, tmpdir):
+            return(
+                unorganised_runfolder(
+                name=os.path.basename(tmpdir),
+                root_path=os.path.dirname(tmpdir))
+                                                 )
     @gen_test
     def test_can_stage_and_deliver_force_flowcells(self):
         with tempfile.TemporaryDirectory(dir='./tests/resources/runfolders/',
@@ -179,29 +185,20 @@ class TestIntegrationDDS(BaseIntegration):
                 tempfile.TemporaryDirectory(dir='./tests/resources/runfolders/',
                                             prefix='160930_ST-E00216_0556_BH37CWALXX_') as tmpdir2:
             # First organise
-            unorganised_runfolder1 = unorganised_runfolder(
-                name=os.path.basename(tmpdir1),
-                root_path=os.path.dirname(tmpdir1))
-            unorganised_runfolder2 = unorganised_runfolder(
-                name=os.path.basename(tmpdir2),
-                root_path=os.path.dirname(tmpdir2))
+            unorganised_runfolder1 = self.create_unorganised_test_runfolders(tmpdir1)
+            unorganised_runfolder2 = self.create_unorganised_test_runfolders(tmpdir2)
             
             self._create_runfolder_structure_on_disk(unorganised_runfolder1)
             self._create_runfolder_structure_on_disk(unorganised_runfolder2)
 
             url = "/".join([self.API_BASE, "organise", "runfolder", unorganised_runfolder1.name])
             response1 = yield self.http_client.fetch(self.get_url(url), method='POST', body='')
-
             self.assertEqual(response1.code, 200)
-
-            response_json1 = json.loads(response1.body)
-
+           
             url = "/".join([self.API_BASE, "organise", "runfolder", unorganised_runfolder2.name])
             response2 = yield self.http_client.fetch(self.get_url(url), method='POST', body='')
             self.assertEqual(response2.code, 200)
-
-            response_json2 = json.loads(response2.body)
-
+ 
             # Then just stage it
             url = "/".join([self.API_BASE, "stage", "project", 'runfolders', 'JKL_123'])
             payload = {'delivery_mode': 'BATCH'}
