@@ -119,8 +119,8 @@ class TestIntegrationDDS(BaseIntegration):
                                          prefix='160930_ST-E00216_0555_BH37CWALXX_') as tmpdir1,\
              tempfile.TemporaryDirectory(dir='./tests/resources/runfolders/',
                                          prefix='160930_ST-E00216_0556_BH37CWALXX_') as tmpdir2:
-                self._create_projects_dir_with_random_data(tmpdir1, 'XYZ_123')
-                self._create_projects_dir_with_random_data(tmpdir2, 'XYZ_123')
+                self._create_projects_dir_with_random_data(tmpdir1, 'XYZ_123', os.path.basename(tmpdir1))
+                self._create_projects_dir_with_random_data(tmpdir2, 'XYZ_123', os.path.basename(tmpdir2))
 
                 url = "/".join([self.API_BASE, "stage", "project", 'runfolders', 'XYZ_123'])
                 payload = {'delivery_mode': 'CLEAN'}
@@ -147,12 +147,13 @@ class TestIntegrationDDS(BaseIntegration):
                                          prefix='160930_ST-E00216_0555_BH37CWALXX_') as tmpdir1, \
                 tempfile.TemporaryDirectory(dir='./tests/resources/runfolders/',
                                             prefix='160930_ST-E00216_0556_BH37CWALXX_') as tmpdir2:
-            self._create_projects_dir_with_random_data(tmpdir1, 'XYZ_123')
-            self._create_projects_dir_with_random_data(tmpdir2, 'XYZ_123')
+            self._create_projects_dir_with_random_data(tmpdir1, 'XYZ_123', os.path.basename(tmpdir1))
+            self._create_projects_dir_with_random_data(tmpdir2, 'XYZ_123', os.path.basename(tmpdir2))
 
             url = "/".join([self.API_BASE, "stage", "project", 'runfolders', 'XYZ_123'])
             payload = {'delivery_mode': 'BATCH'}
             response = yield self.http_client.fetch(self.get_url(url), method='POST', body=json.dumps(payload))
+
             self.assertEqual(response.code, 202)
 
             payload = {'delivery_mode': 'BATCH'}
@@ -177,7 +178,7 @@ class TestIntegrationDDS(BaseIntegration):
                 unorganised_runfolder(
                 name=os.path.basename(tmpdir),
                 root_path=os.path.dirname(tmpdir))
-                                                 )
+             )
     @gen_test
     def test_can_stage_and_deliver_force_flowcells(self):
         with tempfile.TemporaryDirectory(dir='./tests/resources/runfolders/',
@@ -199,7 +200,7 @@ class TestIntegrationDDS(BaseIntegration):
             response2 = yield self.http_client.fetch(self.get_url(url), method='POST', body='')
             self.assertEqual(response2.code, 200)
  
-            # Then just stage it
+            # Then stage it
             url = "/".join([self.API_BASE, "stage", "project", 'runfolders', 'JKL_123'])
             payload = {'delivery_mode': 'BATCH'}
             response = yield self.http_client.fetch(self.get_url(url), method='POST', body=json.dumps(payload))
