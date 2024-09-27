@@ -174,15 +174,53 @@ class TestIntegrationDDS(BaseIntegration):
                 self.assertEqual(json.loads(status_response.body)["status"], StagingStatus.staging_successful.name)
 
     def create_unorganised_test_runfolders(self, tmpdir):
-            return(
-                unorganised_runfolder(
+            return unorganised_runfolder(
                 name=os.path.basename(tmpdir),
-                root_path=os.path.dirname(tmpdir))
-             )
+                root_path=os.path.dirname(tmpdir)
+            )
+    
     @gen_test
     def test_can_stage_and_deliver_force_flowcells(self):
         with tempfile.TemporaryDirectory(dir='./tests/resources/runfolders/',
-                                        prefix='160930_ST-E00216_0555_BH37CWALXX_') as tmpdir1, \
+                                         prefix='160930_ST-E00216_0555_BH37CWALXX_') as tmpdir1, \
+                tempfile.TemporaryDirectory(dir='./tests/resources/runfolders/',
+                                            prefix='160930_ST-E00216_0556_BH37CWALXX_') as tmpdir2:
+            self._create_projects_dir_with_random_data(tmpdir1, 'XYZ_123', os.path.basename(tmpdir1))
+            self._create_projects_dir_with_random_data(tmpdir2, 'XYZ_123', os.path.basename(tmpdir2))
+
+            # First just stage it
+            url = "/".join([self.API_BASE, "stage", "project", 'runfolders', 'XYZ_123'])
+            payload = {'delivery_mode': 'BATCH'}
+            response = yield self.http_client.fetch(self.get_url(url), method='POST', body=json.dumps(payload))
+            self.assertEqual(response.code, 202)
+
+            # The it should be denied (since if has already been staged)
+            payload = {'delivery_mode': 'BATCH'}
+            response_failed = yield self.http_client.fetch(self.get_url(url), method='POST', body=json.dumps(payload), raise_error=False)
+            self.assertEqual(response_failed.code, 403)
+
+            # Then it should work once force is specified.
+            payload = {'delivery_mode': 'FORCE'}
+            response_forced = yield self.http_client.fetch(self.get_url(url), method='POST', body=json.dumps(payload))
+            self.assertEqual(response_forced.code, 202)
+
+            response_json = json.loads(response_forced.body)
+
+            staging_status_links = response_json.get("staging_order_links")
+
+            # Insert a pause to allow staging to complete
+            time.sleep(1)
+
+            for project, link in staging_status_links.items():
+                self.assertEqual(project, 'XYZ_123')
+
+                status_response = yield self.http_client.fetch(link)
+                self.assertEqual(json.loads(status_response.body)["status"], StagingStatus.staging_successful.name)
+
+    @gen_test
+    def test_can_organise_stage_and_deliver_force_flowcells(self):
+        with tempfile.TemporaryDirectory(dir='./tests/resources/runfolders/',
+                                         prefix='160930_ST-E00216_0555_BH37CWALXX_') as tmpdir1, \
                 tempfile.TemporaryDirectory(dir='./tests/resources/runfolders/',
                                             prefix='160930_ST-E00216_0556_BH37CWALXX_') as tmpdir2:
             # First organise
@@ -201,17 +239,6 @@ class TestIntegrationDDS(BaseIntegration):
             self.assertEqual(response2.code, 200)
  
             # Then stage it
-            url = "/".join([self.API_BASE, "stage", "project", 'runfolders', 'JKL_123'])
-            payload = {'delivery_mode': 'BATCH'}
-            response = yield self.http_client.fetch(self.get_url(url), method='POST', body=json.dumps(payload))
-            self.assertEqual(response.code, 202)
-
-            # The it should be denied (since if has already been staged)
-            payload = {'delivery_mode': 'BATCH'}
-            response_failed = yield self.http_client.fetch(self.get_url(url), method='POST', body=json.dumps(payload), raise_error=False)
-            self.assertEqual(response_failed.code, 403)
-
-            # Then it should work once force is specified.
             payload = {'delivery_mode': 'FORCE'}
             response_forced = yield self.http_client.fetch(self.get_url(url), method='POST', body=json.dumps(payload))
             self.assertEqual(response_forced.code, 202)
