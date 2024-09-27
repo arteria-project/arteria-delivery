@@ -239,6 +239,7 @@ class TestIntegrationDDS(BaseIntegration):
             self.assertEqual(response2.code, 200)
  
             # Then stage it
+            url = "/".join([self.API_BASE, "stage", "project", 'runfolders', 'JKL_123'])
             payload = {'delivery_mode': 'FORCE'}
             response_forced = yield self.http_client.fetch(self.get_url(url), method='POST', body=json.dumps(payload))
             self.assertEqual(response_forced.code, 202)
