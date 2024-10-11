@@ -1,3 +1,4 @@
+import os
 import json
 import time
 import tempfile
@@ -7,7 +8,7 @@ from tornado.testing import *
 from delivery.models.db_models import StagingStatus, DeliveryStatus
 
 from tests.integration_tests.base import BaseIntegration
-
+from tests.test_utils import unorganised_runfolder
 
 class TestIntegrationDDS(BaseIntegration):
     @gen_test
@@ -118,8 +119,8 @@ class TestIntegrationDDS(BaseIntegration):
                                          prefix='160930_ST-E00216_0555_BH37CWALXX_') as tmpdir1,\
              tempfile.TemporaryDirectory(dir='./tests/resources/runfolders/',
                                          prefix='160930_ST-E00216_0556_BH37CWALXX_') as tmpdir2:
-                self._create_projects_dir_with_random_data(tmpdir1, 'XYZ_123')
-                self._create_projects_dir_with_random_data(tmpdir2, 'XYZ_123')
+                self._create_projects_dir_with_random_data(tmpdir1, 'XYZ_123', os.path.basename(tmpdir1))
+                self._create_projects_dir_with_random_data(tmpdir2, 'XYZ_123', os.path.basename(tmpdir2))
 
                 url = "/".join([self.API_BASE, "stage", "project", 'runfolders', 'XYZ_123'])
                 payload = {'delivery_mode': 'CLEAN'}
@@ -146,12 +147,13 @@ class TestIntegrationDDS(BaseIntegration):
                                          prefix='160930_ST-E00216_0555_BH37CWALXX_') as tmpdir1, \
                 tempfile.TemporaryDirectory(dir='./tests/resources/runfolders/',
                                             prefix='160930_ST-E00216_0556_BH37CWALXX_') as tmpdir2:
-            self._create_projects_dir_with_random_data(tmpdir1, 'XYZ_123')
-            self._create_projects_dir_with_random_data(tmpdir2, 'XYZ_123')
+            self._create_projects_dir_with_random_data(tmpdir1, 'XYZ_123', os.path.basename(tmpdir1))
+            self._create_projects_dir_with_random_data(tmpdir2, 'XYZ_123', os.path.basename(tmpdir2))
 
             url = "/".join([self.API_BASE, "stage", "project", 'runfolders', 'XYZ_123'])
             payload = {'delivery_mode': 'BATCH'}
             response = yield self.http_client.fetch(self.get_url(url), method='POST', body=json.dumps(payload))
+
             self.assertEqual(response.code, 202)
 
             payload = {'delivery_mode': 'BATCH'}
@@ -171,14 +173,20 @@ class TestIntegrationDDS(BaseIntegration):
                 status_response = yield self.http_client.fetch(link)
                 self.assertEqual(json.loads(status_response.body)["status"], StagingStatus.staging_successful.name)
 
+    def create_unorganised_test_runfolders(self, tmpdir):
+            return unorganised_runfolder(
+                name=os.path.basename(tmpdir),
+                root_path=os.path.dirname(tmpdir)
+            )
+    
     @gen_test
     def test_can_stage_and_deliver_force_flowcells(self):
         with tempfile.TemporaryDirectory(dir='./tests/resources/runfolders/',
                                          prefix='160930_ST-E00216_0555_BH37CWALXX_') as tmpdir1, \
                 tempfile.TemporaryDirectory(dir='./tests/resources/runfolders/',
                                             prefix='160930_ST-E00216_0556_BH37CWALXX_') as tmpdir2:
-            self._create_projects_dir_with_random_data(tmpdir1, 'XYZ_123')
-            self._create_projects_dir_with_random_data(tmpdir2, 'XYZ_123')
+            self._create_projects_dir_with_random_data(tmpdir1, 'XYZ_123', os.path.basename(tmpdir1))
+            self._create_projects_dir_with_random_data(tmpdir2, 'XYZ_123', os.path.basename(tmpdir2))
 
             # First just stage it
             url = "/".join([self.API_BASE, "stage", "project", 'runfolders', 'XYZ_123'])
@@ -208,6 +216,52 @@ class TestIntegrationDDS(BaseIntegration):
 
                 status_response = yield self.http_client.fetch(link)
                 self.assertEqual(json.loads(status_response.body)["status"], StagingStatus.staging_successful.name)
+
+    @gen_test
+    def test_can_organise_stage_and_deliver_force_flowcells(self):
+        with tempfile.TemporaryDirectory(dir='./tests/resources/runfolders/',
+                                         prefix='160930_ST-E00216_0555_BH37CWALXX_') as tmpdir1, \
+                tempfile.TemporaryDirectory(dir='./tests/resources/runfolders/',
+                                            prefix='160930_ST-E00216_0556_BH37CWALXX_') as tmpdir2:
+            # First organise
+            unorganised_runfolder1 = self.create_unorganised_test_runfolders(tmpdir1)
+            unorganised_runfolder2 = self.create_unorganised_test_runfolders(tmpdir2)
+            
+            self._create_runfolder_structure_on_disk(unorganised_runfolder1)
+            self._create_runfolder_structure_on_disk(unorganised_runfolder2)
+
+            url = "/".join([self.API_BASE, "organise", "runfolder", unorganised_runfolder1.name])
+            response1 = yield self.http_client.fetch(self.get_url(url), method='POST', body='')
+            self.assertEqual(response1.code, 200)
+           
+            url = "/".join([self.API_BASE, "organise", "runfolder", unorganised_runfolder2.name])
+            response2 = yield self.http_client.fetch(self.get_url(url), method='POST', body='')
+            self.assertEqual(response2.code, 200)
+ 
+            # Then stage it
+            url = "/".join([self.API_BASE, "stage", "project", 'runfolders', 'JKL_123'])
+            payload = {'delivery_mode': 'FORCE'}
+            response_forced = yield self.http_client.fetch(self.get_url(url), method='POST', body=json.dumps(payload))
+            self.assertEqual(response_forced.code, 202)
+
+            response_json = json.loads(response_forced.body)
+
+            staging_status_links = response_json.get("staging_order_links")
+            staging_order_ids = response_json.get("staging_order_ids")
+
+            # Insert a pause to allow staging to complete
+            time.sleep(1)
+
+            for project, link in staging_status_links.items():
+                self.assertEqual(project, 'JKL_123')
+
+                status_response = yield self.http_client.fetch(link)
+                self.assertEqual(json.loads(status_response.body)["status"], StagingStatus.staging_successful.name)
+
+            # Assert the staged folder structure has only one runfolder folder
+            temp_staging_dir = f"/tmp/{staging_order_ids.get('JKL_123')}/JKL_123"
+            for runfolder in os.listdir(temp_staging_dir):
+                self.assertFalse(runfolder in os.listdir(f"{temp_staging_dir}/{runfolder}"))
 
     @gen_test
     def test_can_create_project(self):

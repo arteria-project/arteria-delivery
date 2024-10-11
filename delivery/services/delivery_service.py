@@ -82,7 +82,9 @@ class DeliveryService(object):
         for project in projects:
             try:
                 link_name = os.path.join(project_dir, project.runfolder_name)
-                self.file_system_service.symlink(project.path, link_name)
+                self.file_system_service.symlink(
+                    os.path.join(project.path, project.runfolder_name), link_name
+                )
             except FileExistsError as e:
                 log.error("Project link: {} already exists".format(project_dir))
                 raise e

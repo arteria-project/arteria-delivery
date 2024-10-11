@@ -115,7 +115,7 @@ class OrganiseService(object):
                     sample,
                     organised_project_runfolder_path,
                     lanes))
-        # symlink the project files
+        # symlink the project files    
         organised_project_files = []
         if project.project_files:
             for project_file in project.project_files:
@@ -147,7 +147,6 @@ class OrganiseService(object):
         before organisation
         :param organised_project_path: path where the project will be organised
         """
-
         # the relative path from the project file base to the project file (e.g. plots/filename.png)
         relpath = self.file_system_service.relpath(
             project_file.file_path,
