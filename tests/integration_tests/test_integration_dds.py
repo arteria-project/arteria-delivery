@@ -249,11 +249,6 @@ class TestIntegrationDDS(BaseIntegration):
             staging_status_links = response_json.get("staging_order_links")
             staging_order_ids = response_json.get("staging_order_ids")
 
-            # Assert the staged folder structure has only one runfolder folder
-            temp_staging_dir = f"/tmp/{staging_order_ids.get('JKL_123')}/JKL_123"
-            for runfolder in os.listdir(temp_staging_dir):
-                self.assertFalse(set(runfolder).issuperset(set(os.listdir(f"{temp_staging_dir}/{runfolder}"))))
-            
             # Insert a pause to allow staging to complete
             time.sleep(1)
 
@@ -262,6 +257,11 @@ class TestIntegrationDDS(BaseIntegration):
 
                 status_response = yield self.http_client.fetch(link)
                 self.assertEqual(json.loads(status_response.body)["status"], StagingStatus.staging_successful.name)
+
+            # Assert the staged folder structure has only one runfolder folder
+            temp_staging_dir = f"/tmp/{staging_order_ids.get('JKL_123')}/JKL_123"
+            for runfolder in os.listdir(temp_staging_dir):
+                self.assertFalse(runfolder in os.listdir(f"{temp_staging_dir}/{runfolder}"))
 
     @gen_test
     def test_can_create_project(self):
