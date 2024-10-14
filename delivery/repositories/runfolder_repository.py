@@ -249,8 +249,4 @@ class FileSystemBasedUnorganisedRunfolderRepository(FileSystemBasedRunfolderRepo
         :param project: an instance of Project
         :return: a tuple with the path to the directory containing the report and a list of paths to the report files
         """
-        return self.project_repository.get_report_files(
-            project_path=project.path,
-            project_name=project.name,
-            runfolder=runfolder
-        )
+        return self.project_repository.get_report_files(project, checksums=runfolder.checksums)

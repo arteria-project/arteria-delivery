@@ -13,7 +13,7 @@ from delivery.repositories.sample_repository import RunfolderProjectBasedSampleR
 from delivery.services.file_system_service import FileSystemService
 from delivery.services.metadata_service import MetadataService
 
-from tests.test_utils import UNORGANISED_RUNFOLDER
+from tests.test_utils import README_DIRECTORY, UNORGANISED_RUNFOLDER
 
 
 class TestGeneralProjectRepository(unittest.TestCase):
@@ -41,12 +41,12 @@ class TestUnorganisedRunfolderProjectRepository(unittest.TestCase):
         self.sample_repository = mock.create_autospec(RunfolderProjectBasedSampleRepository)
         self.filesystem_service = mock.create_autospec(FileSystemService)
         self.metadata_service = mock.create_autospec(MetadataService)
-        self.runfolder = UNORGANISED_RUNFOLDER
         self.project_repository = UnorganisedRunfolderProjectRepository(
             sample_repository=self.sample_repository,
-            readme_directory=self.runfolder.path,
+            readme_directory=README_DIRECTORY,
             filesystem_service=self.filesystem_service,
             metadata_service=self.metadata_service)
+        self.runfolder = UNORGANISED_RUNFOLDER
 
     def test_get_report_files(self):
 

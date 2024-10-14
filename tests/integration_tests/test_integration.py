@@ -90,7 +90,8 @@ class TestIntegration(BaseIntegration):
                     MetadataService.hash_file(samplesheet_file))
 
                 for project_file in project.project_files:
-                    relative_path = os.path.relpath(project_file.file_path, project_file.base_path)
+                    project_file_base = os.path.dirname(project.project_files[0].file_path)
+                    relative_path = os.path.relpath(project_file.file_path, project_file_base)
                     organised_project_file_path = os.path.join(organised_path, relative_path)
                     self.assertEqual(
                         os.path.basename(organised_project_file_path),

@@ -101,14 +101,6 @@ class FileSystemService(object):
         :return: None
         """
         try:
-            FileSystemService.makedirs(
-                FileSystemService.dirname(
-                    dest
-                )
-            )
-        except FileExistsError:
-            pass
-        try:
             return shutil.copyfile(source, dest)
         except IsADirectoryError:
             return shutil.copytree(source, dest, symlinks=True)

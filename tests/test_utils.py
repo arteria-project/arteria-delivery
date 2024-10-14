@@ -20,17 +20,14 @@ class MockIOLoop():
     def spawn_callback(self, f, **args):
         f(**args)
 
-
 class TestUtils:
     DUMMY_CONFIG = {"monitored_directory": "/foo"}
-    README_DIRECTORY = "/bar"
 
 
 class DummyConfig:
 
     def __getitem__(self, key):
         return TestUtils.DUMMY_CONFIG[key]
-
 
 fake_directories = ["160930_ST-E00216_0111_BH37CWALXX",
                     "160930_ST-E00216_0112_BH37CWALXX"]
@@ -123,14 +120,7 @@ def runfolder_project(
         runfolder_path=runfolder.path,
         runfolder_name=runfolder.name
     )
-    project_files = project_report_files(project, next(report_type))
-    project_files.append(
-        project_readme_file()
-    )
-    project_files.extend(
-        project_metadata_files(project)
-    )
-    project.project_files = project_files
+    project.project_files = project_report_files(project, next(report_type))
     sample_names = sample_name_generator()
 
     # a straight-forward sample with files on one lane
@@ -282,50 +272,6 @@ def project_report_files(project, report_type):
     ]
 
 
-def project_readme_file():
-    readme_file = os.path.join(
-        "tests",
-        "resources",
-        "readme",
-        "README.md"
-    )
-    return RunfolderFile(
-        file_path=readme_file,
-        base_path=os.path.dirname(readme_file),
-        file_checksum=f"checksum-for-{readme_file}"
-    )
-
-
-def project_metadata_files(project, file_types=None):
-    file_suffixes = [
-        "run",
-        "experiment"
-    ]
-    file_types = file_types or [
-        "xml",
-        "json"
-    ]
-    metadata_path = os.path.join(
-        project.runfolder_path,
-        "metadata"
-    )
-    metadata_files = []
-    for file_type in file_types:
-        for file_suffix in file_suffixes:
-            metadata_file = os.path.join(
-                metadata_path,
-                f"{project.name}-{file_suffix}.{file_type}"
-            )
-            metadata_files.append(
-                RunfolderFile(
-                    file_path=metadata_file,
-                    base_path=project.runfolder_path,
-                    file_checksum=f"checksum-for-{metadata_file}"
-                )
-            )
-    return metadata_files
-
-
 _runfolder1 = Runfolder(name="160930_ST-E00216_0111_BH37CWALXX",
                         path="/foo/160930_ST-E00216_0111_BH37CWALXX")
 
@@ -360,6 +306,7 @@ _runfolder2.projects = [RunfolderProject(name="ABC_123",
 
 FAKE_RUNFOLDERS = [_runfolder1, _runfolder2]
 UNORGANISED_RUNFOLDER = unorganised_runfolder()
+README_DIRECTORY = "/bar"
 
 
 def assert_eventually_equals(self, timeout, f, expected, delay=0.1):
