@@ -140,36 +140,24 @@ class UnorganisedRunfolderProjectRepository(object):
             project_name = os.path.basename(d)
             project_files = []
 
-            # gather report files for the project from the runfolder
             try:
                 project_files.extend(
                     self.get_report_files(
                         project_path,
                         project_name,
                         runfolder,
+                        checksums=runfolder.checksums
                     )
                 )
             except ProjectReportNotFoundException as ex:
                 log.warning(ex)
 
-            # gather the README to include with the project
             try:
                 project_files.extend(
                     self.get_project_readme(
                         project_name=project_name,
                         runfolder=runfolder,
                         with_undetermined=False
-                    )
-                )
-            except ProjectReportNotFoundException as ex:
-                log.warning(ex)
-
-            # gather metadata files for the project from the runfolder
-            try:
-                project_files.extend(
-                    self.get_metadata_files(
-                        project_name=project_name,
-                        runfolder=runfolder
                     )
                 )
             except ProjectReportNotFoundException as ex:
@@ -210,12 +198,7 @@ class UnorganisedRunfolderProjectRepository(object):
                 f"Did not find {self.PROJECTS_DIR} folder for: {runfolder.name}"
             )
 
-    def get_report_files(
-            self,
-            project_path,
-            project_name,
-            runfolder
-    ):
+    def get_report_files(self, project_path, project_name, runfolder, checksums=None):
         """
         Gets the paths to files associated with the supplied project's MultiQC report. This report
         is fetched from seqreports unless there is a MultiQC report directly under the project's
@@ -225,6 +208,8 @@ class UnorganisedRunfolderProjectRepository(object):
         :param project_path: the path to the project folder
         :param project_name: the name of the project
         :param runfolder: a Runfolder instance representing the runfolder containing the project
+        :param checksums: a dict with pre-calculated checksums for files. paths are keys and the
+        corresponding checksum is the value
         :return: a list of RunfolderFile objects representing project report files
         :raises ProjectReportNotFoundException: if no MultiQC report was found for the project
         """
@@ -264,7 +249,7 @@ class UnorganisedRunfolderProjectRepository(object):
                             filesystem_service=self.filesystem_service,
                             metadata_service=self.metadata_service,
                             base_path=report_path,
-                            checksums=runfolder.checksums
+                            checksums=checksums
                         )
                     )
             except FileNotFoundError:
@@ -291,6 +276,7 @@ class UnorganisedRunfolderProjectRepository(object):
             self,
             project_name,
             runfolder,
+            checksums=None,
             with_undetermined=False
     ):
         """
@@ -298,9 +284,11 @@ class UnorganisedRunfolderProjectRepository(object):
 
         :param project_name: the name of the project
         :param runfolder: a Runfolder instance representing the runfolder containing the project
+        :param checksums: a dict with pre-calculated checksums for files. paths are keys and the
+        corresponding checksum is the value
         :param with_undetermined: if True, the README should refer to data that includes
         undetermined reads
-        :return: a list containing a RunfolderFile object representing the README
+        :return: the path to the README file wrapped in a list
         :raises ProjectReportNotFoundException: if the README was not found
         """
         log.info(f"Organising README for {project_name}")
@@ -318,7 +306,7 @@ class UnorganisedRunfolderProjectRepository(object):
                     filesystem_service=self.filesystem_service,
                     metadata_service=self.metadata_service,
                     base_path=self.filesystem_service.dirname(readme_file),
-                    checksums=runfolder.checksums
+                    checksums=checksums
                 )
             ]
         except FileNotFoundError:
@@ -326,42 +314,6 @@ class UnorganisedRunfolderProjectRepository(object):
                 f"{os.path.basename(readme_file)} not found at {os.path.dirname(readme_file)} for "
                 f"{project_name}"
             )
-
-    def get_metadata_files(
-        self,
-        project_name,
-        runfolder
-    ):
-        """
-        Gather the metadata files to be included with the project on delivery
-
-        :param project_name: the name of the project
-        :param runfolder: a Runfolder instance representing the runfolder containing the project
-        :return: a list of RunfolderFile objects representing the gathered metadata files
-        :raises ProjectReportNotFoundException: if the README was not found
-        """
-        log.info(f"Fetching metadata files for {project_name}")
-        metadata_files = [
-            RunfolderFile.create_object_from_path(
-                file_path=metafile,
-                runfolder_path=runfolder.path,
-                filesystem_service=self.filesystem_service,
-                metadata_service=self.metadata_service,
-                base_path=runfolder.path,
-                checksums=runfolder.checksums
-            )
-            for metafile in self.filesystem_service.list_files_recursively(
-                os.path.join(
-                    runfolder.path,
-                    "metadata"
-                )
-            ) if os.path.basename(metafile).startswith(project_name)
-        ]
-        if not metadata_files:
-            raise ProjectReportNotFoundException(
-                f"metadata files could not be found for {project_name}"
-            )
-        return metadata_files
 
     def is_sample_in_project(self, project, sample_project, sample_id, sample_lane):
         """
