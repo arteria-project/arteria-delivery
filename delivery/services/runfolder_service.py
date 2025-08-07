@@ -46,8 +46,11 @@ class RunfolderService(object):
             if project.name in projects_to_return:
                 yield project
 
-    def find_runfolders_for_project(self, project_name):
-        return self.runfolder_repo.get_project(project_name=project_name)
+    def find_runfolders_for_project(self, project_name, exclude_runfolders= []):
+        return self.runfolder_repo.get_project(
+            project_name=project_name,
+            exclude_runfolders_list=exclude_runfolders
+            )
 
     def dump_project_checksums(self, project):
         """

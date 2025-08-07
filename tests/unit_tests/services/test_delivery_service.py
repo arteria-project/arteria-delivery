@@ -235,8 +235,9 @@ class TestDeliveryService(unittest.TestCase):
                              staging_target='/foo/bar',
                              size=1024)
             runfolder_service_mock = mock.create_autospec(RunfolderService)
-
-            def my_project_iterator(project_name):
+            exclude_runfolders = []
+            
+            def my_project_iterator(project_name, exclude_runfolders):
                 for proj in self.runfolder_projects:
                     yield proj
             runfolder_service_mock.find_runfolders_for_project = my_project_iterator
@@ -270,6 +271,57 @@ class TestDeliveryService(unittest.TestCase):
             self.assertEqual(paths,["/foo/160930_ST-E00216_0112_BH37CWALXX/Projects/ABC_123",
                                     "/foo/160930_ST-E00216_0111_BH37CWALXX/Projects/ABC_123"])
 
+
+    def test_deliver_some_runfolders_for_project(self):
+        with tempfile.TemporaryDirectory() as tmpdirname:
+
+            staging_service_mock = mock.create_autospec(StagingService)
+            staging_service_mock.create_new_stage_order.return_value = \
+                StagingOrder(id=1,
+                             source=os.path.join(tmpdirname, "ABC_123", "1"),
+                             status=StagingStatus.pending,
+                             staging_target='/foo/bar',
+                             size=1024)
+            runfolder_service_mock = mock.create_autospec(RunfolderService)
+            exclude_runfolders = ["160930_ST-E00216_0111_BH37CWALXX"]
+            
+            def my_project_iterator(project_name, exclude_runfolders):
+                for proj in self.runfolder_projects:
+                    if proj.runfolder_name in exclude_runfolders:
+                        continue
+                    yield proj
+            runfolder_service_mock.find_runfolders_for_project = my_project_iterator
+
+            delivery_sources_repo_mock = mock.create_autospec(DatabaseBasedDeliverySourcesRepository)
+            delivery_sources_repo_mock.source_exists.return_value = False
+            delivery_sources_repo_mock.find_highest_batch_nbr.return_value = 1
+            delivery_sources_repo_mock.create_source.return_value = \
+                DeliverySource(project_name="ABC_123",
+                               source_name="{}/{}".format(
+                                   "ABC_123",
+                                   "batch1"),
+                               path=self.general_project.path,
+                               batch=1)
+
+            self._compose_delivery_service(runfolder_service=runfolder_service_mock,
+                                           delivery_sources_repo=delivery_sources_repo_mock,
+                                           staging_service=staging_service_mock,
+                                           project_links_dir=tmpdirname)
+
+            projects_and_ids, projects = \
+                self.delivery_service.deliver_all_runfolders_for_project(
+                    project_name="ABC_123", mode=DeliveryMode.CLEAN,
+                    exclude_runfolders=exclude_runfolders
+                )
+
+            self.assertEqual(projects_and_ids["ABC_123"], 1)
+
+            staged_runfolders = list(map(lambda staged_path: staged_path.to_dict(), projects))
+            paths = []
+            for item in staged_runfolders:
+                paths.append(item['path'])
+            self.assertEqual(paths,["/foo/160930_ST-E00216_0112_BH37CWALXX/Projects/ABC_123"])
+            
 
 if __name__ == '__main__':
     unittest.main()
