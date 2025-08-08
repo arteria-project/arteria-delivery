@@ -134,7 +134,8 @@ class TestIntegrationDDS(BaseIntegration):
                 response_json = json.loads(response.body)
 
                 staging_status_links = response_json.get("staging_order_links")
-
+                # Insert a pause to allow staging to complete
+                time.sleep(1)
                 for project, link in staging_status_links.items():
                     self.assertEqual(project, 'XYZ_123')
 
