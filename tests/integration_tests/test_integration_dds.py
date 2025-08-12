@@ -310,6 +310,36 @@ class TestIntegrationDDS(BaseIntegration):
         dds_project_id2 = json.loads(response.body)["dds_project_id"]
 
         self.assertNotEqual(dds_project_id1, dds_project_id2)
+    
+    @gen_test()
+    def test_exclude_runfolder_from_batch_delivery(self):
+        with tempfile.TemporaryDirectory(dir='./tests/resources/runfolders/',
+                                         prefix='160930_ST-E00216_0555_BH37CWALXX_') as tmpdir1, \
+                tempfile.TemporaryDirectory(dir='./tests/resources/runfolders/',
+                                            prefix='160930_ST-E00216_0556_BH37CWALXX_') as tmpdir2:
+            self._create_projects_dir_with_random_data(tmpdir1, 'XYZ_123', os.path.basename(tmpdir1))
+            self._create_projects_dir_with_random_data(tmpdir2, 'XYZ_123', os.path.basename(tmpdir2))
+            
+            url = "/".join([self.API_BASE, "stage", "project", 'runfolders', 'XYZ_123'])
+            exclude_runfolder = [os.path.basename(tmpdir2)]
+            payload = {'delivery_mode': 'BATCH', 'exclude': exclude_runfolder}
+            response = yield self.http_client.fetch(self.get_url(url), method='POST', body=json.dumps(payload))
+
+
+            response_json = json.loads(response.body)
+
+            staging_status_links = response_json.get("staging_order_links")
+            staged_data = response_json.get("staged_data")
+            # assert one runfolder was exluded from staging
+            self.assertEqual(len(staged_data), 1)
+            
+            # Insert a pause to allow staging to complete
+            time.sleep(1)
+            for project, link in staging_status_links.items():
+                self.assertEqual(project, 'XYZ_123')
+
+                status_response = yield self.http_client.fetch(link)
+                self.assertEqual(json.loads(status_response.body)["status"], StagingStatus.staging_successful.name)
 
 
 class TestIntegrationDDSShortWait(BaseIntegration):
@@ -436,69 +466,6 @@ class TestIntegrationDDSShortWait(BaseIntegration):
                             == DeliveryStatus.delivery_failed.name):
                         raise Exception("Delivery failed")
 
-
-    @gen_test(timeout=10)
-    def test_exclude_runfolder_from_batch_delivery(self):
-        with tempfile.TemporaryDirectory(dir='./tests/resources/runfolders/',
-                                         prefix='160930_ST-E00216_0555_BH37CWALXX_') as tmpdir1, \
-                tempfile.TemporaryDirectory(dir='./tests/resources/runfolders/',
-                                            prefix='160930_ST-E00216_0556_BH37CWALXX_') as tmpdir2:
-            self._create_projects_dir_with_random_data(tmpdir1, 'XYZ_123', os.path.basename(tmpdir1))
-            self._create_projects_dir_with_random_data(tmpdir2, 'XYZ_123', os.path.basename(tmpdir2))
-            
-            url = "/".join([self.API_BASE, "stage", "project", 'runfolders', 'XYZ_123'])
-            exclude_runfolder = [os.path.basename(tmpdir2)]
-            payload = {'delivery_mode': 'BATCH', 'exclude': json.dumps(exclude_runfolder)}
-            response = yield self.http_client.fetch(self.get_url(url), method='POST', body=json.dumps(payload))
-
-
-            response_json = json.loads(response.body)
-
-            staging_order_project_and_id = response_json.get("staging_order_ids")
-            staging_status_links = response_json.get("staging_order_links")
-            staged_data = response_json.get("staged_data")
-            # assert one runfolder was exluded from staging
-            self.assertEqual(len(staged_data), 1)
-            
-            for project, link in staging_status_links.items():
-                staging_id = staging_order_project_and_id[project]
-                while True:
-                    # Insert a pause to allow staging to complete
-                    time.sleep(1)
-                    status_response = yield self.http_client.fetch(link)
-                    if json.loads(status_response.body)["status"] == \
-                            StagingStatus.staging_successful.name:
-                        break
-
-                delivery_url = '/'.join([
-                    self.API_BASE, 'deliver', 'stage_id', str(staging_id)])
-                delivery_body = {
-                        'delivery_project_id': 'snpseq00025',
-                        'ngi_project_name': 'XYZ_123',
-                        'dds': True,
-                        'auth_token': '123',
-                        'skip_delivery': False,
-                        }
-
-                delivery_resp = yield self.http_client.fetch(
-                        self.get_url(delivery_url),
-                        method='POST',
-                        body=json.dumps(delivery_body))
-
-                delivery_resp_as_json = json.loads(delivery_resp.body)
-                delivery_link = delivery_resp_as_json['delivery_order_link']
-
-                while True:
-                    # Insert a pause to allow delivery to complete
-                    time.sleep(1)
-                    status_response = yield self.http_client.fetch(
-                            delivery_link)
-                    if (json.loads(status_response.body)["status"]
-                            == DeliveryStatus.delivery_successful.name):
-                        break
-                    elif (json.loads(status_response.body)["status"]
-                            == DeliveryStatus.delivery_failed.name):
-                        raise Exception("Delivery failed")
 
 class TestIntegrationDDSLongWait(BaseIntegration):
     def __init__(self, *args):

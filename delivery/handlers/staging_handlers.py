@@ -57,7 +57,10 @@ class StagingProjectRunfoldersHandler(BaseStagingHandler):
 
             url = "http://molmed-43:8080/api/1.0/stage/project/runfolders/ABC_123"
 
-            payload = {'delivery_mode': 'BATCH'}
+            payload = {
+                'delivery_mode': 'BATCH',
+                'exclude'(optional): [<comma separated list of runfolders to exclude>]
+            }
             headers = {
             'content-type': "application/json",
             }
@@ -78,7 +81,7 @@ class StagingProjectRunfoldersHandler(BaseStagingHandler):
             request_data = {}
 
         requested_delivery_mode = request_data.get("delivery_mode", None)
-        exclude_runfolders = json.loads(request_data.get("exclude", "[]"))
+        exclude_runfolders = request_data.get("exclude", "[]")
         if exclude_runfolders:
             log.info(
                 f"The following runfolders for project: {project_id} will be "
