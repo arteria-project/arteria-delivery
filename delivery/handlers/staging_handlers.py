@@ -81,7 +81,7 @@ class StagingProjectRunfoldersHandler(BaseStagingHandler):
             request_data = {}
 
         requested_delivery_mode = request_data.get("delivery_mode", None)
-        exclude_runfolders = request_data.get("exclude", "[]")
+        exclude_runfolders = request_data.get("exclude", [])
         if exclude_runfolders:
             log.info(
                 f"The following runfolders for project: {project_id} will be "
