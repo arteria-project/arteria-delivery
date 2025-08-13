@@ -131,7 +131,7 @@ class DeliveryService(object):
                     raise NotImplementedError("This is not a valid state, delivery mode needs to be CLEAN/"
                                               "BATCH/FORCE.")
 
-    def deliver_all_runfolders_for_project(self, project_name, mode):
+    def deliver_all_runfolders_for_project(self, project_name, mode, exclude_runfolders=[]):
         """
         This method will attempt to deliver all runfolders for the specified
         project.
@@ -156,9 +156,12 @@ class DeliveryService(object):
 
         :param project_name: of project to deliver
         :param mode: A DeliveryMode
+        :param exclude_runfolders: a list of runfolder names to exclude from the delivery
         :return: a tupple with a dict with {<project name>: <staging order id>}, and the projects
         """
-        projects = list(self.runfolder_service.find_runfolders_for_project(project_name))
+        projects = list(self.runfolder_service.find_runfolders_for_project(
+            project_name, exclude_runfolders
+        ))
 
         if len(projects) < 1:
             raise ProjectNotFoundException("Could not find any Project "

@@ -130,8 +130,10 @@ class FileSystemBasedRunfolderRepository(object):
                 for project in runfolder.projects:
                     yield project
 
-    def get_project(self, project_name):
+    def get_project(self, project_name, exclude_runfolders_list=[]):
         for project in self.get_projects():
+            if project.runfolder_name in exclude_runfolders_list:
+                continue
             if project.name == project_name:
                 yield project
 

@@ -1,5 +1,6 @@
 
 import logging
+import json
 
 from tornado.gen import coroutine
 
@@ -56,7 +57,10 @@ class StagingProjectRunfoldersHandler(BaseStagingHandler):
 
             url = "http://molmed-43:8080/api/1.0/stage/project/runfolders/ABC_123"
 
-            payload = {'delivery_mode': 'BATCH'}
+            payload = {
+                'delivery_mode': 'BATCH',
+                'exclude'(optional): [<comma separated list of runfolders to exclude>]
+            }
             headers = {
             'content-type': "application/json",
             }
@@ -77,11 +81,21 @@ class StagingProjectRunfoldersHandler(BaseStagingHandler):
             request_data = {}
 
         requested_delivery_mode = request_data.get("delivery_mode", None)
+        exclude_runfolders = request_data.get("exclude", [])
+        if exclude_runfolders:
+            log.info(
+                f"The following runfolders for project: {project_id} will be "
+                f"excluded from staging and thus from delivery; {exclude_runfolders}"
+            )
+
         try:
             delivery_mode = DeliveryMode[requested_delivery_mode]
             log.info("Will attempt to stage runfolders for project {} with type {}".format(project_id, delivery_mode))
 
-            project_and_stage_id, projects = self.delivery_service.deliver_all_runfolders_for_project(project_id, delivery_mode)
+            project_and_stage_id, projects = \
+                self.delivery_service.deliver_all_runfolders_for_project(
+                    project_id, delivery_mode, exclude_runfolders
+                )
             links, staging_ids_ids = self._construct_response_from_project_and_status(project_and_stage_id)
             project_and_staged_id_dict = list(map(lambda project: project.to_dict(), projects))
 
