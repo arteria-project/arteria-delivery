@@ -185,42 +185,60 @@ def unorganised_runfolder(name="180124_A00181_0019_BH72M5DMXX", root_path="/foo"
     return runfolder
 
 
-def samplesheet_data_for_runfolder(runfolder):
-    samplesheet_data_headers = [
+def samplesheet_data_for_runfolder(runfolder, demultiplexer):
+    if demultiplexer == "bcl2fastq":
+        samplesheet_data_headers = [
+            "Lane",
+            "Sample_ID",
+            "Sample_Name",
+            "Sample_Plate",
+            "Sample_Well",
+            "index",
+            "Sample_Project",
+            "Description"
+        ]
+    elif demultiplexer == "bclconvert":
+        samplesheet_data_headers = [
         "Lane",
         "Sample_ID",
-        "Sample_Name",
-        "Sample_Plate",
-        "Sample_Well",
-        "index",
+        "Index",
+        "Index2",
         "Sample_Project",
-        "Description"
+        "OverrideCycles",
+        "custom_Description"
     ]
     samplesheet_data = []
-    for project in runfolder.projects:
-        for sample in project.samples:
-            for sample_file in sample.sample_files:
-                if sample_file.read_no == 1 and not sample_file.is_index:
-                    samplesheet_data.append(
-                        OrderedDict(zip(
-                            samplesheet_data_headers,
-                            [
-                                str(sample_file.lane_no),
-                                sample.sample_id,
-                                sample_file.sample_name,
-                                str(),
-                                str(),
-                                "index_seq_{}".format(sample_file.sample_index),
-                                project.name,
-                                "PROJECT:{};SAMPLE:{};LANE:{};INDEX:{}".format(
-                                    project.name,
-                                    sample.name,
-                                    str(sample_file.lane_no),
-                                    sample_file.sample_index)])))
+    [
+        samplesheet_data.append(
+            get_samplesheet_row(demultiplexer, samplesheet_data_headers, 
+                                sample_file, sample, project)
+        )
+        for project in runfolder.projects
+        for sample in project.samples
+        for sample_file in sample.sample_files
+        if sample_file.read_no == 1 and not sample_file.is_index
+    ]
     return samplesheet_data
 
+def get_samplesheet_row(demultiplexer, samplesheet_data_headers, sample_file, sample, project):
+    if demultiplexer == "bcl2fastq":
+        data = [
+            str(sample_file.lane_no), sample.sample_id, sample_file.sample_name,
+            str(), str(), "index_seq_{}".format(sample_file.sample_index), project.name,
+            f"PROJECT:{project.name};SAMPLE:{sample.name};\
+                LANE:{str(sample_file.lane_no)};INDEX:{sample_file.sample_index}"
+        ]
+    elif demultiplexer == "bclconvert":
+        data = [
+            str(sample_file.lane_no), sample.sample_id, f"index_seq_{sample_file.sample_index}",
+            "index_seq_{sample_file.sample_index}",project.name,str(),
+            f"PROJECT:{project.name};SAMPLE:{sample.name};\
+                LANE:{str(sample_file.lane_no)};INDEX:{sample_file.sample_index}"
+        ]
 
-def samplesheet_file_from_runfolder(runfolder):
+    return OrderedDict(zip(samplesheet_data_headers, data))
+
+def samplesheet_file_from_runfolder(runfolder, demultiplexer="bcl2fastq"):
     header_stuff = """[Header],,,,,,,,
 IEMFileVersion,4,,,,,,,
 Experiment Name,Hiseq-2500-single-index,,,,,,,
@@ -240,9 +258,13 @@ FlagPCRDuplicates,1,,,,,,,
 Adapter,,,,,,,,
 AdapterRead2,,,,,,,,
 ,,,,,,,,
-[Data],,,,,,,,
+
 """
-    samplesheet_data = samplesheet_data_for_runfolder(runfolder)
+    if demultiplexer == "bcl2fastq":
+        header_stuff = header_stuff + "[Data],,,,,,,,\n"
+    elif demultiplexer == "bclconvert":
+        header_stuff = header_stuff + "[BCLConvert_Data],,,,,,,,\n"
+    samplesheet_data = samplesheet_data_for_runfolder(runfolder, demultiplexer)
     samplesheet_file = os.path.join(runfolder.path, "SampleSheet.csv")
     with open(samplesheet_file, "w") as fh:
         fh.write(header_stuff)

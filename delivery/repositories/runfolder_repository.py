@@ -12,7 +12,10 @@ from delivery.services.metadata_service import MetadataService
 
 log = logging.getLogger(__name__)
 
-
+SAMPLESHEET_DATA_HEADERS_DICT = {
+    'bcl2fastq': '[Data]',
+    'bclconvert': '[BCLConvert_Data]'
+}
 class FileSystemBasedRunfolderRepository(object):
     """
     Uses the file system as a source of truth for information about what runfolders are available.
@@ -143,8 +146,10 @@ class FileSystemBasedRunfolderRepository(object):
     def checksum_file(self, runfolder):
         return os.path.join(runfolder.path, self.CHECKSUM_FILE_PATH)
 
-    def get_samplesheet(self, runfolder):
-        return self.metadata_service.extract_samplesheet_data(self.samplesheet_file(runfolder))
+    def get_samplesheet(self, runfolder, samplesheet_data_header):
+        return self.metadata_service.extract_samplesheet_data(
+            self.samplesheet_file(runfolder, samplesheet_data_header)
+        )
 
 
 class FileSystemBasedUnorganisedRunfolderRepository(FileSystemBasedRunfolderRepository):
@@ -185,9 +190,9 @@ class FileSystemBasedUnorganisedRunfolderRepository(FileSystemBasedRunfolderRepo
         """
         return self.project_repository.dump_checksums(project)
 
-    def dump_project_samplesheet(self, runfolder, project):
+    def dump_project_samplesheet(self, runfolder, project, demultiplexer):
         """
-        Parses the SampleSheet from the supplied runfolder and extracts the rows in the [Data] section relevant to
+        Parses the SampleSheet from the supplied runfolder and extracts the rows in the data section relevant to
         the samples in the supplied project. The extracted data are written to a samplesheet file under the project
         path. Rows not belonging to the project are masked by hashing. The reason for this is to keep the numbering
         of fastq files untouched, i.e. the "_S1_", "_S2_" parts of the fastq file name should still refer to the correct
@@ -195,6 +200,7 @@ class FileSystemBasedUnorganisedRunfolderRepository(FileSystemBasedRunfolderRepo
 
         :param runfolder: an instance of Runfolder
         :param project: an instance of Project
+        :param demultiplexer: the demultiplexer used to generate the data (e.g. bcl2fastq, bclconvert)
         :return: a RunfolderFile object representing the written samplesheet file
         """
         def _samplesheet_entry_in_project(e):
@@ -228,14 +234,15 @@ class FileSystemBasedUnorganisedRunfolderRepository(FileSystemBasedRunfolderRepo
                     masked_entry[key] = self.metadata_service.hash_string(val)
             return masked_entry
 
-        samplesheet_data = self.get_samplesheet(runfolder)
+        samplesheet_data = self.get_samplesheet(runfolder, SAMPLESHEET_DATA_HEADERS_DICT[demultiplexer])
         # mask all entries not belonging to the project and write the resulting data to the
         # project-specific location
         project_samplesheet_data = list(map(_mask_samplesheet_entry, samplesheet_data))
         project_samplesheet_file = os.path.join(project.path, runfolder.name, self.SAMPLESHEET_PATH)
         self.metadata_service.write_samplesheet_file(
             project_samplesheet_file,
-            project_samplesheet_data
+            project_samplesheet_data,
+            SAMPLESHEET_DATA_HEADERS_DICT[demultiplexer]
         )
         return RunfolderFile(
             project_samplesheet_file,
