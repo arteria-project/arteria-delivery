@@ -148,7 +148,7 @@ class FileSystemBasedRunfolderRepository(object):
 
     def get_samplesheet(self, runfolder, samplesheet_data_header):
         return self.metadata_service.extract_samplesheet_data(
-            self.samplesheet_file(runfolder, samplesheet_data_header)
+            self.samplesheet_file(runfolder), samplesheet_data_header
         )
 
 

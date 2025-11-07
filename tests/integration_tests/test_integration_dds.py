@@ -231,14 +231,15 @@ class TestIntegrationDDS(BaseIntegration):
             unorganised_runfolder2 = self.create_unorganised_test_runfolders(tmpdir2)
             
             self._create_runfolder_structure_on_disk(unorganised_runfolder1)
-            self._create_runfolder_structure_on_disk(unorganised_runfolder2)
+            self._create_runfolder_structure_on_disk(unorganised_runfolder2, "bclconvert")
 
             url = "/".join([self.API_BASE, "organise", "runfolder", unorganised_runfolder1.name])
             response1 = yield self.http_client.fetch(self.get_url(url), method='POST', body='')
             self.assertEqual(response1.code, 200)
            
             url = "/".join([self.API_BASE, "organise", "runfolder", unorganised_runfolder2.name])
-            response2 = yield self.http_client.fetch(self.get_url(url), method='POST', body='')
+            payload = {'demultiplexer': 'bclconvert'}
+            response2 = yield self.http_client.fetch(self.get_url(url), method='POST', body=json.dumps(payload))
             self.assertEqual(response2.code, 200)
  
             # Then stage it
