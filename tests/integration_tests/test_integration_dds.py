@@ -354,7 +354,6 @@ class TestIntegrationDDS(BaseIntegration):
             url = "/".join([self.API_BASE, "stage", "project", 'runfolders', 'XYZ_123'])
             exclude_runfolder = [os.path.basename(tmpdir1), os.path.basename(tmpdir2)]
             payload = {'delivery_mode': 'FORCE', 'exclude': exclude_runfolder}
-            from delivery.exceptions import ProjectNotFoundException
             with self.assertRaises(Exception) as e:
                 yield self.http_client.fetch(
                     self.get_url(url), method='POST', body=json.dumps(payload)
