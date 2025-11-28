@@ -71,7 +71,7 @@ class BaseIntegration(AsyncHTTPTestCase):
         checksum_file = os.path.join(runfolder.path, "MD5", "checksums.md5")
         os.mkdir(os.path.dirname(checksum_file))
         MetadataService.write_checksum_file(checksum_file, runfolder.checksums)
-        samplesheet_file_from_runfolder(runfolder,demultiplexer)
+        samplesheet_file_from_runfolder(runfolder, demultiplexer)
 
     API_BASE = "/api/1.0"
 

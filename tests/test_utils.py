@@ -10,7 +10,8 @@ from delivery.models.project import RunfolderProject
 from delivery.models.runfolder import Runfolder, RunfolderFile
 from delivery.models.sample import SampleFile, Sample
 from delivery.services.metadata_service import MetadataService
-
+from delivery.repositories.runfolder_repository import SAMPLESHEET_DATA_HEADERS_DICT
+import random
 
 class MockIOLoop():
 
@@ -62,6 +63,9 @@ def sample_name_generator():
 def sample_index_generator():
     yield from _item_generator(prefix="S")
 
+def random_index_generator():
+    base_letters =['A','T','G','C']
+    yield "".join(["".join(random.choices(base_letters, k=8))])
 
 def lane_generator():
     yield from _item_generator()
@@ -221,19 +225,18 @@ def samplesheet_data_for_runfolder(runfolder, demultiplexer):
     return samplesheet_data
 
 def get_samplesheet_row(demultiplexer, samplesheet_data_headers, sample_file, sample, project):
+    indexes = next(random_index_generator())
     if demultiplexer == "bcl2fastq":
         data = [
             str(sample_file.lane_no), sample.sample_id, sample_file.sample_name,
-            str(), str(), "index_seq_{}".format(sample_file.sample_index), project.name,
-            f"PROJECT:{project.name};SAMPLE:{sample.name};\
-                LANE:{str(sample_file.lane_no)};INDEX:{sample_file.sample_index}"
+            str(), str(), indexes, project.name, f"PROJECT:{project.name};SAMPLE:{sample.name};"
+                f"LANE:{str(sample_file.lane_no)};INDEX:{sample_file.sample_index}"
         ]
     elif demultiplexer == "bclconvert":
         data = [
-            str(sample_file.lane_no), sample.sample_id, f"index_seq_{sample_file.sample_index}",
-            "index_seq_{sample_file.sample_index}",project.name,str(),
-            f"PROJECT:{project.name};SAMPLE:{sample.name};\
-                LANE:{str(sample_file.lane_no)};INDEX:{sample_file.sample_index}"
+            str(sample_file.lane_no), sample.sample_id, sample_file.sample_index,
+            indexes, project.name, str(), f"PROJECT:{project.name};SAMPLE:{sample.name};"
+                f"LANE:{str(sample_file.lane_no)};INDEX:{sample_file.sample_index}"
         ]
 
     return OrderedDict(zip(samplesheet_data_headers, data))
@@ -260,10 +263,7 @@ AdapterRead2,,,,,,,,
 ,,,,,,,,
 
 """
-    if demultiplexer == "bcl2fastq":
-        header_stuff = header_stuff + "[Data],,,,,,,,\n"
-    elif demultiplexer == "bclconvert":
-        header_stuff = header_stuff + "[BCLConvert_Data],,,,,,,,\n"
+    header_stuff = header_stuff + SAMPLESHEET_DATA_HEADERS_DICT[demultiplexer] + ",,,,,,,,\n"
     samplesheet_data = samplesheet_data_for_runfolder(runfolder, demultiplexer)
     samplesheet_file = os.path.join(runfolder.path, "SampleSheet.csv")
     with open(samplesheet_file, "w") as fh:

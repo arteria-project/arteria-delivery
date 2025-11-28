@@ -16,6 +16,8 @@ SAMPLESHEET_DATA_HEADERS_DICT = {
     'bcl2fastq': '[Data]',
     'bclconvert': '[BCLConvert_Data]'
 }
+
+
 class FileSystemBasedRunfolderRepository(object):
     """
     Uses the file system as a source of truth for information about what runfolders are available.
