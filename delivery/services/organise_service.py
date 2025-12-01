@@ -30,7 +30,7 @@ class OrganiseService(object):
         self.runfolder_service = runfolder_service
         self.file_system_service = file_system_service
 
-    def organise_runfolder(self, runfolder_id, lanes, projects, force):
+    def organise_runfolder(self, runfolder_id, lanes, projects, force, demultiplexer):
         """
         Organise a runfolder in preparation for delivery. This will create separate subdirectories for each of the
         projects and symlink all files belonging to the project to be delivered under this directory.
@@ -39,6 +39,7 @@ class OrganiseService(object):
         :param lanes: if not None, only samples on any of the specified lanes will be organised
         :param projects: if not None, only projects in this list will be organised
         :param force: if True, a previously organised project will be renamed with a unique suffix
+        :param demultiplexer: the demultiplexer used to generate the data (e.g. bcl2fastq, bclconvert)
         :raises ProjectAlreadyOrganisedException: if a project has already been organised and force is False
         :return: a Runfolder instance representing the runfolder after organisation
         """
@@ -55,7 +56,9 @@ class OrganiseService(object):
         # organise the projects and return a new Runfolder instance
         organised_projects = []
         for project in projects_on_runfolder:
-            organised_projects.append(self.organise_project(runfolder, project, organised_projects_path, lanes))
+            organised_projects.append(self.organise_project(
+                runfolder, project, organised_projects_path, lanes, demultiplexer
+            ))
 
         return Runfolder(
             runfolder.name,
@@ -79,7 +82,7 @@ class OrganiseService(object):
                 self.file_system_service.mkdir(organised_projects_backup_path)
             self.file_system_service.rename(organised_project_path, backup_path)
 
-    def organise_project(self, runfolder, project, organised_projects_path, lanes):
+    def organise_project(self, runfolder, project, organised_projects_path, lanes, demultiplexer):
         """
         Organise a project on a runfolder into its own directory and into a standard structure. If
         the project has already been organised, a ProjectAlreadyOrganisedException will be raised.
@@ -88,6 +91,7 @@ class OrganiseService(object):
         belongs
         :param project: a Project instance representing the project to be organised
         :param lanes: if not None, only samples on any of the specified lanes will be organised fix
+        :param demultiplexer: the demultiplexer used to generate the data (e.g. bcl2fastq, bclconvert)
         :raises ProjectAlreadyOrganisedException: if project has already been organised
         :return: a Project instance representing the project after organisation
         """
@@ -118,7 +122,8 @@ class OrganiseService(object):
         organised_project_files.append(
             self.runfolder_service.dump_project_samplesheet(
                 runfolder,
-                organised_project)
+                organised_project,
+                demultiplexer)
         )
         organised_project.project_files = organised_project_files
         self.runfolder_service.dump_project_checksums(organised_project)

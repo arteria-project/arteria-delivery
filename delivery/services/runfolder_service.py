@@ -64,18 +64,19 @@ class RunfolderService(object):
         """
         return self.runfolder_repo.dump_project_checksums(project)
 
-    def dump_project_samplesheet(self, runfolder, project):
+    def dump_project_samplesheet(self, runfolder, project, demultiplexer):
         """
         Calls the `FileSystemBasedUnorganisedRunfolderRepository` instance associated with this service to write a
         samplesheet only including the supplied project.
 
         :param runfolder: an instance of Runfolder
         :param project: an instance of Project
+        :param demultiplexer: the demultiplexer used to generate the data (e.g. bcl2fastq, bclconvert)
         :return: the path to the created samplesheet file
         :raises NotImplementedError: if the runfolder repo instance is not a
         `FileSystemBasedUnorganisedRunfolderRepository`
         """
-        return self.runfolder_repo.dump_project_samplesheet(runfolder, project)
+        return self.runfolder_repo.dump_project_samplesheet(runfolder, project, demultiplexer)
 
     def get_project_report_files(self, runfolder, project):
         """

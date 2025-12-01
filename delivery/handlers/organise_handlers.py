@@ -56,6 +56,7 @@ class OrganiseRunfolderHandler(BaseOrganiseHandler):
         force = request_data.get("force", False)
         lanes = request_data.get("lanes", [])
         projects = request_data.get("projects", [])
+        demultiplexer = request_data.get("demultiplexer", "bcl2fastq")
 
         if any([force, lanes, projects]):
             log.info(
@@ -63,7 +64,9 @@ class OrganiseRunfolderHandler(BaseOrganiseHandler):
                     [force, lanes, projects]))
 
         try:
-            organised_runfolder = self.organise_service.organise_runfolder(runfolder_id, lanes, projects, force)
+            organised_runfolder = self.organise_service.organise_runfolder(
+                runfolder_id, lanes, projects, force, demultiplexer
+            )
 
             self.set_status(OK)
             self.write_json({
