@@ -105,7 +105,7 @@ class StagingProjectRunfoldersHandler(BaseStagingHandler):
                              'staged_data': project_and_staged_id_dict})
         except ProjectNotFoundException as e:
             log.warning("Request issued for non-existent project {}".format(project_id))
-            self.set_status(NOT_FOUND, reason=e.msg)
+            self.set_status(NOT_FOUND, reason=str(e))
         except ProjectAlreadyDeliveredException as e:
             log.warning("Project: {} has already been delivered, and is not compatible "
                         "with delivery mode: {}".format(project_id, delivery_mode))
