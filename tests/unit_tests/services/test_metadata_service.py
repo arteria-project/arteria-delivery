@@ -21,7 +21,17 @@ class TestMetadataService(unittest.TestCase):
     def test_extract_samplesheet_data(self):
         runfolder = test_utils.unorganised_runfolder(self.rootdir)
         samplesheet_file, samplesheet_data = test_utils.samplesheet_file_from_runfolder(runfolder)
-        self.assertListEqual(samplesheet_data, self.metadata_service.extract_samplesheet_data(samplesheet_file))
+        self.assertListEqual(samplesheet_data, self.metadata_service.extract_samplesheet_data(
+            samplesheet_file, '[Data]'
+        ))
+
+    def test_extract_bclconvert_samplesheet_data(self):
+        runfolder = test_utils.unorganised_runfolder(self.rootdir)
+        samplesheet_file, samplesheet_data = test_utils.samplesheet_file_from_runfolder(runfolder, "bclconvert")
+
+        self.assertListEqual(samplesheet_data, self.metadata_service.extract_samplesheet_data(
+            samplesheet_file, '[BCLConvert_Data]'
+        ))
 
     def test_hash_string(self):
         expected_results = (

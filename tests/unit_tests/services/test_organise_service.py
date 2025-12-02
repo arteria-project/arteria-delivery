@@ -41,14 +41,16 @@ class TestOrganiseService(unittest.TestCase):
             lanes = [1, 2, 3]
             projects = ["a", "b", "c"]
             force = False
-            self.organise_service.organise_runfolder(runfolder_id, lanes, projects, force)
+            demultiplexer = "bclconvert"
+            self.organise_service.organise_runfolder(runfolder_id, lanes, projects, force, demultiplexer)
             organise_project_mock.assert_called_once_with(
                 self.runfolder,
                 self.project,
                 os.path.dirname(
                     os.path.dirname(
                         self.organised_project_path)),
-                lanes)
+                lanes,
+                demultiplexer)
 
     def test_check_previously_organised_project(self):
         organised_project_base_path = os.path.dirname(self.organised_project_path)
@@ -84,15 +86,15 @@ class TestOrganiseService(unittest.TestCase):
             organise_project_mock.return_value = expected_organised_project
             self.runfolder_service.find_projects_on_runfolder.side_effect = [[self.project], [self.project]]
             runfolder_id = self.runfolder.name
-
+            demultiplexer = "bcl2fastq"
             # without force
             self.assertRaises(
                 ProjectAlreadyOrganisedException,
                 self.organise_service.organise_runfolder,
-                runfolder_id, [], [], False)
+                runfolder_id, [], [], False, demultiplexer)
 
             # with force
-            organised_runfolder = self.organise_service.organise_runfolder(runfolder_id, [], [], True)
+            organised_runfolder = self.organise_service.organise_runfolder(runfolder_id, [], [], True, demultiplexer)
             self.assertEqual(self.runfolder.name, organised_runfolder.name)
             self.assertEqual(self.runfolder.path, organised_runfolder.path)
             self.assertEqual(self.runfolder.checksums, organised_runfolder.checksums)
@@ -106,7 +108,9 @@ class TestOrganiseService(unittest.TestCase):
             self.file_system_service.dirname.side_effect = os.path.dirname
             lanes = [1, 2, 3]
             organised_projects_path = os.path.join(self.project.runfolder_path, "Projects")
-            self.organise_service.organise_project(self.runfolder, self.project, organised_projects_path, lanes)
+            self.organise_service.organise_project(
+                self.runfolder, self.project, organised_projects_path, lanes, "bcl2fastq"
+            )
             organise_sample_mock.assert_has_calls([
                 mock.call(
                     sample,

@@ -231,14 +231,15 @@ class TestIntegrationDDS(BaseIntegration):
             unorganised_runfolder2 = self.create_unorganised_test_runfolders(tmpdir2)
             
             self._create_runfolder_structure_on_disk(unorganised_runfolder1)
-            self._create_runfolder_structure_on_disk(unorganised_runfolder2)
+            self._create_runfolder_structure_on_disk(unorganised_runfolder2, "bclconvert")
 
             url = "/".join([self.API_BASE, "organise", "runfolder", unorganised_runfolder1.name])
             response1 = yield self.http_client.fetch(self.get_url(url), method='POST', body='')
             self.assertEqual(response1.code, 200)
            
             url = "/".join([self.API_BASE, "organise", "runfolder", unorganised_runfolder2.name])
-            response2 = yield self.http_client.fetch(self.get_url(url), method='POST', body='')
+            payload = {'demultiplexer': 'bclconvert'}
+            response2 = yield self.http_client.fetch(self.get_url(url), method='POST', body=json.dumps(payload))
             self.assertEqual(response2.code, 200)
  
             # Then stage it
@@ -340,6 +341,28 @@ class TestIntegrationDDS(BaseIntegration):
 
                 status_response = yield self.http_client.fetch(link)
                 self.assertEqual(json.loads(status_response.body)["status"], StagingStatus.staging_successful.name)
+
+    @gen_test()
+    def test_exclude_allrunfolders_from_batch_delivery(self):
+        """Should raise an exception since all runfolders are excluded"""
+        with tempfile.TemporaryDirectory(dir='./tests/resources/runfolders/',
+                                         prefix='160930_ST-E00216_0555_BH37CWALXX_') as tmpdir1, \
+                tempfile.TemporaryDirectory(dir='./tests/resources/runfolders/',
+                                            prefix='160930_ST-E00216_0556_BH37CWALXX_') as tmpdir2:
+            self._create_projects_dir_with_random_data(tmpdir1, 'XYZ_123', os.path.basename(tmpdir1))
+            self._create_projects_dir_with_random_data(tmpdir2, 'XYZ_123', os.path.basename(tmpdir2))
+            
+            url = "/".join([self.API_BASE, "stage", "project", 'runfolders', 'XYZ_123'])
+            exclude_runfolder = [os.path.basename(tmpdir1), os.path.basename(tmpdir2)]
+            payload = {'delivery_mode': 'FORCE', 'exclude': exclude_runfolder}
+            with self.assertRaises(Exception) as e:
+                yield self.http_client.fetch(
+                    self.get_url(url), method='POST', body=json.dumps(payload)
+                )
+            self.assertEqual(
+                str(e.exception), 
+                "HTTP 404: Could not find any Project folders for project name: XYZ_123"
+                )
 
 
 class TestIntegrationDDSShortWait(BaseIntegration):
